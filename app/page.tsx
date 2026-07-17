@@ -45,7 +45,7 @@ export default function Home() {
           <div className="nav-group nav-left">
             <a href="#torikumi">取組</a>
             <a href="#banzuke">番付</a>
-            <a href="#rikishi">力士名鑑</a>
+            <a href="/rate">レート</a>
           </div>
 
           <a className="brand" href="#top" aria-label="土俵日和 ホーム">
@@ -65,7 +65,7 @@ export default function Home() {
             <div className="mobile-menu-panel">
               <a href="#torikumi">取組</a>
               <a href="#banzuke">番付</a>
-              <a href="#rikishi">力士名鑑</a>
+              <a href="/rate">レート</a>
               <a href="#culture">相撲文化</a>
               <a href="#stories">読み物</a>
             </div>
