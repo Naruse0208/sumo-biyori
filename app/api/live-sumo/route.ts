@@ -19,6 +19,7 @@ type UpstreamRikishi = {
   banzuke_name?: string;
   won_number?: number;
   lost_number?: number;
+  banzuke_ew?: 1 | 2;
 };
 
 type UpstreamBout = {
@@ -45,6 +46,8 @@ type LiveBout = {
   westProfileUrl: string | null;
   eastRank: string;
   westRank: string;
+  eastBanzukeSide: "east" | "west" | null;
+  westBanzukeSide: "east" | "west" | null;
   eastScore: string;
   westScore: string;
   winner: "east" | "west" | null;
@@ -117,6 +120,11 @@ type LiveSourceSnapshot = {
 };
 
 let sourceCache: { expiresAt: number; value: LiveSourceSnapshot } | null = null;
+let banzukeCache: {
+  bashoId: number;
+  rows: LiveBanzukeRow[];
+  sides: Map<number, 1 | 2>;
+} | null = null;
 const responseCache = new Map<string, LiveResponse>();
 const profileNameCache = new Map<number, string>();
 
@@ -221,6 +229,8 @@ function mapBout(bout: UpstreamBout, status: LiveBoutStatus): LiveBout {
     westProfileUrl: profileUrl(bout.west?.rikishi_id),
     eastRank: bout.east?.banzuke_name ?? "東",
     westRank: bout.west?.banzuke_name ?? "西",
+    eastBanzukeSide: bout.east?.banzuke_ew === 1 ? "east" : bout.east?.banzuke_ew === 2 ? "west" : null,
+    westBanzukeSide: bout.west?.banzuke_ew === 1 ? "east" : bout.west?.banzuke_ew === 2 ? "west" : null,
     eastScore: `${bout.east?.won_number ?? 0}勝${bout.east?.lost_number ?? 0}敗`,
     westScore: `${bout.west?.won_number ?? 0}勝${bout.west?.lost_number ?? 0}敗`,
     winner: judge === 1 ? "east" : judge === 2 ? "west" : null,
@@ -229,8 +239,11 @@ function mapBout(bout: UpstreamBout, status: LiveBoutStatus): LiveBout {
   };
 }
 
-async function fetchMakuuchiBanzuke(bashoId: number): Promise<LiveBanzukeRow[]> {
-  const response = await fetch("https://www.sumo.or.jp/ResultBanzuke/tableAjax/1/1/", {
+async function fetchBanzukeDivision(
+  bashoId: number,
+  divisionId: number,
+): Promise<UpstreamBanzukeRikishi[]> {
+  const response = await fetch(`https://www.sumo.or.jp/ResultBanzuke/tableAjax/${divisionId}/1/`, {
     method: "POST",
     cache: "no-store",
     headers: {
@@ -243,17 +256,19 @@ async function fetchMakuuchiBanzuke(bashoId: number): Promise<LiveBanzukeRow[]> 
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
       "X-Requested-With": "XMLHttpRequest",
     },
-    body: new URLSearchParams({ kakuzuke_id: "1", basho_id: String(bashoId), page: "1" }),
+    body: new URLSearchParams({ kakuzuke_id: String(divisionId), basho_id: String(bashoId), page: "1" }),
   });
   if (!response.ok) throw new Error(`Official banzuke request failed: ${response.status}`);
 
   const payload = (await response.json()) as UpstreamBanzukePayload;
-  const wrestlers = Array.isArray(payload.BanzukeTable)
-    ? payload.BanzukeTable.filter((item) => Number(item.rank ?? 999) <= 400)
-    : [];
+  return Array.isArray(payload.BanzukeTable) ? payload.BanzukeTable : [];
+}
+
+function mapMakuuchiBanzuke(wrestlers: UpstreamBanzukeRikishi[]): LiveBanzukeRow[] {
+  const topDivision = wrestlers.filter((item) => Number(item.rank ?? 999) <= 400);
   const rows = new Map<string, LiveBanzukeRow>();
 
-  for (const wrestler of wrestlers) {
+  for (const wrestler of topDivision) {
     const rank = wrestler.banzuke_name?.trim();
     if (!rank) continue;
     const key = `${wrestler.rank ?? rank}-${wrestler.seat_order ?? 1}`;
@@ -276,6 +291,46 @@ async function fetchMakuuchiBanzuke(bashoId: number): Promise<LiveBanzukeRow[]> 
   }
 
   return [...rows.values()];
+}
+
+async function fetchCurrentBanzuke(bashoId: number): Promise<{
+  rows: LiveBanzukeRow[];
+  sides: Map<number, 1 | 2>;
+}> {
+  if (banzukeCache?.bashoId === bashoId) {
+    return { rows: banzukeCache.rows, sides: banzukeCache.sides };
+  }
+
+  const tables = await Promise.all(
+    DIVISIONS.map((division) =>
+      fetchBanzukeDivision(bashoId, division.id).catch(() => [] as UpstreamBanzukeRikishi[]),
+    ),
+  );
+  const sides = new Map<number, 1 | 2>();
+  for (const wrestler of tables.flat()) {
+    const id = Number(wrestler.rikishi_id ?? 0);
+    const ew = Number(wrestler.ew ?? 0);
+    if (id && (ew === 1 || ew === 2)) sides.set(id, ew);
+  }
+
+  const rows = mapMakuuchiBanzuke(tables[DIVISIONS.findIndex((division) => division.id === 1)] ?? []);
+  banzukeCache = { bashoId, rows, sides };
+  return { rows, sides };
+}
+
+function applyBanzukeSides(
+  divisions: LiveDivisionSource[],
+  sides: Map<number, 1 | 2>,
+): void {
+  for (const division of divisions) {
+    for (const { bout } of division.allBoutSources) {
+      for (const rikishi of [bout.east, bout.west]) {
+        const id = Number(rikishi?.rikishi_id ?? 0);
+        const ew = sides.get(id);
+        if (rikishi && ew) rikishi.banzuke_ew = ew;
+      }
+    }
+  }
 }
 
 function isKanjiName(value: string): boolean {
@@ -438,14 +493,17 @@ async function loadSourceSnapshot(): Promise<LiveSourceSnapshot> {
   const liveSource = findCurrentDivision(divisions);
   const dayHead = liveSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
   const bashoId = liveSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
-  const banzuke = bashoId ? await fetchMakuuchiBanzuke(bashoId).catch(() => []) : [];
+  const banzuke = bashoId
+    ? await fetchCurrentBanzuke(bashoId).catch(() => ({ rows: [], sides: new Map<number, 1 | 2>() }))
+    : { rows: [], sides: new Map<number, 1 | 2>() };
+  applyBanzukeSides(divisions, banzuke.sides);
   const value = {
     bashoName: bashoContext.name,
     day,
     dayHead,
     bashoId,
     divisions,
-    banzuke,
+    banzuke: banzuke.rows,
     updatedAt: new Date().toISOString(),
   };
   sourceCache = { expiresAt: now + UPSTREAM_TTL_MS, value };

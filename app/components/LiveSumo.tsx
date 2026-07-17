@@ -17,6 +17,8 @@ type LiveBout = {
   westProfileUrl: string | null;
   eastRank: string;
   westRank: string;
+  eastBanzukeSide: "east" | "west" | null;
+  westBanzukeSide: "east" | "west" | null;
   eastScore: string;
   westScore: string;
   winner: "east" | "west" | null;
@@ -153,8 +155,12 @@ function ProfileLink({
   );
 }
 
-function formatResultRank(rank: string, divisionName: string, side: "east" | "west"): string {
-  const sideLabel = side === "east" ? "東" : "西";
+function formatResultRank(
+  rank: string,
+  divisionName: string,
+  banzukeSide: "east" | "west" | null,
+): string {
+  const sideLabel = banzukeSide === "east" ? "東" : banzukeSide === "west" ? "西" : "";
   const withoutSide = rank.replace(/^(東|西)[・\s]?/, "");
   const withoutDivision = withoutSide.startsWith(divisionName)
     ? withoutSide.slice(divisionName.length)
@@ -254,7 +260,7 @@ export function LiveResultsBoard() {
               {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : displayedBouts.length ? displayedBouts.map((bout, index) => (
                 <div className={`result-row is-${bout.status}`} key={`${bout.east}-${bout.west}-${index}`}>
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
-                    <small className="result-rank">{formatResultRank(bout.eastRank, division.name, "east")}</small>
+                    <small className="result-rank">{formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)}</small>
                     <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
@@ -264,7 +270,7 @@ export function LiveResultsBoard() {
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
                     <ProfileLink className="result-name" href={bout.westProfileUrl}>{bout.west}</ProfileLink>
-                    <small className="result-rank">{formatResultRank(bout.westRank, division.name, "west")}</small>
+                    <small className="result-rank">{formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)}</small>
                   </span>
                 </div>
               )) : <p className="live-empty">取組順の更新を待っています。</p>}
