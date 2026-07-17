@@ -25,6 +25,7 @@ export async function readOfficialNames(nskIds: number[]): Promise<Map<number, s
     return new Map();
   }
 }
+
 export async function saveOfficialNames(entries: OfficialNameEntry[]): Promise<void> {
   if (!env.DB) return;
   const unique = new Map<number, string>();

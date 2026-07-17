@@ -5,6 +5,7 @@ import {
   japaneseRikishiName,
   officialRikishiProfile,
 } from "../../lib/rikishi-names";
+import { loadRikishiModelHistory } from "../../lib/rating-model-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
       .then((rows) => rows[0]);
     if (!wrestler) return Response.json({ error: "Rikishi not found" }, { status: 404 });
 
-    const history = await db
+    const eloHistory = await db
       .select({
         bashoId: ratingSnapshots.bashoId,
         division: ratingSnapshots.division,
@@ -49,6 +50,21 @@ export async function GET(request: Request) {
       )
       .where(eq(ratingSnapshots.wrestlerId, wrestler.id))
       .orderBy(asc(ratingSnapshots.bashoId));
+
+    const modelHistory = await loadRikishiModelHistory(request, wrestler.id);
+    const modelByBasho = new Map(modelHistory.map((point) => [point.bashoId, point]));
+    const history = eloHistory.map((point) => {
+      const model = modelByBasho.get(point.bashoId);
+      return {
+        ...point,
+        glickoRating: model?.glickoRating ?? point.elo,
+        glickoRdTenths: model?.glickoRdTenths ?? null,
+        glickoVolatilityMillionths: model?.glickoVolatilityMillionths ?? null,
+        sumoHensachiTenths: model?.sumoHensachiTenths ?? point.dohyoScoreTenths,
+        sekitoriHensachiTenths: model?.sekitoriHensachiTenths ?? null,
+        modelAvailable: Boolean(model),
+      };
+    });
 
     const latest = history.at(-1) ?? null;
     return Response.json({
@@ -75,4 +91,3 @@ export async function GET(request: Request) {
     return Response.json({ error: message }, { status: 503 });
   }
 }
-

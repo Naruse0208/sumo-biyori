@@ -14,13 +14,25 @@ type RikishiRating = {
   elo: number;
   peakElo: number;
   dohyoScoreTenths: number;
+  glickoRating: number;
+  glickoRdTenths: number | null;
+  glickoVolatilityMillionths: number | null;
+  sumoHensachiTenths: number;
+  sekitoriHensachiTenths: number | null;
+  modelAvailable?: boolean;
   bouts: number;
   wins: number;
   losses: number;
 };
 
 type Division = { id: number; name: string; ranking: RikishiRating[] };
-type RatingResponse = { bashoId: number; division: number; rows: RikishiRating[]; error?: string };
+type RatingBoardResponse = {
+  bashoId: number;
+  modelVersion?: string;
+  divisions?: { id: number; rows: RikishiRating[] }[];
+  error?: string;
+};
+type RatingMetric = "elo" | "glicko" | "hensachi";
 
 const divisionNames = ["幕内", "十両", "幕下", "三段目", "序二段", "序ノ口"];
 const rankLabels: Record<string, string> = {
@@ -60,6 +72,20 @@ function displayRank(rank: string) {
   return `${side === "East" ? "東" : "西"}・${rankLabels[division] ?? division}${number ? `${number}枚目` : ""}`;
 }
 
+const metricMeta: Record<RatingMetric, { label: string; short: string; description: string }> = {
+  elo: { label: "Elo", short: "Elo", description: "一番ごとに更新する透明な基準値" },
+  glicko: { label: "地力", short: "地力", description: "Glicko-2による現在値と推定の確かさ" },
+  hensachi: { label: "相撲偏差値", short: "偏差値", description: "同じ場所・同じ段の中での傑出度" },
+};
+
+function confidenceLabel(rdTenths: number | null) {
+  if (rdTenths === null) return "推定待ち";
+  const rd = rdTenths / 10;
+  if (rd <= 65) return "安定";
+  if (rd <= 120) return "推定中";
+  return "参考値";
+}
+
 export default function RatingBoard({
   divisions: initialDivisions,
   initialBasho,
@@ -74,6 +100,7 @@ export default function RatingBoard({
   const [divisions, setDivisions] = useState(initialDivisions);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metric, setMetric] = useState<RatingMetric>("elo");
   const requestId = useRef(0);
 
   const loadBasho = useCallback(async (bashoId: number) => {
@@ -82,14 +109,14 @@ export default function RatingBoard({
     setError(null);
     setShowAll(false);
     try {
-      const responses = await Promise.all(
-        divisionNames.map(async (name, index) => {
-          const response = await fetch(`/api/ratings?basho=${bashoId}&division=${index + 1}&limit=400`);
-          const body = await response.json() as RatingResponse;
-          if (!response.ok) throw new Error(body.error ?? "レートを取得できませんでした");
-          return { id: index + 1, name, ranking: body.rows };
-        }),
-      );
+      const response = await fetch(`/api/ratings?basho=${bashoId}&division=0&limit=400`);
+      const body = await response.json() as RatingBoardResponse;
+      if (!response.ok || !body.divisions) throw new Error(body.error ?? "レートを取得できませんでした");
+      const responses = body.divisions.map((division) => ({
+        id: division.id,
+        name: divisionNames[division.id - 1],
+        ranking: division.rows,
+      }));
       if (currentRequest !== requestId.current) return;
       setDivisions(responses);
       setSelectedBasho(bashoId);
@@ -122,9 +149,19 @@ export default function RatingBoard({
   }, [initialBasho, loadBasho]);
 
   const active = divisions.find((division) => division.id === activeId) ?? divisions[0];
+  const sortedRanking = useMemo(() => {
+    const value = (rikishi: RikishiRating) => metric === "elo"
+      ? rikishi.elo
+      : metric === "glicko"
+        ? rikishi.glickoRating
+        : rikishi.sumoHensachiTenths;
+    return [...active.ranking]
+      .sort((first, second) => value(second) - value(first) || second.elo - first.elo)
+      .map((rikishi, index) => ({ ...rikishi, position: index + 1 }));
+  }, [active.ranking, metric]);
   const rows = useMemo(
-    () => (showAll ? active.ranking : active.ranking.slice(0, 20)),
-    [active, showAll],
+    () => (showAll ? sortedRanking : sortedRanking.slice(0, 20)),
+    [showAll, sortedRanking],
   );
   const selectedIndex = availableBasho.indexOf(selectedBasho);
   const newerBasho = selectedIndex > 0 ? availableBasho[selectedIndex - 1] : null;
@@ -171,6 +208,24 @@ export default function RatingBoard({
       {loading && <div className="rate-basho-message" role="status">六段のレートを読み込み中…</div>}
 
       <div className={`rate-ranking-content${loading ? " is-loading" : ""}`}>
+        <div className="rate-metric-switch" role="group" aria-label="表示する強さのものさし">
+          <div>
+            <span>表示するものさし</span>
+            <small>{metricMeta[metric].description}</small>
+          </div>
+          {(["elo", "glicko", "hensachi"] as const).map((value) => (
+            <button
+              type="button"
+              className={metric === value ? "is-active" : ""}
+              aria-pressed={metric === value}
+              key={value}
+              onClick={() => { setMetric(value); setShowAll(false); }}
+            >
+              {metricMeta[value].label}
+              {value === "glicko" && <small>Glicko-2</small>}
+            </button>
+          ))}
+        </div>
         <div className="rate-division-tabs" role="tablist" aria-label="段位を選ぶ">
           {divisions.map((division) => (
             <button
@@ -187,7 +242,7 @@ export default function RatingBoard({
         </div>
 
         <div className="rate-ranking-head">
-          <span>順位</span><span>力士</span><span>Elo</span><span>土俵偏差値</span><span>通算</span>
+          <span>順位</span><span>力士</span><span>{metricMeta[metric].short}</span><span>補助値</span><span>通算</span>
         </div>
         {rows.map((rikishi) => (
           <div className="rate-ranking-row" key={rikishi.id}>
@@ -200,8 +255,12 @@ export default function RatingBoard({
               ) : <b>{rikishi.shikonaJp ?? rikishi.shikonaEn}</b>}
               <small>{displayRank(rikishi.banzukeRank)}／{rikishi.shikonaEn}</small>
             </span>
-            <span><b>{rikishi.elo}</b><small>最高 {rikishi.peakElo}</small></span>
-            <span>{(rikishi.dohyoScoreTenths / 10).toFixed(1)}</span>
+            {metric === "elo" && <span><b>{rikishi.elo}</b><small>最高 {rikishi.peakElo}</small></span>}
+            {metric === "glicko" && <span><b>{rikishi.glickoRating}</b><small>{confidenceLabel(rikishi.glickoRdTenths)}</small></span>}
+            {metric === "hensachi" && <span><b>{(rikishi.sumoHensachiTenths / 10).toFixed(1)}</b><small>同場所・同段</small></span>}
+            {metric === "elo" && <span><b>{rikishi.glickoRating}</b><small>地力</small></span>}
+            {metric === "glicko" && <span><b>±{rikishi.glickoRdTenths === null ? "—" : Math.round((rikishi.glickoRdTenths / 10) * 2)}</b><small>95%目安</small></span>}
+            {metric === "hensachi" && <span><b>{rikishi.glickoRating}</b><small>地力</small></span>}
             <span>{rikishi.wins}勝{rikishi.losses}敗<small>{rikishi.bouts}取組</small></span>
           </div>
         ))}

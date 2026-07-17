@@ -1,7 +1,9 @@
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { gzipSync } from "node:zlib";
+import { GLICKO2_DEFAULTS, updateGlicko2 } from "./lib/glicko2.mjs";
 
 const START_ELO = 1500;
 const K_FACTOR = 20;
@@ -10,8 +12,10 @@ const AUDIT_DIR = join(ROOT, "work", "rating-audit");
 const DATABASE_PATH = join(AUDIT_DIR, "rating-audit-199901-202607.sqlite");
 const AUDIT_REPORT_PATH = join(AUDIT_DIR, "rating-audit-199901-202607.json");
 const OUTPUT_PATH = join(ROOT, "data", "ratings-latest.json");
+const MODEL_ASSET_DIR = join(ROOT, "public", "rating-model-v2");
 const DIVISION_NAMES = ["幕内", "十両", "幕下", "三段目", "序二段", "序ノ口"];
 const OFFICIAL_BANZUKE_URL = "https://www.sumo.or.jp/ResultBanzuke/tableAjax";
+const HISTORY_SHARDS = 32;
 
 const expectedScore = (rating, opponent) => 1 / (1 + 10 ** ((opponent - rating) / 400));
 
@@ -86,6 +90,21 @@ function setupRatingTables(database) {
       PRIMARY KEY (wrestler_id, basho_id)
     ) WITHOUT ROWID;
 
+    DROP TABLE IF EXISTS glicko_snapshots_actual;
+    CREATE TABLE glicko_snapshots_actual (
+      wrestler_id INTEGER NOT NULL,
+      basho_id TEXT NOT NULL,
+      division INTEGER NOT NULL,
+      rating INTEGER NOT NULL,
+      rd_tenths INTEGER NOT NULL,
+      volatility_millionths INTEGER NOT NULL,
+      sumo_hensachi_tenths INTEGER NOT NULL,
+      sekitori_hensachi_tenths INTEGER,
+      PRIMARY KEY (wrestler_id, basho_id)
+    ) WITHOUT ROWID;
+    CREATE INDEX glicko_snapshots_leaderboard_idx
+      ON glicko_snapshots_actual (basho_id, division, rating DESC);
+
     DROP TABLE IF EXISTS rating_meta;
     CREATE TABLE rating_meta (
       key TEXT PRIMARY KEY,
@@ -107,11 +126,95 @@ function getRikishi(ratings, id) {
   return ratings.get(id);
 }
 
-function scoreField(entries, ratings) {
-  const activeRatings = entries.map((entry) => getRikishi(ratings, entry.wrestler_id).elo);
+function getGlicko(ratings, id) {
+  if (!ratings.has(id)) {
+    ratings.set(id, {
+      rating: GLICKO2_DEFAULTS.rating,
+      rd: GLICKO2_DEFAULTS.rd,
+      volatility: GLICKO2_DEFAULTS.volatility,
+    });
+  }
+  return ratings.get(id);
+}
+
+function scoreField(entries, ratingForEntry) {
+  const activeRatings = entries.map(ratingForEntry);
   const mean = activeRatings.reduce((sum, elo) => sum + elo, 0) / Math.max(activeRatings.length, 1);
   const variance = activeRatings.reduce((sum, elo) => sum + (elo - mean) ** 2, 0) / Math.max(activeRatings.length, 1);
   return { mean, standardDeviation: Math.sqrt(variance) || 1 };
+}
+
+function scoreTenths(rating, field) {
+  return Math.round(500 + (100 * (rating - field.mean)) / field.standardDeviation);
+}
+
+async function writeModelAssets(database, bashoIds) {
+  await rm(MODEL_ASSET_DIR, { recursive: true, force: true });
+  await mkdir(MODEL_ASSET_DIR, { recursive: true });
+  const rowsForBasho = database.prepare(`
+    SELECT wrestler_id, division, rating, rd_tenths, volatility_millionths,
+      sumo_hensachi_tenths, sekitori_hensachi_tenths
+    FROM glicko_snapshots_actual
+    WHERE basho_id = ?
+    ORDER BY division, rating DESC
+  `);
+  for (const bashoId of bashoIds) {
+    const rows = rowsForBasho.all(bashoId).map((row) => [
+      row.wrestler_id,
+      row.division,
+      row.rating,
+      row.rd_tenths,
+      row.volatility_millionths,
+      row.sumo_hensachi_tenths,
+      row.sekitori_hensachi_tenths,
+    ]);
+    await writeFile(
+      join(MODEL_ASSET_DIR, `basho-${bashoId}.json.gz`),
+      gzipSync(JSON.stringify(rows), { level: 9 }),
+    );
+  }
+
+  const historyShards = Array.from({ length: HISTORY_SHARDS }, () => new Map());
+  const historyRows = database.prepare(`
+    SELECT wrestler_id, basho_id, division, rating, rd_tenths,
+      volatility_millionths, sumo_hensachi_tenths, sekitori_hensachi_tenths
+    FROM glicko_snapshots_actual
+    ORDER BY wrestler_id, basho_id
+  `).iterate();
+  for (const row of historyRows) {
+    const shard = historyShards[Math.abs(row.wrestler_id) % HISTORY_SHARDS];
+    if (!shard.has(row.wrestler_id)) shard.set(row.wrestler_id, []);
+    shard.get(row.wrestler_id).push([
+      Number(row.basho_id),
+      row.division,
+      row.rating,
+      row.rd_tenths,
+      row.volatility_millionths,
+      row.sumo_hensachi_tenths,
+      row.sekitori_hensachi_tenths,
+    ]);
+  }
+  for (const [index, shard] of historyShards.entries()) {
+    await writeFile(
+      join(MODEL_ASSET_DIR, `history-${String(index).padStart(2, "0")}.json.gz`),
+      gzipSync(JSON.stringify([...shard]), { level: 9 }),
+    );
+  }
+  await writeFile(join(MODEL_ASSET_DIR, "manifest.json"), `${JSON.stringify({
+    version: "glicko2-basho-v1",
+    generatedAt: new Date().toISOString(),
+    firstBasho: Number(bashoIds[0]),
+    latestBasho: Number(bashoIds.at(-1)),
+    bashoFiles: bashoIds.length,
+    historyShards: HISTORY_SHARDS,
+    parameters: {
+      initialRating: GLICKO2_DEFAULTS.rating,
+      initialRd: GLICKO2_DEFAULTS.rd,
+      initialVolatility: GLICKO2_DEFAULTS.volatility,
+      tau: GLICKO2_DEFAULTS.tau,
+      ratingPeriod: "one basho",
+    },
+  }, null, 2)}\n`, "utf8");
 }
 
 async function main() {
@@ -125,6 +228,7 @@ async function main() {
     .all()
     .map((row) => row.basho_id);
   const ratings = new Map();
+  let glickoRatings = new Map();
   const boutsForBasho = database.prepare(`
     SELECT id, day, division, wrestler_a_id, wrestler_b_id, winner_id
     FROM bouts
@@ -149,11 +253,44 @@ async function main() {
       bouts, wins, losses
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const insertGlickoSnapshot = database.prepare(`
+    INSERT INTO glicko_snapshots_actual (
+      wrestler_id, basho_id, division, rating, rd_tenths,
+      volatility_millionths, sumo_hensachi_tenths, sekitori_hensachi_tenths
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
 
   let ratedBouts = 0;
   for (const [bashoIndex, bashoId] of bashoIds.entries()) {
     const bouts = boutsForBasho.all(bashoId);
     const entries = entriesForBasho.all(bashoId);
+    for (const entry of entries) getGlicko(glickoRatings, entry.wrestler_id);
+    const glickoResults = new Map();
+    const addGlickoResult = (wrestlerId, opponentId, score) => {
+      if (!glickoResults.has(wrestlerId)) glickoResults.set(wrestlerId, []);
+      const opponent = getGlicko(glickoRatings, opponentId);
+      glickoResults.get(wrestlerId).push({
+        opponentRating: opponent.rating,
+        opponentRd: opponent.rd,
+        score,
+      });
+    };
+    for (const bout of bouts) {
+      getGlicko(glickoRatings, bout.wrestler_a_id);
+      getGlicko(glickoRatings, bout.wrestler_b_id);
+      const aWon = bout.winner_id === bout.wrestler_a_id;
+      addGlickoResult(bout.wrestler_a_id, bout.wrestler_b_id, aWon ? 1 : 0);
+      addGlickoResult(bout.wrestler_b_id, bout.wrestler_a_id, aWon ? 0 : 1);
+    }
+    const nextGlickoRatings = new Map();
+    for (const [wrestlerId, state] of glickoRatings) {
+      const next = updateGlicko2(state, glickoResults.get(wrestlerId) ?? []);
+      nextGlickoRatings.set(wrestlerId, {
+        ...next,
+        rd: Math.min(next.rd, GLICKO2_DEFAULTS.rd),
+      });
+    }
+    glickoRatings = nextGlickoRatings;
     inTransaction(database, () => {
       for (const bout of bouts) {
         const wrestlerA = getRikishi(ratings, bout.wrestler_a_id);
@@ -179,10 +316,28 @@ async function main() {
         ratedBouts += 1;
       }
 
-      const field = scoreField(entries, ratings);
+      const field = scoreField(entries, (entry) => getRikishi(ratings, entry.wrestler_id).elo);
+      const divisionFields = new Map();
+      for (let division = 1; division <= 6; division += 1) {
+        const divisionEntries = entries.filter((entry) => entry.division === division);
+        divisionFields.set(division, scoreField(
+          divisionEntries,
+          (entry) => getGlicko(glickoRatings, entry.wrestler_id).rating,
+        ));
+      }
+      const sekitoriEntries = entries.filter((entry) => entry.division <= 2);
+      const sekitoriField = scoreField(
+        sekitoriEntries,
+        (entry) => getGlicko(glickoRatings, entry.wrestler_id).rating,
+      );
       for (const entry of entries) {
         const wrestler = getRikishi(ratings, entry.wrestler_id);
-        const dohyoScoreTenths = Math.round(500 + (100 * (wrestler.elo - field.mean)) / field.standardDeviation);
+        const dohyoScoreTenths = scoreTenths(wrestler.elo, field);
+        const glicko = getGlicko(glickoRatings, entry.wrestler_id);
+        const sumoHensachiTenths = scoreTenths(glicko.rating, divisionFields.get(entry.division));
+        const sekitoriHensachiTenths = entry.division <= 2
+          ? scoreTenths(glicko.rating, sekitoriField)
+          : null;
         insertSnapshot.run(
           entry.wrestler_id,
           bashoId,
@@ -193,6 +348,16 @@ async function main() {
           wrestler.bouts,
           wrestler.wins,
           wrestler.losses,
+        );
+        insertGlickoSnapshot.run(
+          entry.wrestler_id,
+          bashoId,
+          entry.division,
+          Math.round(glicko.rating),
+          Math.round(glicko.rd * 10),
+          Math.round(glicko.volatility * 1_000_000),
+          sumoHensachiTenths,
+          sekitoriHensachiTenths,
         );
       }
     });
@@ -215,10 +380,18 @@ async function main() {
       rs.elo,
       rs.peak_elo AS peakElo,
       rs.dohyo_score_tenths AS dohyoScoreTenths,
+      gs.rating AS glickoRating,
+      gs.rd_tenths AS glickoRdTenths,
+      gs.volatility_millionths AS glickoVolatilityMillionths,
+      gs.sumo_hensachi_tenths AS sumoHensachiTenths,
+      gs.sekitori_hensachi_tenths AS sekitoriHensachiTenths,
       rs.bouts,
       rs.wins,
       rs.losses
     FROM rating_snapshots_actual rs
+    JOIN glicko_snapshots_actual gs
+      ON gs.basho_id = rs.basho_id
+      AND gs.wrestler_id = rs.wrestler_id
     JOIN wrestlers w ON w.id = rs.wrestler_id
     JOIN banzuke_entries be
       ON be.basho_id = rs.basho_id
@@ -255,10 +428,16 @@ async function main() {
   }));
 
   const snapshotCount = database.prepare("SELECT COUNT(*) AS count FROM rating_snapshots_actual").get().count;
+  const glickoSnapshotCount = database.prepare("SELECT COUNT(*) AS count FROM glicko_snapshots_actual").get().count;
   database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("model", "Elo v1");
   database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("starting_elo", String(START_ELO));
   database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("k_factor", String(K_FACTOR));
   database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("latest_basho_id", latestBashoId);
+  database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("glicko_model", "Glicko-2 basho v1");
+  database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("glicko_tau", String(GLICKO2_DEFAULTS.tau));
+  database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("glicko_initial_rd", String(GLICKO2_DEFAULTS.rd));
+  database.prepare("INSERT INTO rating_meta (key, value) VALUES (?, ?)").run("glicko_initial_volatility", String(GLICKO2_DEFAULTS.volatility));
+  await writeModelAssets(database, bashoIds);
   database.exec("DROP TABLE IF EXISTS rating_snapshot_size_model");
   database.exec("PRAGMA wal_checkpoint(TRUNCATE)");
   database.exec("VACUUM");
@@ -268,7 +447,7 @@ async function main() {
   const auditReport = JSON.parse(await (await import("node:fs/promises")).readFile(AUDIT_REPORT_PATH, "utf8"));
   const output = {
     generatedAt: new Date().toISOString(),
-    status: "full-history-v1",
+    status: "full-history-v2",
     scope: {
       startBasho: bashoIds[0],
       latestBasho: latestBashoId,
@@ -280,12 +459,21 @@ async function main() {
       startingElo: START_ELO,
       kFactor: K_FACTOR,
       dohyoScore: "50 + 10 × (Elo - same-basho field mean) / field standard deviation",
+      glicko2: {
+        initialRating: GLICKO2_DEFAULTS.rating,
+        initialRd: GLICKO2_DEFAULTS.rd,
+        initialVolatility: GLICKO2_DEFAULTS.volatility,
+        tau: GLICKO2_DEFAULTS.tau,
+        ratingPeriod: "one basho",
+      },
+      sumoHensachi: "50 + 10 × (Glicko-2 rating - same-basho same-division mean) / standard deviation",
     },
     counts: {
       sourceWrestlers: auditReport.counts.sourceWrestlerTotal,
       wrestlersInScope: auditReport.counts.wrestlersInScope,
       ratedBouts,
       ratingSnapshots: Number(snapshotCount),
+      glickoSnapshots: Number(glickoSnapshotCount),
     },
     storage: {
       sqliteBytes: databaseBytes,
@@ -300,6 +488,7 @@ async function main() {
     latestBashoId,
     ratedBouts,
     ratingSnapshots: Number(snapshotCount),
+    glickoSnapshots: Number(glickoSnapshotCount),
     sqliteMiB: output.storage.sqliteMiB,
     leaders: divisions.map((division) => ({ division: division.name, leader: division.ranking[0] })),
   }, null, 2));

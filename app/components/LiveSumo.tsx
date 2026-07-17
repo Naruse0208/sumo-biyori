@@ -76,8 +76,14 @@ const LiveContext = createContext<LiveContextValue | null>(null);
 
 type PredictionPayload = {
   available: boolean;
-  east?: { elo: number; probability: number };
-  west?: { elo: number; probability: number };
+  model?: string;
+  confidence?: "high" | "medium" | "low";
+  models?: {
+    elo?: { eastProbability: number; westProbability: number };
+    glicko2?: { eastProbability: number; westProbability: number };
+  };
+  east?: { elo: number; glickoRating?: number; probability: number };
+  west?: { elo: number; glickoRating?: number; probability: number };
 };
 
 const predictionCache = new Map<string, { expiresAt: number; promise: Promise<PredictionPayload> }>();
@@ -107,13 +113,18 @@ function WinProbability({ bout, compact = false }: { bout: LiveBout; compact?: b
   const prediction = usePrediction(bout.eastNskId, bout.westNskId);
   if (!prediction?.east || !prediction.west) return null;
   if (compact) {
-    return <small className="result-prediction">予想 東{prediction.east.probability}%・西{prediction.west.probability}%</small>;
+    return <small className="result-prediction">勝機 東{prediction.east.probability}%・西{prediction.west.probability}%</small>;
   }
+  const confidence = prediction.confidence === "high" ? "信頼度 高" : prediction.confidence === "medium" ? "信頼度 中" : "参考値";
   return (
-    <div className="bout-prediction" aria-label={`Elo予想勝率 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
-      <div><span>東 {prediction.east.probability}%</span><em>Elo予想勝率</em><span>西 {prediction.west.probability}%</span></div>
+    <div className="bout-prediction" aria-label={`${prediction.model ?? "土俵日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
+      <div><span>東 {prediction.east.probability}%</span><em>{prediction.model ?? "土俵日和予想"}</em><span>西 {prediction.west.probability}%</span></div>
       <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
-      <small>Elo {prediction.east.elo} 対 {prediction.west.elo}</small>
+      <small>
+        地力 {prediction.east.glickoRating ?? prediction.east.elo} 対 {prediction.west.glickoRating ?? prediction.west.elo}
+        {prediction.models?.elo ? ` ／ Elo予想 ${prediction.models.elo.eastProbability}–${prediction.models.elo.westProbability}%` : ""}
+        {` ／ ${confidence}`}
+      </small>
     </div>
   );
 }
