@@ -178,7 +178,8 @@ export function LiveHeaderStatus() {
 export function LiveHeroBout() {
   const { data, loading } = useLiveSumo();
   const division = data?.currentDivision;
-  const bout = division?.nextBout ?? division?.recentResults?.[0] ?? null;
+  const recentResults = division?.recentResults ?? [];
+  const bout = division?.nextBout ?? recentResults[recentResults.length - 1] ?? null;
   const isNext = Boolean(division?.nextBout);
 
   return (

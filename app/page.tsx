@@ -6,30 +6,6 @@ import {
   LiveSumoProvider,
 } from "./components/LiveSumo";
 
-const stories = [
-  {
-    eyebrow: "力士名鑑",
-    title: "静けさの奥に宿る、立ち合いの決意。",
-    copy: "土俵際の粘り、寄りの圧力、仕切りに見える集中。観戦が深くなる三つの見どころを紹介します。",
-    link: "力士の見方を知る",
-    href: "#rikishi",
-  },
-  {
-    eyebrow: "相撲文化",
-    title: "塩に込められた、清めと勝負のこころ。",
-    copy: "所作を知れば、一瞬の静寂まで面白くなる。土俵を彩る作法と、その背景をやさしく紐解きます。",
-    link: "土俵の作法を読む",
-    href: "#culture",
-  },
-  {
-    eyebrow: "決まり手入門",
-    title: "押す、組む、いなす。八十二手への入口。",
-    copy: "まず覚えたい基本の技を、勝負の流れとともに。次の一番から使える観戦の言葉を集めました。",
-    link: "決まり手を学ぶ",
-    href: "#culture",
-  },
-];
-
 export default function Home() {
   return (
     <LiveSumoProvider>
@@ -56,8 +32,6 @@ export default function Home() {
 
           <div className="nav-group nav-right">
             <a href="#culture">相撲文化</a>
-            <a href="#stories">読み物</a>
-            <a href="#guide">観戦暦</a>
           </div>
 
           <details className="mobile-menu">
@@ -67,7 +41,6 @@ export default function Home() {
               <a href="#banzuke">番付</a>
               <a href="/rate">レート</a>
               <a href="#culture">相撲文化</a>
-              <a href="#stories">読み物</a>
             </div>
           </details>
         </nav>
@@ -108,7 +81,6 @@ export default function Home() {
                 <div><dt>得意手</dt><dd>突き・押し</dd></div>
                 <div><dt>注目</dt><dd>初動の速さ</dd></div>
               </dl>
-              <a className="text-link" href="#stories">詳しい観戦帖を見る →</a>
             </div>
           </div>
         </article>
@@ -121,39 +93,7 @@ export default function Home() {
           <span className="tag">相撲文化</span>
           <h3>塩に込められた、<br />清めと勝負のこころ。</h3>
           <p>力士が土俵に撒く塩には、古くから続く神事の記憶があります。所作を知れば、取組前の静けさももっと面白い。</p>
-          <a className="text-link" href="#stories">続きを読む →</a>
         </article>
-      </section>
-
-      <section className="stories section-shell" id="stories">
-        <div className="stories-intro">
-          <p className="kicker"><span />土俵の外側へ<span /></p>
-          <h2>知れば、一番がもっと深くなる。</h2>
-          <p>勝敗だけでは終わらない。力士、技、作法をめぐる小さな読み物。</p>
-        </div>
-        <div className="story-list">
-          {stories.map((story, index) => (
-            <article className="story" key={story.title}>
-              <span className="story-number">0{index + 1}</span>
-              <div>
-                <p className="eyebrow">{story.eyebrow}</p>
-                <h3>{story.title}</h3>
-                <p>{story.copy}</p>
-              </div>
-              <a href={story.href}>{story.link} →</a>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="guide section-shell" id="guide">
-        <div className="guide-seal" aria-hidden="true">観</div>
-        <div>
-          <p className="eyebrow">はじめての観戦帖</p>
-          <h2>立ち合い前の静けさから、相撲は始まっている。</h2>
-          <p>仕切り、呼出、行司、懸賞旗。会場でも中継でも楽しめる、五分で読める観戦の手引きです。</p>
-        </div>
-        <a className="gold-button" href="#top">観戦の要点を読む <span>→</span></a>
       </section>
 
       <footer>

@@ -48,8 +48,6 @@ export default function RatePage() {
 
           <div className="nav-group nav-right">
             <Link href="/#culture">相撲文化</Link>
-            <Link href="/#stories">読み物</Link>
-            <Link href="/#guide">観戦暦</Link>
           </div>
 
           <details className="mobile-menu">
@@ -59,7 +57,6 @@ export default function RatePage() {
               <Link href="/#banzuke">番付</Link>
               <Link className="is-current" href="/rate">レート</Link>
               <Link href="/#culture">相撲文化</Link>
-              <Link href="/#stories">読み物</Link>
             </div>
           </details>
         </nav>
