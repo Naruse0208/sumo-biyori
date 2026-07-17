@@ -64,6 +64,7 @@ type LiveDivisionSource = LiveDivision & {
   dayHead?: string;
   nextBoutSource: UpstreamBout | null;
   recentResultSources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>;
+  allBoutSources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>;
 };
 
 type UpstreamBanzukeRikishi = {
@@ -93,6 +94,7 @@ type LiveResponse = {
   day: number | null;
   dayLabel: string;
   currentDivision: LiveDivision | null;
+  resultDivision: LiveDivision | null;
   divisions: Array<Pick<LiveDivision, "id" | "name" | "completed" | "total">>;
   banzuke: LiveBanzukeRow[];
   updatedAt: string;
@@ -102,7 +104,18 @@ type LiveResponse = {
   message?: string;
 };
 
-let memoryCache: { expiresAt: number; value: LiveResponse } | null = null;
+type LiveSourceSnapshot = {
+  bashoName: string;
+  day: number;
+  dayHead?: string;
+  bashoId?: number;
+  divisions: LiveDivisionSource[];
+  banzuke: LiveBanzukeRow[];
+  updatedAt: string;
+};
+
+let sourceCache: { expiresAt: number; value: LiveSourceSnapshot } | null = null;
+const responseCache = new Map<string, LiveResponse>();
 const profileNameCache = new Map<number, string>();
 
 function toKanjiNumber(value: number): string {
@@ -163,10 +176,15 @@ function profileUrl(rikishiId?: number): string | null {
 
 async function getKanjiShikona(rikishi?: UpstreamRikishi): Promise<string> {
   const id = Number(rikishi?.rikishi_id ?? 0);
-  if (!id) return cleanShikona(rikishi);
+  const upstreamName = cleanShikona(rikishi);
+  if (!id) return upstreamName;
 
   const cached = profileNameCache.get(id);
   if (cached) return cached;
+  if (/[一-龯々]/.test(upstreamName)) {
+    profileNameCache.set(id, upstreamName);
+    return upstreamName;
+  }
 
   try {
     const response = await fetch(`https://www.sumo.or.jp/ResultRikishiData/profile/${id}/`, {
@@ -269,6 +287,25 @@ async function mapBoutWithKanjiNames(
   return { ...mapBout(bout, status), east, west };
 }
 
+async function mapBoutSourcesWithKanjiNames(
+  sources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>,
+): Promise<LiveBout[]> {
+  const results = new Array<LiveBout>(sources.length);
+  let cursor = 0;
+  const workerCount = Math.min(4, sources.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (cursor < sources.length) {
+        const index = cursor;
+        cursor += 1;
+        const { bout, status } = sources[index];
+        results[index] = await mapBoutWithKanjiNames(bout, status);
+      }
+    }),
+  );
+  return results;
+}
+
 async function fetchDivision(id: number, name: string, day: number): Promise<LiveDivisionSource> {
   const url = `https://www.sumo.or.jp/ResultData/torikumiAjax/${id}/${day}/`;
   const response = await fetch(url, {
@@ -302,6 +339,14 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
             .map((bout) => ({ bout, status: "next" as const })),
         ]
       : bouts.slice(-2).map((bout) => ({ bout, status: "past" as const }));
+  const allBoutSources = bouts.map((bout, index) => ({
+    bout,
+    status: Number(bout.judge ?? 0) > 0
+      ? "past" as const
+      : index === currentIndex
+        ? "current" as const
+        : "next" as const,
+  }));
   return {
     id,
     name: payload.kakuName || name,
@@ -313,6 +358,7 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
     recentResults: [],
     nextBoutSource: next,
     recentResultSources,
+    allBoutSources,
   };
 }
 
@@ -329,70 +375,102 @@ function findCurrentDivision(divisions: LiveDivisionSource[]): LiveDivisionSourc
   return firstWaiting ?? withBouts[withBouts.length - 1];
 }
 
-async function loadLiveData(): Promise<LiveResponse> {
+async function loadSourceSnapshot(): Promise<LiveSourceSnapshot> {
+  const now = Date.now();
+  if (sourceCache && sourceCache.expiresAt > now) return sourceCache.value;
+
   const bashoContext = await fetchBashoContext();
   const day = bashoContext.day;
-  const sourceUrl = `https://www.sumo.or.jp/ResultData/torikumi/1/${day}/`;
-
   const divisions = await Promise.all(
     DIVISIONS.map((division) => fetchDivision(division.id, division.name, day)),
   );
-  const currentSource = findCurrentDivision(divisions);
-  const dayHead = currentSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
-  const bashoId = currentSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
+  const liveSource = findCurrentDivision(divisions);
+  const dayHead = liveSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
+  const bashoId = liveSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
   const banzuke = bashoId ? await fetchMakuuchiBanzuke(bashoId).catch(() => []) : [];
-  const currentDivision = currentSource
-    ? {
-        id: currentSource.id,
-        name: currentSource.name,
-        completed: currentSource.completed,
-        total: currentSource.total,
-        nextBout: currentSource.nextBoutSource
-          ? await mapBoutWithKanjiNames(currentSource.nextBoutSource, "current")
-          : null,
-        recentResults: await Promise.all(
-          currentSource.recentResultSources.map(({ bout, status }) =>
-            mapBoutWithKanjiNames(bout, status),
-          ),
-        ),
-      }
-    : null;
-
-  return {
-    live: Boolean(currentDivision?.total),
-    basho: `${getEraYear(dayHead)} ${bashoContext.name}`.trim(),
+  const value = {
+    bashoName: bashoContext.name,
     day,
-    dayLabel: getDayLabel(dayHead, day),
-    currentDivision,
-    divisions: divisions.map(({ id, name, completed, total }) => ({ id, name, completed, total })),
+    dayHead,
+    bashoId,
+    divisions,
     banzuke,
     updatedAt: new Date().toISOString(),
-    sourceUrl,
+  };
+  sourceCache = { expiresAt: now + UPSTREAM_TTL_MS, value };
+  responseCache.clear();
+  return value;
+}
+
+async function mapDivision(
+  source: LiveDivisionSource | null,
+  expanded: boolean,
+): Promise<LiveDivision | null> {
+  if (!source) return null;
+  return {
+    id: source.id,
+    name: source.name,
+    completed: source.completed,
+    total: source.total,
+    nextBout: source.nextBoutSource
+      ? await mapBoutWithKanjiNames(source.nextBoutSource, "current")
+      : null,
+    recentResults: await mapBoutSourcesWithKanjiNames(
+      expanded ? source.allBoutSources : source.recentResultSources,
+    ),
+  };
+}
+
+async function loadLiveData(requestedDivisionId: number | null): Promise<LiveResponse> {
+  const snapshot = await loadSourceSnapshot();
+  const cacheKey = requestedDivisionId ? `division:${requestedDivisionId}` : "current";
+  const cached = responseCache.get(cacheKey);
+  if (cached) return cached;
+
+  const liveSource = findCurrentDivision(snapshot.divisions);
+  const selectedSource = requestedDivisionId
+    ? snapshot.divisions.find((division) => division.id === requestedDivisionId) ?? liveSource
+    : liveSource;
+  const currentDivision = await mapDivision(liveSource, false);
+  const resultDivision = requestedDivisionId
+    ? await mapDivision(selectedSource, true)
+    : currentDivision;
+  const value: LiveResponse = {
+    live: Boolean(currentDivision?.total),
+    basho: `${getEraYear(snapshot.dayHead)} ${snapshot.bashoName}`.trim(),
+    day: snapshot.day,
+    dayLabel: getDayLabel(snapshot.dayHead, snapshot.day),
+    currentDivision,
+    resultDivision,
+    divisions: snapshot.divisions.map(({ id, name, completed, total }) => ({ id, name, completed, total })),
+    banzuke: snapshot.banzuke,
+    updatedAt: snapshot.updatedAt,
+    sourceUrl: `https://www.sumo.or.jp/ResultData/torikumi/${selectedSource?.id ?? 1}/${snapshot.day}/`,
     displayRefreshSeconds: 10,
     sourceRefreshSeconds: 60,
   };
+  responseCache.set(cacheKey, value);
+  return value;
 }
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const now = Date.now();
+export async function GET(request: Request) {
+  const requested = Number(new URL(request.url).searchParams.get("division") ?? 0);
+  const requestedDivisionId = DIVISIONS.some((division) => division.id === requested)
+    ? requested
+    : null;
+  const cacheKey = requestedDivisionId ? `division:${requestedDivisionId}` : "current";
   try {
-    if (memoryCache && memoryCache.expiresAt > now) {
-      return Response.json(memoryCache.value, {
-        headers: { "Cache-Control": "public, max-age=0, s-maxage=10, stale-while-revalidate=50" },
-      });
-    }
-
-    const value = await loadLiveData();
-    memoryCache = { expiresAt: now + UPSTREAM_TTL_MS, value };
+    const value = await loadLiveData(requestedDivisionId);
     return Response.json(value, {
       headers: { "Cache-Control": "public, max-age=0, s-maxage=10, stale-while-revalidate=50" },
     });
   } catch {
-    if (memoryCache) {
+    const cached = responseCache.get(cacheKey) ?? responseCache.get("current");
+    if (cached) {
       return Response.json(
-        { ...memoryCache.value, message: "公式データの再取得を待っています。直前の情報を表示中です。" },
+        { ...cached, message: "公式データの再取得を待っています。直前の情報を表示中です。" },
         { headers: { "Cache-Control": "no-store" } },
       );
     }

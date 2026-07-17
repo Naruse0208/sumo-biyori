@@ -47,6 +47,7 @@ type LivePayload = {
   day?: number | null;
   dayLabel?: string;
   currentDivision?: LiveDivision | null;
+  resultDivision?: LiveDivision | null;
   divisions?: Array<Pick<LiveDivision, "id" | "name" | "completed" | "total">>;
   banzuke?: LiveBanzukeRow[];
   updatedAt: string;
@@ -60,6 +61,11 @@ type LiveContextValue = {
   data: LivePayload | null;
   loading: boolean;
   seconds: number;
+  expanded: boolean;
+  selectedDivisionId: number | null;
+  resultLoading: boolean;
+  selectDivision: (divisionId: number) => void;
+  collapseResults: () => void;
 };
 
 const LiveContext = createContext<LiveContextValue | null>(null);
@@ -68,20 +74,39 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<LivePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [seconds, setSeconds] = useState(10);
+  const [expanded, setExpanded] = useState(false);
+  const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(null);
+  const [resultLoading, setResultLoading] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (divisionId: number | null = selectedDivisionId) => {
     if (document.visibilityState === "hidden") return;
     try {
-      const response = await fetch("/api/live-sumo", { cache: "no-store" });
+      const query = divisionId ? `?division=${divisionId}` : "";
+      const response = await fetch(`/api/live-sumo${query}`, { cache: "no-store" });
       const payload = (await response.json()) as LivePayload;
       setData(payload);
     } catch {
       setData((previous) => previous ? { ...previous, message: "再接続を待っています。" } : null);
     } finally {
       setLoading(false);
+      setResultLoading(false);
       setSeconds(10);
     }
-  }, []);
+  }, [selectedDivisionId]);
+
+  const selectDivision = useCallback((divisionId: number) => {
+    setExpanded(true);
+    setSelectedDivisionId(divisionId);
+    setResultLoading(true);
+    void refresh(divisionId);
+  }, [refresh]);
+
+  const collapseResults = useCallback(() => {
+    setExpanded(false);
+    setSelectedDivisionId(null);
+    setResultLoading(false);
+    void refresh(null);
+  }, [refresh]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
@@ -99,7 +124,10 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
-  const value = useMemo(() => ({ data, loading, seconds }), [data, loading, seconds]);
+  const value = useMemo(
+    () => ({ data, loading, seconds, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults }),
+    [data, loading, seconds, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults],
+  );
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
 }
 
@@ -167,8 +195,8 @@ export function LiveHeroBout() {
 }
 
 export function LiveResultsBoard() {
-  const { data, seconds } = useLiveSumo();
-  const division = data?.currentDivision;
+  const { data, seconds, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults } = useLiveSumo();
+  const division = data?.resultDivision ?? data?.currentDivision;
   const progress = division?.total ? Math.round((division.completed / division.total) * 100) : 0;
   const updated = data?.updatedAt
     ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(data.updatedAt))
@@ -176,13 +204,6 @@ export function LiveResultsBoard() {
 
   return (
     <section className="live-section section-shell" id="live-results" aria-live="polite">
-      <div className="live-board-header">
-        <div className="live-timestamp">
-          <span>表示確認まで {seconds}秒</span>
-          <small>最終取得 {updated}</small>
-        </div>
-      </div>
-
       {division ? (
         <>
           <div className="live-progress-row">
@@ -196,33 +217,31 @@ export function LiveResultsBoard() {
           <div className="division-track" aria-label="各段の進行状況">
             {data?.divisions?.map((item) => {
               const complete = item.total > 0 && item.completed >= item.total;
-              const active = item.id === division.id;
-              const resultUrl = data?.day
-                ? `https://www.sumo.or.jp/ResultData/torikumi/${item.id}/${data.day}/`
-                : "https://www.sumo.or.jp/ResultData/torikumi/";
+              const active = item.id === (expanded ? selectedDivisionId : division.id);
               return (
-                <a
+                <button
                   className={`division-pill ${active ? "is-active" : ""} ${complete ? "is-complete" : ""}`}
-                  href={resultUrl}
                   key={item.id}
-                  rel="noreferrer"
-                  target="_blank"
-                  title={`${item.name}の公式取組結果を見る`}
+                  type="button"
+                  onClick={() => selectDivision(item.id)}
+                  aria-expanded={expanded && selectedDivisionId === item.id}
+                  aria-controls="division-results"
+                  title={`${item.name}の全取組を表示`}
                 >
                   <span>{item.name}</span>
                   <small>{item.total ? `${item.completed}/${item.total}` : "待機"}</small>
-                </a>
+                </button>
               );
             })}
           </div>
 
-          <div className="recent-results">
+          <div className={`recent-results ${expanded ? "is-expanded" : ""}`} id="division-results">
             <div className="section-heading">
-              <h3>取組の流れ</h3>
-              <span>BOUT FLOW</span>
+              <h3>{expanded ? `${division.name} 取組結果` : "取組結果"}</h3>
+              {expanded && <button className="results-collapse" type="button" onClick={collapseResults}>折りたたむ ↑</button>}
             </div>
             <div className="result-list">
-              {division.recentResults.length ? division.recentResults.map((bout, index) => (
+              {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : division.recentResults.length ? division.recentResults.map((bout, index) => (
                 <div className={`result-row is-${bout.status}`} key={`${bout.east}-${bout.west}-${index}`}>
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
                     <small className="result-rank">{bout.eastRank}</small>
@@ -247,7 +266,10 @@ export function LiveResultsBoard() {
       )}
 
       <div className="live-source">
-        <span>10秒ごとに画面を確認／公式データ取得は最大60秒に1回</span>
+        <span className="live-timestamp live-timestamp-inline">
+          <span>表示確認まで {seconds}秒</span>
+          <small>最終取得 {updated}</small>
+        </span>
         {data?.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer">出典：日本相撲協会公式サイト ↗</a>}
       </div>
     </section>
