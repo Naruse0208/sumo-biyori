@@ -22,6 +22,10 @@ type RikishiOption = {
   name: string;
   shikonaEn: string;
   heya?: string | null;
+  birthDate?: string | null;
+  highestRank?: string | null;
+  firstBasho?: number | null;
+  lastBasho?: number | null;
   intaiDate?: string | null;
 };
 
@@ -187,7 +191,18 @@ function SearchPicker({ side, selected, onSelect }: { side: "左" | "右"; selec
       </label>
       {open && rows.length > 0 && (
         <div className="compare-search-results">
-          {rows.map((row) => <button key={row.id} type="button" onClick={() => { onSelect(row); setQuery(""); setOpen(false); }}><strong>{row.name}</strong><span>{row.shikonaEn}{row.heya ? `・${row.heya}` : ""}</span></button>)}
+          {rows.map((row) => {
+            const birthYear = row.birthDate ? new Date(row.birthDate).getUTCFullYear() : null;
+            const firstYear = row.firstBasho ? Math.floor(row.firstBasho / 100) : null;
+            const lastYear = row.lastBasho ? Math.floor(row.lastBasho / 100) : null;
+            return <button key={row.id} type="button" onClick={() => { onSelect(row); setQuery(""); setOpen(false); }}>
+              <span className="compare-search-name"><strong>{row.name}</strong><small>{row.shikonaEn}</small></span>
+              <span className="compare-search-identity">
+                <strong>{row.highestRank ?? "番付不明"}</strong>
+                <small>{birthYear ? `${birthYear}年生` : "生年不明"}・{firstYear ? `${firstYear}—${lastYear ?? "現役"}` : row.intaiDate ? "引退" : "現役"}</small>
+              </span>
+            </button>;
+          })}
         </div>
       )}
     </div>

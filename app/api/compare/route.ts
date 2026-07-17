@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { banzukeEntries, bouts, ratingSnapshots, wrestlers } from "../../../db/schema";
 import evaluation from "../../../data/model-evaluation.json";
@@ -26,9 +26,59 @@ function displayName(wrestler: { id: number; shikonaJp: string | null; shikonaEn
   return japaneseRikishiName(wrestler.id, wrestler.shikonaJp) ?? wrestler.shikonaEn;
 }
 
+const searchEquivalentCharacters = [
+  ["ノ", "乃"],
+  ["ヶ", "ケ"],
+  ["竜", "龍"],
+  ["富", "冨"],
+  ["国", "國"],
+  ["浜", "濱"],
+  ["桜", "櫻"],
+  ["高", "髙"],
+] as const;
+
+function searchVariants(value: string) {
+  const normalized = value.normalize("NFKC").trim();
+  const variants = new Set([normalized]);
+  for (const [first, second] of searchEquivalentCharacters) {
+    for (const candidate of [...variants]) {
+      if (candidate.includes(first)) variants.add(candidate.replaceAll(first, second));
+      if (candidate.includes(second)) variants.add(candidate.replaceAll(second, first));
+    }
+  }
+  return [...variants].slice(0, 32);
+}
+
+function searchKey(value: string) {
+  return searchEquivalentCharacters.reduce(
+    (result, [first, second]) => result.replaceAll(second, first),
+    value.normalize("NFKC").toLocaleLowerCase("ja-JP").replaceAll(" ", ""),
+  );
+}
+
+function rankTitle(rank: string | null) {
+  const title = rank?.split(" ")[0] ?? "";
+  return (({
+    Yokozuna: "横綱",
+    Ozeki: "大関",
+    Sekiwake: "関脇",
+    Komusubi: "小結",
+    Maegashira: "前頭",
+    Juryo: "十両",
+    Makushita: "幕下",
+    Sandanme: "三段目",
+    Jonidan: "序二段",
+    Jonokuchi: "序ノ口",
+  } as Record<string, string>)[title] ?? title) || "番付不明";
+}
+
 async function searchRikishi(query: string) {
   const db = getDb();
-  const pattern = `%${query.replaceAll("%", "").replaceAll("_", "")}%`;
+  const variants = searchVariants(query).map((value) => value.replaceAll("%", "").replaceAll("_", ""));
+  const conditions = variants.flatMap((value) => [
+    like(wrestlers.shikonaJp, `%${value}%`),
+    like(wrestlers.shikonaEn, `%${value}%`),
+  ]);
   const rows = await db
     .select({
       id: wrestlers.id,
@@ -36,12 +86,53 @@ async function searchRikishi(query: string) {
       shikonaJp: wrestlers.shikonaJp,
       shikonaEn: wrestlers.shikonaEn,
       heya: wrestlers.heya,
+      birthDate: wrestlers.birthDate,
+      debutBashoId: wrestlers.debutBashoId,
       intaiDate: wrestlers.intaiDate,
     })
     .from(wrestlers)
-    .where(or(like(wrestlers.shikonaJp, pattern), like(wrestlers.shikonaEn, pattern)))
-    .limit(18);
-  return rows.map((row) => ({ ...row, name: displayName(row), profileUrl: rikishiProfilePath(row.id) }));
+    .where(or(...conditions))
+    .limit(30);
+  if (!rows.length) return [];
+  const careerRows = await db
+    .select({
+      wrestlerId: banzukeEntries.wrestlerId,
+      bestRank: sql<string>`MIN(printf('%02d-%06d', ${banzukeEntries.division}, COALESCE(${banzukeEntries.rankValue}, 999999)) || '|' || ${banzukeEntries.rank})`,
+      firstBasho: sql<number>`MIN(${banzukeEntries.bashoId})`,
+      lastBasho: sql<number>`MAX(${banzukeEntries.bashoId})`,
+    })
+    .from(banzukeEntries)
+    .where(inArray(banzukeEntries.wrestlerId, rows.map((row) => row.id)))
+    .groupBy(banzukeEntries.wrestlerId);
+  const careerById = new Map(careerRows.map((row) => [row.wrestlerId, row]));
+  const queryKey = searchKey(query);
+  return rows
+    .map((row) => {
+      const career = careerById.get(row.id);
+      const rank = career?.bestRank?.split("|").at(-1) ?? null;
+      const name = displayName(row);
+      const nameKey = searchKey(name);
+      const englishKey = searchKey(row.shikonaEn);
+      const score = nameKey === queryKey || englishKey === queryKey
+        ? 0
+        : nameKey.startsWith(queryKey) || englishKey.startsWith(queryKey)
+          ? 1
+          : nameKey.includes(queryKey) || englishKey.includes(queryKey)
+            ? 2
+            : 3;
+      return {
+        ...row,
+        name,
+        highestRank: rankTitle(rank),
+        firstBasho: career?.firstBasho ?? row.debutBashoId,
+        lastBasho: career?.lastBasho ?? null,
+        profileUrl: rikishiProfilePath(row.id),
+        searchScore: score,
+      };
+    })
+    .sort((left, right) => left.searchScore - right.searchScore || (right.lastBasho ?? 0) - (left.lastBasho ?? 0))
+    .slice(0, 18)
+    .map(({ searchScore: _searchScore, ...row }) => row);
 }
 
 async function yokozunaCandidates() {

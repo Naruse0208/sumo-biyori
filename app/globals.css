@@ -725,9 +725,13 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 .compare-picker select { cursor: pointer; }
 .compare-picker select option { background: #12191e; color: var(--washi); }
 .compare-search-results { position: absolute; z-index: 8; inset: calc(100% - 31px) 34px auto; max-height: 320px; overflow-y: auto; border: 1px solid var(--gold); background: #10171d; box-shadow: 10px 12px 24px rgba(0,0,0,.45); }
-.compare-search-results button { width: 100%; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid rgba(200,164,93,.16); background: transparent; color: var(--washi); font-family: var(--serif); text-align: left; cursor: pointer; }
+.compare-search-results button { width: 100%; min-height: 68px; padding: 11px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; border: 0; border-bottom: 1px solid rgba(200,164,93,.16); background: transparent; color: var(--washi); font-family: var(--serif); text-align: left; cursor: pointer; }
 .compare-search-results button:hover, .compare-search-results button:focus-visible { background: var(--crimson-dark); }
-.compare-search-results button span { color: var(--washi-muted); font: 9px/1.3 var(--sans); }
+.compare-search-results button > span { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.compare-search-results button > span > strong { overflow: hidden; font-size: 15px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.compare-search-results button > span > small { color: var(--washi-muted); font: 9px/1.3 var(--sans); }
+.compare-search-identity { align-items: flex-end; text-align: right; }
+.compare-search-identity > strong { color: var(--gold-light); font-size: 12px !important; }
 .compare-versus { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 9px; border-inline: 1px solid rgba(200,164,93,.32); background: rgba(23,35,58,.68); }
 .compare-versus span { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--crimson-light); font-size: 20px; }
 .compare-versus small { color: var(--gold); font: 7px/1 var(--sans); letter-spacing: .18em; }
