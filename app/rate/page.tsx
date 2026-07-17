@@ -122,14 +122,17 @@ export default function RatePage() {
             <p>RIKISHI RATING</p>
             <h2 id="ranking-title">力士レート順位</h2>
           </div>
-          <span className="rate-pending">令和八年 七月場所</span>
+          <span className="rate-pending">1999年以降・{ratings.scope.basho}場所</span>
         </div>
 
-        <RatingBoard divisions={ratings.divisions} />
+        <RatingBoard
+          divisions={ratings.divisions}
+          initialBasho={Number(ratings.scope.latestBasho)}
+        />
         <div className="rate-ranking-board rate-ranking-method">
           <div className="rate-ranking-note">
             <p><strong>計算範囲</strong> 1999年一月場所〜令和八年七月場所・全六段／{ratings.counts.ratedBouts.toLocaleString()}取組・{ratings.counts.wrestlersInScope.toLocaleString()}力士</p>
-            <p>基準Elo {ratings.model.startingElo}、K値 {ratings.model.kFactor}。七月場所は進行中のため、取得済み取組までを反映しています。</p>
+            <p>基準Elo {ratings.model.startingElo}、K値 {ratings.model.kFactor}。選択場所の終了時点を表示し、最新場所は取得済み取組までを反映します。</p>
             <a href="https://sumo-api.com/api-guide" target="_blank" rel="noreferrer">取組データ仕様：Sumo API ↗</a>
           </div>
         </div>
