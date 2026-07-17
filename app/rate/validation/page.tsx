@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import evaluation from "../../../data/model-evaluation.json";
+import RateLabNav from "../rate-lab-nav";
 import ValidationBoard from "./validation-board";
 
 export const metadata: Metadata = {
@@ -32,14 +33,12 @@ export default function ValidationPage() {
         </nav>
       </header>
 
+      <RateLabNav active="validation" />
+
       <section className="lab-hero">
         <div><p>DOHYO FORECAST SCORECARD</p><h1>予想は、<br />当てた後までが予想。</h1><p>未来を知ってから過去の予想を作り直さない。1999〜2019年で調整し、2020年以降の{evaluation.scope.holdoutBouts.toLocaleString()}番を未学習のまま採点しました。</p></div>
         <div className="lab-hero-score"><small>BEST HOLDOUT LOG LOSS</small><strong>{evaluation.overall.holdout.dohyoV3.logLoss.toFixed(4)}</strong><span>v3実験／正式表示はv2.1</span></div>
       </section>
-
-      <nav className="lab-section-nav" aria-label="研究室ページ">
-        <Link href="/rate">力士レート順位</Link><Link className="is-active" href="/rate/validation">予測成績</Link><Link href="/rate/era">歴代比較</Link>
-      </nav>
 
       <section className="rate-shell validation-shell" aria-labelledby="validation-title">
         <div className="rate-section-heading"><div><p>OUT-OF-SAMPLE TEST</p><h2 id="validation-title">{evaluation.scope.holdout}年、未学習期間の成績。</h2></div><span>{evaluation.scope.holdoutBouts.toLocaleString()}番</span></div>

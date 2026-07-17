@@ -4,15 +4,20 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 
-test("publishes the model scorecard and era lab routes", async () => {
-  const [rate, validation, era] = await Promise.all([
+test("publishes a prominent shared navigation for all rating lab routes", async () => {
+  const [rate, validation, era, labNavigation] = await Promise.all([
     readFile(new URL("app/rate/page.tsx", root), "utf8"),
     readFile(new URL("app/rate/validation/page.tsx", root), "utf8"),
     readFile(new URL("app/rate/era/page.tsx", root), "utf8"),
+    readFile(new URL("app/rate/rate-lab-nav.tsx", root), "utf8"),
   ]);
 
-  assert.match(rate, /href="\/rate\/validation"/);
-  assert.match(rate, /href="\/rate\/era"/);
+  assert.match(rate, /<RateLabNav active="ranking" \/>/);
+  assert.match(validation, /<RateLabNav active="validation" \/>/);
+  assert.match(era, /<RateLabNav active="era" \/>/);
+  assert.match(labNavigation, /href: "\/rate"/);
+  assert.match(labNavigation, /href: "\/rate\/validation"/);
+  assert.match(labNavigation, /href: "\/rate\/era"/);
   assert.match(validation, /og-model-lab\.png/);
   assert.match(validation, /未学習/);
   assert.match(era, /その場所の幕内平均から、どれほど抜けていたか/);

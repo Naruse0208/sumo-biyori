@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import era from "../../../data/era-rankings.json";
+import RateLabNav from "../rate-lab-nav";
 
 export const metadata: Metadata = {
   title: "歴代力士・時代補正ランキング｜土俵日和",
@@ -21,12 +22,12 @@ export default function EraPage() {
       <div className="notice-bar rate-notice"><strong>土俵日和 歴代比較室</strong><span>強さではなく、その時代をどれほど支配したか</span></div>
       <header className="site-header"><nav className="nav-shell" aria-label="メインナビゲーション"><div className="nav-group nav-left"><Link href="/#torikumi">取組</Link><Link href="/rate">レート</Link><Link href="/rate/validation">検証</Link></div><Link className="brand" href="/" aria-label="土俵日和 ホーム"><span className="brand-crest" aria-hidden="true">土</span><span className="brand-title">土俵日和</span><span className="brand-roman">DOHYO BIYORI</span></Link><div className="nav-group nav-right"><Link className="is-current" href="/rate/era">歴代比較</Link></div></nav></header>
 
+      <RateLabNav active="era" />
+
       <section className="lab-hero era-hero">
         <div><p>ACROSS ERAS / EXPERIMENT</p><h1>時代の頂を、<br />同じ目盛りに置く。</h1><p>幕内平均からの傑出度を場所ごとに測り、最高到達点と上位6場所の持続力を合成。直接対戦できない時代を「絶対的な強さ」と言い切らないための歴代指数です。</p></div>
         <div className="lab-hero-score"><small>収録範囲</small><strong>1999—</strong><span>幕内在位6場所以上</span></div>
       </section>
-
-      <nav className="lab-section-nav" aria-label="研究室ページ"><Link href="/rate">力士レート順位</Link><Link href="/rate/validation">予測成績</Link><Link className="is-active" href="/rate/era">歴代比較</Link></nav>
 
       <section className="rate-shell era-shell" aria-labelledby="era-title">
         <div className="rate-section-heading"><div><p>ERA DOMINANCE INDEX</p><h2 id="era-title">歴代指数・実験ランキング</h2></div><span>PREVIEW</span></div>

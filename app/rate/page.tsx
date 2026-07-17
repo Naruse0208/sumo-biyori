@@ -3,6 +3,7 @@ import Link from "next/link";
 import ratings from "../../data/ratings-latest.json";
 import { japaneseRikishiName, officialRikishiProfile, rikishiProfilePath } from "../lib/rikishi-names";
 import RatingBoard from "./rating-board";
+import RateLabNav from "./rate-lab-nav";
 
 export const metadata: Metadata = {
   title: "力士レーティング研究室｜土俵日和",
@@ -98,6 +99,8 @@ export default function RatePage() {
         </nav>
       </header>
 
+      <RateLabNav active="ranking" />
+
       <section className="rate-hero">
         <div className="rate-hero-copy">
           <p className="rate-kicker">DOHYO BIYORI RATING LAB</p>
@@ -176,17 +179,6 @@ export default function RatePage() {
             <p>基準Elo {ratings.model.startingElo}・K値 {ratings.model.kFactor}。地力は場所単位Glicko-2・初期RD {ratings.model.glicko2.initialRd}。最新場所は取得済み取組までを反映します。</p>
             <a href="https://sumo-api.com/api-guide" target="_blank" rel="noreferrer">取組データ仕様：Sumo API ↗</a>
           </div>
-        </div>
-      </section>
-
-      <section className="rate-shell lab-gateway" aria-labelledby="lab-gateway-title">
-        <div className="rate-section-heading">
-          <div><p>OPEN RESEARCH</p><h2 id="lab-gateway-title">数字の成績も、歴代比較も公開する。</h2></div>
-          <span>研究室</span>
-        </div>
-        <div className="lab-gateway-grid">
-          <Link href="/rate/validation"><small>MODEL SCORECARD</small><strong>予測成績・検証</strong><p>Elo、Glicko-2、v2、v3実験を未学習期間で比較。log lossと較正まで見る。</p><span>検証場へ →</span></Link>
-          <Link href="/rate/era"><small>ACROSS ERAS</small><strong>歴代力士・時代補正</strong><p>最高到達点と上位6場所から、1999年以降の幕内支配度を比べる実験版。</p><span>歴代比較へ →</span></Link>
         </div>
       </section>
 
