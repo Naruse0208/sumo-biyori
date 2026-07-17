@@ -85,13 +85,6 @@ export default function Home() {
         </div>
 
         <div className="hero-core">
-          <p className="kicker"><span />本日の結びの一番<span /></p>
-          <h1>土俵に、夏が鳴る。</h1>
-          <p className="hero-copy">
-            一瞬の立ち合い、揺れる館内。今日の熱戦を、<br className="desktop-break" />
-            見どころとともに味わう相撲ファンのための場所です。
-          </p>
-
           <LiveHeroBout />
         </div>
 
