@@ -62,6 +62,27 @@ for (const source of sources) {
   }
   console.log(`${source.table}: ${rows.length} rows`);
 }
+
+// Bout and banzuke feeds can expose brand-new wrestlers before the master list does.
+// Export those IDs as a separate, stable batch so foreign keys remain valid without
+// changing the checkpoints of the already exported master batches.
+const missingWrestlers = database.prepare(`WITH referenced(id) AS (
+  SELECT wrestler_id FROM banzuke_entries
+  UNION SELECT wrestler_a_id FROM bouts
+  UNION SELECT wrestler_b_id FROM bouts
+  UNION SELECT winner_id FROM bouts WHERE winner_id IS NOT NULL
+  UNION SELECT wrestler_id FROM rating_snapshots_actual
+)
+SELECT referenced.id
+FROM referenced LEFT JOIN wrestlers ON wrestlers.id = referenced.id
+WHERE wrestlers.id IS NULL
+ORDER BY referenced.id`).all().map(({ id }) => [id, null, null, null, null, null, null, null, null, null, null, null]);
+if (missingWrestlers.length) {
+  const file = "wrestlers-9999.json.gz";
+  await writeFile(join(OUTPUT_DIR, file), gzipSync(JSON.stringify(missingWrestlers), { level: 9 }));
+  manifest.batches.splice(5, 0, { file, table: "wrestlers", rows: missingWrestlers.length });
+  console.log(`wrestlers supplemental: ${missingWrestlers.length} rows`);
+}
 database.close();
 await writeFile(join(OUTPUT_DIR, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 console.log(`Exported ${manifest.batches.length} resumable batches to ${OUTPUT_DIR}`);

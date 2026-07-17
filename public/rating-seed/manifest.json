@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-17T08:17:57.165Z",
+  "generatedAt": "2026-07-17T09:06:14.638Z",
   "chunkSize": 2000,
   "batches": [
     {
@@ -26,6 +26,11 @@
       "file": "wrestlers-0004.json.gz",
       "table": "wrestlers",
       "rows": 1125
+    },
+    {
+      "file": "wrestlers-9999.json.gz",
+      "table": "wrestlers",
+      "rows": 7
     },
     {
       "file": "basho-0000.json.gz",

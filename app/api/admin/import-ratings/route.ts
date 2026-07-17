@@ -9,9 +9,21 @@ type RuntimeEnv = {
 };
 
 const insertSql: Record<string, string> = {
-  wrestlers: `INSERT OR IGNORE INTO wrestlers
+  wrestlers: `INSERT INTO wrestlers
     (id, sumodb_id, nsk_id, shikona_jp, shikona_en, heya, birth_date, shusshin,
-     height_mm, weight_kg, debut_basho_id, intai_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     height_mm, weight_kg, debut_basho_id, intai_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       sumodb_id = COALESCE(excluded.sumodb_id, wrestlers.sumodb_id),
+       nsk_id = COALESCE(excluded.nsk_id, wrestlers.nsk_id),
+       shikona_jp = COALESCE(excluded.shikona_jp, wrestlers.shikona_jp),
+       shikona_en = COALESCE(excluded.shikona_en, wrestlers.shikona_en),
+       heya = COALESCE(excluded.heya, wrestlers.heya),
+       birth_date = COALESCE(excluded.birth_date, wrestlers.birth_date),
+       shusshin = COALESCE(excluded.shusshin, wrestlers.shusshin),
+       height_mm = COALESCE(excluded.height_mm, wrestlers.height_mm),
+       weight_kg = COALESCE(excluded.weight_kg, wrestlers.weight_kg),
+       debut_basho_id = COALESCE(excluded.debut_basho_id, wrestlers.debut_basho_id),
+       intai_date = COALESCE(excluded.intai_date, wrestlers.intai_date)`,
   basho: "INSERT OR IGNORE INTO basho (id) VALUES (?)",
   banzuke_entries: `INSERT OR REPLACE INTO banzuke_entries
     (basho_id, division, wrestler_id, side, rank, rank_value) VALUES (?, ?, ?, ?, ?, ?)`,
