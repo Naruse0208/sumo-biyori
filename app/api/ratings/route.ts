@@ -27,8 +27,8 @@ export async function GET(request: Request) {
       return Response.json({ bashoIds: rows.map((row) => row.bashoId) });
     }
 
-    if (!Number.isInteger(bashoId) || bashoId < 195801) {
-      return Response.json({ error: "basho must be YYYYMM and 195801 or later" }, { status: 400 });
+    if (!Number.isInteger(bashoId) || bashoId < 195803) {
+      return Response.json({ error: "basho must be YYYYMM and 195803 or later" }, { status: 400 });
     }
     if (!Number.isInteger(division) || division < 0 || division > 6) {
       return Response.json({ error: "division must be between 0 and 6" }, { status: 400 });

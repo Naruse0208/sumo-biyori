@@ -175,7 +175,7 @@ export default function RatePage() {
         />
         <div className="rate-ranking-board rate-ranking-method">
           <div className="rate-ranking-note">
-            <p><strong>計算範囲</strong> 1958年一月場所〜令和八年七月場所・全六段／{ratings.counts.ratedBouts.toLocaleString()}取組・{ratings.counts.wrestlersInScope.toLocaleString()}力士</p>
+            <p><strong>計算範囲</strong> 1958年三月場所〜令和八年七月場所・全六段／{ratings.counts.ratedBouts.toLocaleString()}取組・{ratings.counts.wrestlersInScope.toLocaleString()}力士</p>
             <p>基準Elo {ratings.model.startingElo}・K値 {ratings.model.kFactor}。地力は場所単位Glicko-2・初期RD {ratings.model.glicko2.initialRd}。最新場所は取得済み取組までを反映します。</p>
             <a href="https://sumo-api.com/api-guide" target="_blank" rel="noreferrer">取組データ仕様：Sumo API ↗</a>
           </div>
