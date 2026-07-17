@@ -43,9 +43,7 @@ export default function Home() {
       <div className="arena-frame" aria-hidden="true" />
 
       <div className="notice-bar">
-        <span>令和八年 七月場所</span>
         <LiveHeaderStatus />
-        <span className="notice-detail">公式結果をもとに10秒ごと表示確認</span>
       </div>
 
       <header className="site-header">

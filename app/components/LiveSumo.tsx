@@ -99,14 +99,9 @@ function useLiveSumo() {
 
 export function LiveHeaderStatus() {
   const { data, loading } = useLiveSumo();
-  if (loading) return <strong>公式取組情報を確認中</strong>;
-  if (!data?.live || !data.currentDivision) return <strong>公式取組情報・更新待ち</strong>;
-  return (
-    <strong>
-      <span className="live-dot" aria-hidden="true" />
-      ただいま {data.currentDivision.name}・{data.currentDivision.completed}/{data.currentDivision.total}番終了
-    </strong>
-  );
+  if (loading) return <strong>本場所情報を確認中</strong>;
+  const label = [data?.basho, data?.dayLabel].filter(Boolean).join("　");
+  return <strong>{label || "本場所情報を更新待ち"}</strong>;
 }
 
 export function LiveHeroBout() {

@@ -7,7 +7,6 @@ const DIVISIONS = [
   { id: 1, name: "幕内" },
 ] as const;
 
-const BASHO_START_JST = "2026-07-12";
 const UPSTREAM_TTL_MS = 60_000;
 
 type UpstreamRikishi = {
@@ -55,6 +54,7 @@ type LiveDivision = {
 };
 
 type LiveDivisionSource = LiveDivision & {
+  dayHead?: string;
   nextBoutSource: UpstreamBout | null;
   recentResultSources: UpstreamBout[];
 };
@@ -76,18 +76,46 @@ type LiveResponse = {
 let memoryCache: { expiresAt: number; value: LiveResponse } | null = null;
 const profileNameCache = new Map<number, string>();
 
-function getJapanDay(): number | null {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+function toKanjiNumber(value: number): string {
+  const digits = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  if (value < 10) return digits[value] ?? String(value);
+  if (value < 20) return `十${value % 10 ? digits[value % 10] : ""}`;
+  if (value < 100) {
+    const tens = Math.floor(value / 10);
+    return `${digits[tens]}十${value % 10 ? digits[value % 10] : ""}`;
+  }
+  return String(value);
+}
+
+async function fetchBashoContext(): Promise<{ day: number; name: string }> {
+  const response = await fetch("https://www.sumo.or.jp/", {
+    cache: "no-store",
+    headers: {
+      Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    },
   });
-  const today = formatter.format(new Date());
-  const start = Date.parse(`${BASHO_START_JST}T00:00:00+09:00`);
-  const current = Date.parse(`${today}T00:00:00+09:00`);
-  const day = Math.floor((current - start) / 86_400_000) + 1;
-  return day >= 1 && day <= 15 ? day : null;
+  if (!response.ok) throw new Error(`Official homepage request failed: ${response.status}`);
+
+  const html = await response.text();
+  const match = html.match(
+    /href=["']\/ResultData\/torikumi\/1\/(\d+)\/["'][^>]*>([^<]*場所)情報<\/a>/i,
+  );
+  const day = Number(match?.[1] ?? 0);
+  const name = match?.[2]?.trim();
+  if (!day || !name) throw new Error("Current basho context was not found");
+  return { day, name };
+}
+
+function getEraYear(dayHead?: string): string {
+  const match = dayHead?.match(/(令和)(\d+)年/);
+  return match ? `${match[1]}${toKanjiNumber(Number(match[2]))}年` : "";
+}
+
+function getDayLabel(dayHead: string | undefined, day: number): string {
+  return dayHead?.match(/([一二三四五六七八九十]+日目)/)?.[1] ?? `${toKanjiNumber(day)}日目`;
 }
 
 function cleanShikona(rikishi?: UpstreamRikishi): string {
@@ -174,6 +202,7 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
   return {
     id,
     name: payload.kakuName || name,
+    dayHead: payload.dayHead,
     completed,
     total: bouts.length,
     nextBout: null,
@@ -197,31 +226,15 @@ function findCurrentDivision(divisions: LiveDivisionSource[]): LiveDivisionSourc
 }
 
 async function loadLiveData(): Promise<LiveResponse> {
-  const day = getJapanDay();
-  const sourceUrl = day
-    ? `https://www.sumo.or.jp/ResultData/torikumi/1/${day}/`
-    : "https://www.sumo.or.jp/ResultData/torikumi/1/1/";
-
-  if (!day) {
-    return {
-      live: false,
-      basho: "令和八年 七月場所",
-      day: null,
-      dayLabel: "本場所の開催時間外です",
-      currentDivision: null,
-      divisions: [],
-      updatedAt: new Date().toISOString(),
-      sourceUrl,
-      displayRefreshSeconds: 10,
-      sourceRefreshSeconds: 60,
-      message: "次の本場所では、取組の進行に合わせて自動更新します。",
-    };
-  }
+  const bashoContext = await fetchBashoContext();
+  const day = bashoContext.day;
+  const sourceUrl = `https://www.sumo.or.jp/ResultData/torikumi/1/${day}/`;
 
   const divisions = await Promise.all(
     DIVISIONS.map((division) => fetchDivision(division.id, division.name, day)),
   );
   const currentSource = findCurrentDivision(divisions);
+  const dayHead = currentSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
   const currentDivision = currentSource
     ? {
         id: currentSource.id,
@@ -239,9 +252,9 @@ async function loadLiveData(): Promise<LiveResponse> {
 
   return {
     live: Boolean(currentDivision?.total),
-    basho: "令和八年 七月場所",
+    basho: `${getEraYear(dayHead)} ${bashoContext.name}`.trim(),
     day,
-    dayLabel: `${day}日目`,
+    dayLabel: getDayLabel(dayHead, day),
     currentDivision,
     divisions: divisions.map(({ id, name, completed, total }) => ({ id, name, completed, total })),
     updatedAt: new Date().toISOString(),
