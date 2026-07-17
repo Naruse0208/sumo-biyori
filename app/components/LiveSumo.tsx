@@ -196,11 +196,15 @@ export function LiveResultsBoard() {
               {division.recentResults.length ? division.recentResults.map((bout, index) => (
                 <div className="result-row" key={`${bout.east}-${bout.west}-${index}`}>
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
-                    <small>{bout.eastRank}</small>{bout.east}
+                    <small className="result-rank">{bout.eastRank}</small>
+                    <strong className="result-name">{bout.east}</strong>
+                    <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
                   <span className="result-technique">{bout.technique}</span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
-                    {bout.west}<small>{bout.westRank}</small>
+                    <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
+                    <strong className="result-name">{bout.west}</strong>
+                    <small className="result-rank">{bout.westRank}</small>
                   </span>
                 </div>
               )) : <p className="live-empty">最初の取組結果を待っています。</p>}
