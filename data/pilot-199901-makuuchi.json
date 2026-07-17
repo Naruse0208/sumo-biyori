@@ -1,0 +1,530 @@
+{
+  "generatedAt": "2026-07-17T06:32:32.497Z",
+  "status": "pilot",
+  "source": {
+    "name": "Sumo API",
+    "guideUrl": "https://sumo-api.com/api-guide",
+    "bashoUrl": "https://sumo-api.com/api/basho/199901"
+  },
+  "scope": {
+    "bashoId": "199901",
+    "division": "Makuuchi",
+    "days": 15,
+    "location": "Tokyo, Ryogoku Kokugikan",
+    "startDate": "1999-01-10T00:00:00Z",
+    "endDate": "1999-01-24T00:00:00Z"
+  },
+  "model": {
+    "name": "Elo pilot v1",
+    "startingElo": 1500,
+    "kFactor": 20,
+    "dohyoScore": "50 + 10 × (Elo - field mean) / field standard deviation"
+  },
+  "counts": {
+    "fetchedBouts": 289,
+    "ratedBouts": 289,
+    "wrestlers": 45
+  },
+  "field": {
+    "meanElo": 1500,
+    "standardDeviation": 34.33
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "id": 3858,
+      "shikona": "Chiyotaikai",
+      "elo": 1593,
+      "peakElo": 1593,
+      "bouts": 15,
+      "wins": 13,
+      "losses": 2,
+      "dohyoScore": 77.1
+    },
+    {
+      "rank": 2,
+      "id": 4997,
+      "shikona": "Wakanohana",
+      "elo": 1587,
+      "peakElo": 1601,
+      "bouts": 15,
+      "wins": 13,
+      "losses": 2,
+      "dohyoScore": 75.3
+    },
+    {
+      "rank": 3,
+      "id": 3833,
+      "shikona": "Akinoshima",
+      "elo": 1564,
+      "peakElo": 1567,
+      "bouts": 15,
+      "wins": 11,
+      "losses": 4,
+      "dohyoScore": 68.6
+    },
+    {
+      "rank": 4,
+      "id": 3827,
+      "shikona": "Chiyotenzan",
+      "elo": 1542,
+      "peakElo": 1555,
+      "bouts": 15,
+      "wins": 10,
+      "losses": 5,
+      "dohyoScore": 62.2
+    },
+    {
+      "rank": 5,
+      "id": 3855,
+      "shikona": "Musoyama",
+      "elo": 1541,
+      "peakElo": 1553,
+      "bouts": 15,
+      "wins": 10,
+      "losses": 5,
+      "dohyoScore": 61.9
+    },
+    {
+      "rank": 6,
+      "id": 4071,
+      "shikona": "Kaio",
+      "elo": 1533,
+      "peakElo": 1533,
+      "bouts": 15,
+      "wins": 9,
+      "losses": 6,
+      "dohyoScore": 59.6
+    },
+    {
+      "rank": 7,
+      "id": 3841,
+      "shikona": "Kyokushuzan",
+      "elo": 1528,
+      "peakElo": 1539,
+      "bouts": 15,
+      "wins": 9,
+      "losses": 6,
+      "dohyoScore": 58.2
+    },
+    {
+      "rank": 8,
+      "id": 4889,
+      "shikona": "Shikishima",
+      "elo": 1528,
+      "peakElo": 1538,
+      "bouts": 15,
+      "wins": 9,
+      "losses": 6,
+      "dohyoScore": 58.2
+    },
+    {
+      "rank": 9,
+      "id": 3849,
+      "shikona": "Tochiazuma",
+      "elo": 1527,
+      "peakElo": 1527,
+      "bouts": 15,
+      "wins": 9,
+      "losses": 6,
+      "dohyoScore": 57.9
+    },
+    {
+      "rank": 10,
+      "id": 3743,
+      "shikona": "Hamanoshima",
+      "elo": 1520,
+      "peakElo": 1553,
+      "bouts": 15,
+      "wins": 9,
+      "losses": 6,
+      "dohyoScore": 55.8
+    },
+    {
+      "rank": 11,
+      "id": 3836,
+      "shikona": "Takatoriki",
+      "elo": 1515,
+      "peakElo": 1515,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 54.4
+    },
+    {
+      "rank": 12,
+      "id": 794,
+      "shikona": "Terao",
+      "elo": 1512,
+      "peakElo": 1519,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 53.5
+    },
+    {
+      "rank": 13,
+      "id": 1560,
+      "shikona": "Mitoizumi",
+      "elo": 1511,
+      "peakElo": 1522,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 53.2
+    },
+    {
+      "rank": 14,
+      "id": 3847,
+      "shikona": "Tochinonada",
+      "elo": 1511,
+      "peakElo": 1522,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 53.2
+    },
+    {
+      "rank": 15,
+      "id": 3852,
+      "shikona": "Dejima",
+      "elo": 1511,
+      "peakElo": 1522,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 53.2
+    },
+    {
+      "rank": 16,
+      "id": 3859,
+      "shikona": "Musashimaru",
+      "elo": 1511,
+      "peakElo": 1520,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 53.2
+    },
+    {
+      "rank": 17,
+      "id": 3854,
+      "shikona": "Miyabiyama",
+      "elo": 1511,
+      "peakElo": 1511,
+      "bouts": 3,
+      "wins": 2,
+      "losses": 1,
+      "dohyoScore": 53.2
+    },
+    {
+      "rank": 18,
+      "id": 3850,
+      "shikona": "Kotonowaka",
+      "elo": 1509,
+      "peakElo": 1519,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 52.6
+    },
+    {
+      "rank": 19,
+      "id": 3745,
+      "shikona": "Oikari",
+      "elo": 1509,
+      "peakElo": 1509,
+      "bouts": 1,
+      "wins": 1,
+      "losses": 0,
+      "dohyoScore": 52.6
+    },
+    {
+      "rank": 20,
+      "id": 4995,
+      "shikona": "Ohinode",
+      "elo": 1508,
+      "peakElo": 1509,
+      "bouts": 3,
+      "wins": 2,
+      "losses": 1,
+      "dohyoScore": 52.3
+    },
+    {
+      "rank": 21,
+      "id": 3747,
+      "shikona": "Asanowaka",
+      "elo": 1508,
+      "peakElo": 1508,
+      "bouts": 1,
+      "wins": 1,
+      "losses": 0,
+      "dohyoScore": 52.3
+    },
+    {
+      "rank": 22,
+      "id": 4789,
+      "shikona": "Takanohana",
+      "elo": 1507,
+      "peakElo": 1531,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 52
+    },
+    {
+      "rank": 23,
+      "id": 3831,
+      "shikona": "Higonoumi",
+      "elo": 1506,
+      "peakElo": 1536,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 51.7
+    },
+    {
+      "rank": 24,
+      "id": 3830,
+      "shikona": "Oginishiki",
+      "elo": 1505,
+      "peakElo": 1537,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 51.5
+    },
+    {
+      "rank": 25,
+      "id": 4996,
+      "shikona": "Ganyu",
+      "elo": 1503,
+      "peakElo": 1548,
+      "bouts": 15,
+      "wins": 8,
+      "losses": 7,
+      "dohyoScore": 50.9
+    },
+    {
+      "rank": 26,
+      "id": 3857,
+      "shikona": "Tosanoumi",
+      "elo": 1497,
+      "peakElo": 1500,
+      "bouts": 15,
+      "wins": 7,
+      "losses": 8,
+      "dohyoScore": 49.1
+    },
+    {
+      "rank": 27,
+      "id": 3842,
+      "shikona": "Toki",
+      "elo": 1496,
+      "peakElo": 1520,
+      "bouts": 15,
+      "wins": 7,
+      "losses": 8,
+      "dohyoScore": 48.8
+    },
+    {
+      "rank": 28,
+      "id": 3733,
+      "shikona": "Tomonohana",
+      "elo": 1496,
+      "peakElo": 1508,
+      "bouts": 2,
+      "wins": 1,
+      "losses": 1,
+      "dohyoScore": 48.8
+    },
+    {
+      "rank": 29,
+      "id": 4066,
+      "shikona": "Gojoro",
+      "elo": 1492,
+      "peakElo": 1522,
+      "bouts": 15,
+      "wins": 7,
+      "losses": 8,
+      "dohyoScore": 47.7
+    },
+    {
+      "rank": 30,
+      "id": 3826,
+      "shikona": "Wakanoyama",
+      "elo": 1488,
+      "peakElo": 1500,
+      "bouts": 1,
+      "wins": 0,
+      "losses": 1,
+      "dohyoScore": 46.5
+    },
+    {
+      "rank": 31,
+      "id": 4912,
+      "shikona": "Kotonishiki",
+      "elo": 1477,
+      "peakElo": 1510,
+      "bouts": 15,
+      "wins": 6,
+      "losses": 9,
+      "dohyoScore": 43.3
+    },
+    {
+      "rank": 32,
+      "id": 5077,
+      "shikona": "Zenshinyama",
+      "elo": 1477,
+      "peakElo": 1500,
+      "bouts": 2,
+      "wins": 0,
+      "losses": 2,
+      "dohyoScore": 43.3
+    },
+    {
+      "rank": 33,
+      "id": 3890,
+      "shikona": "Wakanojo",
+      "elo": 1474,
+      "peakElo": 1514,
+      "bouts": 15,
+      "wins": 6,
+      "losses": 9,
+      "dohyoScore": 42.4
+    },
+    {
+      "rank": 34,
+      "id": 3853,
+      "shikona": "Takanonami",
+      "elo": 1472,
+      "peakElo": 1510,
+      "bouts": 15,
+      "wins": 6,
+      "losses": 9,
+      "dohyoScore": 41.8
+    },
+    {
+      "rank": 35,
+      "id": 3713,
+      "shikona": "Asanosho",
+      "elo": 1471,
+      "peakElo": 1511,
+      "bouts": 15,
+      "wins": 6,
+      "losses": 9,
+      "dohyoScore": 41.6
+    },
+    {
+      "rank": 36,
+      "id": 5079,
+      "shikona": "Tochinowaka",
+      "elo": 1470,
+      "peakElo": 1501,
+      "bouts": 15,
+      "wins": 6,
+      "losses": 9,
+      "dohyoScore": 41.3
+    },
+    {
+      "rank": 37,
+      "id": 3856,
+      "shikona": "Kaiho",
+      "elo": 1469,
+      "peakElo": 1501,
+      "bouts": 15,
+      "wins": 6,
+      "losses": 9,
+      "dohyoScore": 41
+    },
+    {
+      "rank": 38,
+      "id": 4994,
+      "shikona": "Dewaarashi",
+      "elo": 1467,
+      "peakElo": 1500,
+      "bouts": 12,
+      "wins": 4,
+      "losses": 8,
+      "dohyoScore": 40.4
+    },
+    {
+      "rank": 39,
+      "id": 3751,
+      "shikona": "Minatofuji",
+      "elo": 1458,
+      "peakElo": 1500,
+      "bouts": 15,
+      "wins": 5,
+      "losses": 10,
+      "dohyoScore": 37.8
+    },
+    {
+      "rank": 40,
+      "id": 3843,
+      "shikona": "Tamakasuga",
+      "elo": 1457,
+      "peakElo": 1500,
+      "bouts": 15,
+      "wins": 5,
+      "losses": 10,
+      "dohyoScore": 37.5
+    },
+    {
+      "rank": 41,
+      "id": 5146,
+      "shikona": "Asahiyutaka",
+      "elo": 1457,
+      "peakElo": 1500,
+      "bouts": 13,
+      "wins": 4,
+      "losses": 9,
+      "dohyoScore": 37.5
+    },
+    {
+      "rank": 42,
+      "id": 3840,
+      "shikona": "Kotoryu",
+      "elo": 1456,
+      "peakElo": 1512,
+      "bouts": 15,
+      "wins": 5,
+      "losses": 10,
+      "dohyoScore": 37.2
+    },
+    {
+      "rank": 43,
+      "id": 4061,
+      "shikona": "Kinkaiyama",
+      "elo": 1448,
+      "peakElo": 1500,
+      "bouts": 15,
+      "wins": 4,
+      "losses": 11,
+      "dohyoScore": 34.9
+    },
+    {
+      "rank": 44,
+      "id": 3860,
+      "shikona": "Tokitsuumi",
+      "elo": 1439,
+      "peakElo": 1510,
+      "bouts": 15,
+      "wins": 4,
+      "losses": 11,
+      "dohyoScore": 32.2
+    },
+    {
+      "rank": 45,
+      "id": 3746,
+      "shikona": "Aogiyama",
+      "elo": 1439,
+      "peakElo": 1511,
+      "bouts": 15,
+      "wins": 4,
+      "losses": 11,
+      "dohyoScore": 32.2
+    }
+  ]
+}
+

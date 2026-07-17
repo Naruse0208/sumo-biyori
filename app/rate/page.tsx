@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import pilot from "../../data/pilot-199901-makuuchi.json";
 
 export const metadata: Metadata = {
   title: "力士レート｜土俵日和",
@@ -19,6 +20,21 @@ const releaseSteps = [
   { number: "参", title: "時代差をならす", copy: "同時代・同階級の分布で標準化し、土俵偏差値へ変換。" },
   { number: "肆", title: "今日の取組へ", copy: "順位、推移、対戦相性、現在と次の一番の勝率を公開。" },
 ];
+
+const pilotNames: Record<string, string> = {
+  Chiyotaikai: "千代大海",
+  Wakanohana: "若乃花",
+  Akinoshima: "安芸乃島",
+  Chiyotenzan: "千代天山",
+  Musoyama: "武双山",
+  Kaio: "魁皇",
+  Kyokushuzan: "旭鷲山",
+  Shikishima: "敷島",
+  Tochiazuma: "栃東",
+  Hamanoshima: "濱ノ嶋",
+};
+
+const pilotRanking = pilot.ranking.slice(0, 10);
 
 export default function RatePage() {
   return (
@@ -120,17 +136,26 @@ export default function RatePage() {
             <p>RIKISHI RATING</p>
             <h2 id="ranking-title">力士レート順位</h2>
           </div>
-          <span className="rate-pending">計算準備中</span>
+          <span className="rate-pending">実データ試算</span>
         </div>
 
         <div className="rate-ranking-board">
           <div className="rate-ranking-head">
-            <span>順位</span><span>力士</span><span>Elo</span><span>土俵偏差値</span><span>推移</span>
+            <span>順位</span><span>力士</span><span>Elo</span><span>土俵偏差値</span><span>成績</span>
           </div>
-          <div className="rate-ranking-empty">
-            <div className="rate-dohyo-mark" aria-hidden="true"><span>土</span></div>
-            <h3>最初の一番から、計算しています。</h3>
-            <p>未計算の数値を仮表示せず、1999年以降のデータ照合と改名統合が完了した力士から公開します。</p>
+          {pilotRanking.map((rikishi) => (
+            <div className="rate-ranking-row" key={rikishi.id}>
+              <strong>{String(rikishi.rank).padStart(2, "0")}</strong>
+              <span className="rate-ranking-rikishi"><b>{pilotNames[rikishi.shikona] ?? rikishi.shikona}</b><small>{rikishi.shikona}</small></span>
+              <span>{rikishi.elo}</span>
+              <span>{rikishi.dohyoScore.toFixed(1)}</span>
+              <span>{rikishi.wins}勝{rikishi.losses}敗</span>
+            </div>
+          ))}
+          <div className="rate-ranking-note">
+            <p><strong>試算範囲</strong> 1999年一月場所・幕内・全15日／{pilot.counts.ratedBouts}取組・{pilot.counts.wrestlers}力士</p>
+            <p>基準Elo {pilot.model.startingElo}、K値 {pilot.model.kFactor}。全六段・全期間の計算前なので、この順位は方式検証用です。</p>
+            <a href={pilot.source.guideUrl} target="_blank" rel="noreferrer">取得元：Sumo API ↗</a>
           </div>
         </div>
       </section>
