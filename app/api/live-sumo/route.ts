@@ -11,6 +11,7 @@ const BASHO_START_JST = "2026-07-12";
 const UPSTREAM_TTL_MS = 60_000;
 
 type UpstreamRikishi = {
+  rikishi_id?: number;
   shikona?: string;
   shikona_kana?: string;
   shikona_eng?: string;
@@ -53,6 +54,11 @@ type LiveDivision = {
   recentResults: LiveBout[];
 };
 
+type LiveDivisionSource = LiveDivision & {
+  nextBoutSource: UpstreamBout | null;
+  recentResultSources: UpstreamBout[];
+};
+
 type LiveResponse = {
   live: boolean;
   basho: string;
@@ -68,6 +74,7 @@ type LiveResponse = {
 };
 
 let memoryCache: { expiresAt: number; value: LiveResponse } | null = null;
+const profileNameCache = new Map<number, string>();
 
 function getJapanDay(): number | null {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -91,6 +98,37 @@ function cleanShikona(rikishi?: UpstreamRikishi): string {
   return alt || plain || rikishi.shikona_kana || rikishi.shikona_eng || "未定";
 }
 
+async function getKanjiShikona(rikishi?: UpstreamRikishi): Promise<string> {
+  const id = Number(rikishi?.rikishi_id ?? 0);
+  if (!id) return cleanShikona(rikishi);
+
+  const cached = profileNameCache.get(id);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(`https://www.sumo.or.jp/ResultRikishiData/profile/${id}/`, {
+      cache: "no-store",
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      },
+    });
+    if (!response.ok) return cleanShikona(rikishi);
+
+    const html = await response.text();
+    const title = html.match(/<title>\s*([^<]+?)\s*-\s*力士プロフィール/i)?.[1]?.trim();
+    const shikona = title?.split(/\s+/)[0];
+    if (!shikona) return cleanShikona(rikishi);
+
+    profileNameCache.set(id, shikona);
+    return shikona;
+  } catch {
+    return cleanShikona(rikishi);
+  }
+}
+
 function mapBout(bout: UpstreamBout): LiveBout {
   const judge = Number(bout.judge ?? 0);
   return {
@@ -105,7 +143,15 @@ function mapBout(bout: UpstreamBout): LiveBout {
   };
 }
 
-async function fetchDivision(id: number, name: string, day: number): Promise<LiveDivision> {
+async function mapBoutWithKanjiNames(bout: UpstreamBout): Promise<LiveBout> {
+  const [east, west] = await Promise.all([
+    getKanjiShikona(bout.east),
+    getKanjiShikona(bout.west),
+  ]);
+  return { ...mapBout(bout), east, west };
+}
+
+async function fetchDivision(id: number, name: string, day: number): Promise<LiveDivisionSource> {
   const url = `https://www.sumo.or.jp/ResultData/torikumiAjax/${id}/${day}/`;
   const response = await fetch(url, {
     cache: "no-store",
@@ -125,23 +171,19 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
   const bouts = Array.isArray(payload.TorikumiData) ? payload.TorikumiData : [];
   const completed = bouts.filter((bout) => Number(bout.judge ?? 0) > 0).length;
   const next = bouts.find((bout) => Number(bout.judge ?? 0) === 0);
-  const recent = bouts
-    .filter((bout) => Number(bout.judge ?? 0) > 0)
-    .slice(-5)
-    .reverse()
-    .map(mapBout);
-
   return {
     id,
     name: payload.kakuName || name,
     completed,
     total: bouts.length,
-    nextBout: next ? mapBout(next) : null,
-    recentResults: recent,
+    nextBout: null,
+    recentResults: [],
+    nextBoutSource: next ?? null,
+    recentResultSources: bouts.filter((bout) => Number(bout.judge ?? 0) > 0).slice(-5).reverse(),
   };
 }
 
-function findCurrentDivision(divisions: LiveDivision[]): LiveDivision | null {
+function findCurrentDivision(divisions: LiveDivisionSource[]): LiveDivisionSource | null {
   const withBouts = divisions.filter((division) => division.total > 0);
   if (!withBouts.length) return null;
 
@@ -179,7 +221,21 @@ async function loadLiveData(): Promise<LiveResponse> {
   const divisions = await Promise.all(
     DIVISIONS.map((division) => fetchDivision(division.id, division.name, day)),
   );
-  const currentDivision = findCurrentDivision(divisions);
+  const currentSource = findCurrentDivision(divisions);
+  const currentDivision = currentSource
+    ? {
+        id: currentSource.id,
+        name: currentSource.name,
+        completed: currentSource.completed,
+        total: currentSource.total,
+        nextBout: currentSource.nextBoutSource
+          ? await mapBoutWithKanjiNames(currentSource.nextBoutSource)
+          : null,
+        recentResults: await Promise.all(
+          currentSource.recentResultSources.map(mapBoutWithKanjiNames),
+        ),
+      }
+    : null;
 
   return {
     live: Boolean(currentDivision?.total),
