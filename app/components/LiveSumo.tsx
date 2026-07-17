@@ -153,6 +153,15 @@ function ProfileLink({
   );
 }
 
+function formatResultRank(rank: string, divisionName: string, side: "east" | "west"): string {
+  const sideLabel = side === "east" ? "東" : "西";
+  const withoutSide = rank.replace(/^(東|西)[・\s]?/, "");
+  const withoutDivision = withoutSide.startsWith(divisionName)
+    ? withoutSide.slice(divisionName.length)
+    : withoutSide;
+  return `${sideLabel}${withoutDivision || "—"}`;
+}
+
 export function LiveHeaderStatus() {
   const { data, loading } = useLiveSumo();
   if (loading) return <strong>本場所情報を確認中</strong>;
@@ -201,6 +210,9 @@ export function LiveResultsBoard() {
   const updated = data?.updatedAt
     ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(data.updatedAt))
     : "--:--:--";
+  const displayedBouts = expanded
+    ? [...(division?.recentResults ?? [])].reverse()
+    : division?.recentResults ?? [];
 
   return (
     <section className="live-section section-shell" id="live-results" aria-live="polite">
@@ -241,10 +253,10 @@ export function LiveResultsBoard() {
               {expanded && <button className="results-collapse" type="button" onClick={collapseResults}>折りたたむ ↑</button>}
             </div>
             <div className="result-list">
-              {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : division.recentResults.length ? division.recentResults.map((bout, index) => (
+              {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : displayedBouts.length ? displayedBouts.map((bout, index) => (
                 <div className={`result-row is-${bout.status}`} key={`${bout.east}-${bout.west}-${index}`}>
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
-                    <small className="result-rank">{bout.eastRank}</small>
+                    <small className="result-rank">{formatResultRank(bout.eastRank, division.name, "east")}</small>
                     <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
@@ -254,7 +266,7 @@ export function LiveResultsBoard() {
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
                     <ProfileLink className="result-name" href={bout.westProfileUrl}>{bout.west}</ProfileLink>
-                    <small className="result-rank">{bout.westRank}</small>
+                    <small className="result-rank">{formatResultRank(bout.westRank, division.name, "west")}</small>
                   </span>
                 </div>
               )) : <p className="live-empty">取組順の更新を待っています。</p>}
