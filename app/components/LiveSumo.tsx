@@ -13,12 +13,22 @@ import {
 type LiveBout = {
   east: string;
   west: string;
+  eastProfileUrl: string | null;
+  westProfileUrl: string | null;
   eastRank: string;
   westRank: string;
   eastScore: string;
   westScore: string;
   winner: "east" | "west" | null;
   technique: string | null;
+};
+
+type LiveBanzukeRow = {
+  rank: string;
+  east: string | null;
+  west: string | null;
+  eastProfileUrl: string | null;
+  westProfileUrl: string | null;
 };
 
 type LiveDivision = {
@@ -37,6 +47,7 @@ type LivePayload = {
   dayLabel?: string;
   currentDivision?: LiveDivision | null;
   divisions?: Array<Pick<LiveDivision, "id" | "name" | "completed" | "total">>;
+  banzuke?: LiveBanzukeRow[];
   updatedAt: string;
   sourceUrl?: string;
   displayRefreshSeconds?: number;
@@ -97,6 +108,22 @@ function useLiveSumo() {
   return value;
 }
 
+function ProfileLink({
+  href,
+  className,
+  children,
+}: {
+  href: string | null;
+  className?: string;
+  children: ReactNode;
+}) {
+  return href ? (
+    <a className={className} href={href} target="_blank" rel="noreferrer">{children}</a>
+  ) : (
+    <span className={className}>{children}</span>
+  );
+}
+
 export function LiveHeaderStatus() {
   const { data, loading } = useLiveSumo();
   if (loading) return <strong>本場所情報を確認中</strong>;
@@ -120,13 +147,13 @@ export function LiveHeroBout() {
           <div className="bout-main">
             <div className={`wrestler wrestler-east ${bout.winner === "east" ? "is-winner" : ""}`}>
               <span>東・{bout.eastRank}</span>
-              <strong>{bout.east}</strong>
+              <ProfileLink className="wrestler-name-link" href={bout.eastProfileUrl}><strong>{bout.east}</strong></ProfileLink>
               <small>{bout.eastScore}</small>
             </div>
             <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}>{isNext ? "対" : "了"}</div>
             <div className={`wrestler wrestler-west ${bout.winner === "west" ? "is-winner" : ""}`}>
               <span>西・{bout.westRank}</span>
-              <strong>{bout.west}</strong>
+              <ProfileLink className="wrestler-name-link" href={bout.westProfileUrl}><strong>{bout.west}</strong></ProfileLink>
               <small>{bout.westScore}</small>
             </div>
           </div>
@@ -197,13 +224,13 @@ export function LiveResultsBoard() {
                 <div className="result-row" key={`${bout.east}-${bout.west}-${index}`}>
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
                     <small className="result-rank">{bout.eastRank}</small>
-                    <strong className="result-name">{bout.east}</strong>
+                    <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
                   <span className="result-technique">{bout.technique}</span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
-                    <strong className="result-name">{bout.west}</strong>
+                    <ProfileLink className="result-name" href={bout.westProfileUrl}>{bout.west}</ProfileLink>
                     <small className="result-rank">{bout.westRank}</small>
                   </span>
                 </div>
@@ -220,5 +247,35 @@ export function LiveResultsBoard() {
         {data?.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer">出典：日本相撲協会公式サイト ↗</a>}
       </div>
     </section>
+  );
+}
+
+export function LiveBanzukeCard() {
+  const { data, loading } = useLiveSumo();
+  const rows = data?.banzuke ?? [];
+
+  return (
+    <article className="feature-card banzuke-card" id="banzuke">
+      <div className="section-heading">
+        <h2>幕内番付</h2>
+        <span>BANZUKE</span>
+      </div>
+      <div className="rank-list">
+        {loading ? (
+          <p className="banzuke-loading">公式番付を確認中</p>
+        ) : rows.length ? rows.map((row, index) => (
+          <div className="rank-row" key={`${row.rank}-${index}`}>
+            <ProfileLink className="rank-rikishi" href={row.eastProfileUrl}>{row.east ?? "—"}</ProfileLink>
+            <em>{row.rank}</em>
+            <ProfileLink className="rank-rikishi" href={row.westProfileUrl}>{row.west ?? "—"}</ProfileLink>
+          </div>
+        )) : (
+          <p className="banzuke-loading">公式番付の更新を待っています。</p>
+        )}
+      </div>
+      <a className="text-link" href="https://www.sumo.or.jp/ResultBanzuke/table/" target="_blank" rel="noreferrer">
+        日本相撲協会公式番付表 ↗
+      </a>
+    </article>
   );
 }

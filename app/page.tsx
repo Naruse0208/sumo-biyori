@@ -1,16 +1,10 @@
 import {
+  LiveBanzukeCard,
   LiveHeaderStatus,
   LiveHeroBout,
   LiveResultsBoard,
   LiveSumoProvider,
 } from "./components/LiveSumo";
-
-const banzuke = [
-  { rank: "横綱", east: "豊昇龍", west: "照ノ富士" },
-  { rank: "大関", east: "琴櫻", west: "大の里" },
-  { rank: "関脇", east: "若隆景", west: "霧島" },
-  { rank: "小結", east: "高安", west: "欧勝馬" },
-];
 
 const stories = [
   {
@@ -96,22 +90,7 @@ export default function Home() {
       <LiveResultsBoard />
 
       <section className="feature-grid section-shell" aria-label="今場所の見どころ">
-        <article className="feature-card banzuke-card" id="banzuke">
-          <div className="section-heading">
-            <h2>幕内番付</h2>
-            <span>BANZUKE</span>
-          </div>
-          <div className="rank-list">
-            {banzuke.map((row) => (
-              <div className="rank-row" key={row.rank}>
-                <span>{row.east}</span>
-                <em>{row.rank}</em>
-                <span>{row.west}</span>
-              </div>
-            ))}
-          </div>
-          <a className="text-link" href="#stories">番付の読み方をひらく →</a>
-        </article>
+        <LiveBanzukeCard />
 
         <article className="feature-card rikishi-card" id="rikishi">
           <div className="section-heading">
@@ -119,10 +98,10 @@ export default function Home() {
             <span>RIKISHI PROFILE</span>
           </div>
           <div className="rikishi-body">
-            <div className="name-plaque" aria-hidden="true">大<br />の<br />里</div>
+            <a className="name-plaque" href="https://www.sumo.or.jp/ResultRikishiData/profile/4227/" target="_blank" rel="noreferrer" aria-label="大の里 公式プロフィール">大<br />の<br />里</a>
             <div>
-              <p className="eyebrow">東・大関 / 二所ノ関部屋</p>
-              <h3>大の里 泰輝</h3>
+              <p className="eyebrow">西・横綱 / 二所ノ関部屋</p>
+              <h3><a className="profile-name-link" href="https://www.sumo.or.jp/ResultRikishiData/profile/4227/" target="_blank" rel="noreferrer">大の里 泰輝</a></h3>
               <p>堂々たる押し相撲と、土俵際で見せる冷静さ。故郷・石川への思いを胸に、綱への責任を背負う。</p>
               <dl className="profile-facts">
                 <div><dt>身長</dt><dd>192cm</dd></div>

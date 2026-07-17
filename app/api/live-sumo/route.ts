@@ -27,6 +27,7 @@ type UpstreamBout = {
 };
 
 type UpstreamPayload = {
+  basho_id?: number;
   dayHead?: string;
   dayName?: string;
   kakuName?: string;
@@ -36,6 +37,8 @@ type UpstreamPayload = {
 type LiveBout = {
   east: string;
   west: string;
+  eastProfileUrl: string | null;
+  westProfileUrl: string | null;
   eastRank: string;
   westRank: string;
   eastScore: string;
@@ -54,9 +57,31 @@ type LiveDivision = {
 };
 
 type LiveDivisionSource = LiveDivision & {
+  bashoId?: number;
   dayHead?: string;
   nextBoutSource: UpstreamBout | null;
   recentResultSources: UpstreamBout[];
+};
+
+type UpstreamBanzukeRikishi = {
+  banzuke_name?: string;
+  ew?: number;
+  rank?: number;
+  rikishi_id?: number;
+  seat_order?: number;
+  shikona?: string;
+};
+
+type UpstreamBanzukePayload = {
+  BanzukeTable?: UpstreamBanzukeRikishi[];
+};
+
+type LiveBanzukeRow = {
+  rank: string;
+  east: string | null;
+  west: string | null;
+  eastProfileUrl: string | null;
+  westProfileUrl: string | null;
 };
 
 type LiveResponse = {
@@ -66,6 +91,7 @@ type LiveResponse = {
   dayLabel: string;
   currentDivision: LiveDivision | null;
   divisions: Array<Pick<LiveDivision, "id" | "name" | "completed" | "total">>;
+  banzuke: LiveBanzukeRow[];
   updatedAt: string;
   sourceUrl: string;
   displayRefreshSeconds: number;
@@ -126,6 +152,12 @@ function cleanShikona(rikishi?: UpstreamRikishi): string {
   return alt || plain || rikishi.shikona_kana || rikishi.shikona_eng || "未定";
 }
 
+function profileUrl(rikishiId?: number): string | null {
+  return rikishiId
+    ? `https://www.sumo.or.jp/ResultRikishiData/profile/${rikishiId}/`
+    : null;
+}
+
 async function getKanjiShikona(rikishi?: UpstreamRikishi): Promise<string> {
   const id = Number(rikishi?.rikishi_id ?? 0);
   if (!id) return cleanShikona(rikishi);
@@ -162,6 +194,8 @@ function mapBout(bout: UpstreamBout): LiveBout {
   return {
     east: cleanShikona(bout.east),
     west: cleanShikona(bout.west),
+    eastProfileUrl: profileUrl(bout.east?.rikishi_id),
+    westProfileUrl: profileUrl(bout.west?.rikishi_id),
     eastRank: bout.east?.banzuke_name ?? "東",
     westRank: bout.west?.banzuke_name ?? "西",
     eastScore: `${bout.east?.won_number ?? 0}勝${bout.east?.lost_number ?? 0}敗`,
@@ -169,6 +203,55 @@ function mapBout(bout: UpstreamBout): LiveBout {
     winner: judge === 1 ? "east" : judge === 2 ? "west" : null,
     technique: judge > 0 ? bout.technic_name || "決まり手確認中" : null,
   };
+}
+
+async function fetchMakuuchiBanzuke(bashoId: number): Promise<LiveBanzukeRow[]> {
+  const response = await fetch("https://www.sumo.or.jp/ResultBanzuke/tableAjax/1/1/", {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json, text/javascript, */*; q=0.01",
+      "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      Cookie: "and=mouse",
+      Referer: "https://www.sumo.or.jp/ResultBanzuke/table/",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "X-Requested-With": "XMLHttpRequest",
+    },
+    body: new URLSearchParams({ kakuzuke_id: "1", basho_id: String(bashoId), page: "1" }),
+  });
+  if (!response.ok) throw new Error(`Official banzuke request failed: ${response.status}`);
+
+  const payload = (await response.json()) as UpstreamBanzukePayload;
+  const wrestlers = Array.isArray(payload.BanzukeTable)
+    ? payload.BanzukeTable.filter((item) => Number(item.rank ?? 999) <= 400)
+    : [];
+  const rows = new Map<string, LiveBanzukeRow>();
+
+  for (const wrestler of wrestlers) {
+    const rank = wrestler.banzuke_name?.trim();
+    if (!rank) continue;
+    const key = `${wrestler.rank ?? rank}-${wrestler.seat_order ?? 1}`;
+    const row = rows.get(key) ?? {
+      rank,
+      east: null,
+      west: null,
+      eastProfileUrl: null,
+      westProfileUrl: null,
+    };
+    const shikona = wrestler.shikona?.trim().split(/\s+/)[0] ?? null;
+    if (Number(wrestler.ew) === 1) {
+      row.east = shikona;
+      row.eastProfileUrl = profileUrl(wrestler.rikishi_id);
+    } else {
+      row.west = shikona;
+      row.westProfileUrl = profileUrl(wrestler.rikishi_id);
+    }
+    rows.set(key, row);
+  }
+
+  return [...rows.values()];
 }
 
 async function mapBoutWithKanjiNames(bout: UpstreamBout): Promise<LiveBout> {
@@ -202,6 +285,7 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
   return {
     id,
     name: payload.kakuName || name,
+    bashoId: payload.basho_id,
     dayHead: payload.dayHead,
     completed,
     total: bouts.length,
@@ -235,6 +319,8 @@ async function loadLiveData(): Promise<LiveResponse> {
   );
   const currentSource = findCurrentDivision(divisions);
   const dayHead = currentSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
+  const bashoId = currentSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
+  const banzuke = bashoId ? await fetchMakuuchiBanzuke(bashoId).catch(() => []) : [];
   const currentDivision = currentSource
     ? {
         id: currentSource.id,
@@ -257,6 +343,7 @@ async function loadLiveData(): Promise<LiveResponse> {
     dayLabel: getDayLabel(dayHead, day),
     currentDivision,
     divisions: divisions.map(({ id, name, completed, total }) => ({ id, name, completed, total })),
+    banzuke,
     updatedAt: new Date().toISOString(),
     sourceUrl,
     displayRefreshSeconds: 10,
