@@ -21,6 +21,7 @@ type LiveBout = {
   westScore: string;
   winner: "east" | "west" | null;
   technique: string | null;
+  status: "past" | "current" | "next";
 };
 
 type LiveBanzukeRow = {
@@ -205,36 +206,48 @@ export function LiveResultsBoard() {
             {data?.divisions?.map((item) => {
               const complete = item.total > 0 && item.completed >= item.total;
               const active = item.id === division.id;
+              const resultUrl = data?.day
+                ? `https://www.sumo.or.jp/ResultData/torikumi/${item.id}/${data.day}/`
+                : "https://www.sumo.or.jp/ResultData/torikumi/";
               return (
-                <div className={`division-pill ${active ? "is-active" : ""} ${complete ? "is-complete" : ""}`} key={item.id}>
+                <a
+                  className={`division-pill ${active ? "is-active" : ""} ${complete ? "is-complete" : ""}`}
+                  href={resultUrl}
+                  key={item.id}
+                  rel="noreferrer"
+                  target="_blank"
+                  title={`${item.name}の公式取組結果を見る`}
+                >
                   <span>{item.name}</span>
                   <small>{item.total ? `${item.completed}/${item.total}` : "待機"}</small>
-                </div>
+                </a>
               );
             })}
           </div>
 
           <div className="recent-results">
             <div className="section-heading">
-              <h3>直近の取組</h3>
-              <span>LATEST RESULTS</span>
+              <h3>取組の流れ</h3>
+              <span>BOUT FLOW</span>
             </div>
             <div className="result-list">
               {division.recentResults.length ? division.recentResults.map((bout, index) => (
-                <div className="result-row" key={`${bout.east}-${bout.west}-${index}`}>
+                <div className={`result-row is-${bout.status}`} key={`${bout.east}-${bout.west}-${index}`}>
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
                     <small className="result-rank">{bout.eastRank}</small>
                     <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
-                  <span className="result-technique">{bout.technique}</span>
+                  <span className="result-technique">
+                    {bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"}
+                  </span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
                     <ProfileLink className="result-name" href={bout.westProfileUrl}>{bout.west}</ProfileLink>
                     <small className="result-rank">{bout.westRank}</small>
                   </span>
                 </div>
-              )) : <p className="live-empty">最初の取組結果を待っています。</p>}
+              )) : <p className="live-empty">取組順の更新を待っています。</p>}
             </div>
           </div>
         </>

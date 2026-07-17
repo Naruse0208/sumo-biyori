@@ -34,6 +34,8 @@ type UpstreamPayload = {
   TorikumiData?: UpstreamBout[];
 };
 
+type LiveBoutStatus = "past" | "current" | "next";
+
 type LiveBout = {
   east: string;
   west: string;
@@ -45,6 +47,7 @@ type LiveBout = {
   westScore: string;
   winner: "east" | "west" | null;
   technique: string | null;
+  status: LiveBoutStatus;
 };
 
 type LiveDivision = {
@@ -60,7 +63,7 @@ type LiveDivisionSource = LiveDivision & {
   bashoId?: number;
   dayHead?: string;
   nextBoutSource: UpstreamBout | null;
-  recentResultSources: UpstreamBout[];
+  recentResultSources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>;
 };
 
 type UpstreamBanzukeRikishi = {
@@ -189,7 +192,7 @@ async function getKanjiShikona(rikishi?: UpstreamRikishi): Promise<string> {
   }
 }
 
-function mapBout(bout: UpstreamBout): LiveBout {
+function mapBout(bout: UpstreamBout, status: LiveBoutStatus): LiveBout {
   const judge = Number(bout.judge ?? 0);
   return {
     east: cleanShikona(bout.east),
@@ -202,6 +205,7 @@ function mapBout(bout: UpstreamBout): LiveBout {
     westScore: `${bout.west?.won_number ?? 0}勝${bout.west?.lost_number ?? 0}敗`,
     winner: judge === 1 ? "east" : judge === 2 ? "west" : null,
     technique: judge > 0 ? bout.technic_name || "決まり手確認中" : null,
+    status,
   };
 }
 
@@ -254,12 +258,15 @@ async function fetchMakuuchiBanzuke(bashoId: number): Promise<LiveBanzukeRow[]> 
   return [...rows.values()];
 }
 
-async function mapBoutWithKanjiNames(bout: UpstreamBout): Promise<LiveBout> {
+async function mapBoutWithKanjiNames(
+  bout: UpstreamBout,
+  status: LiveBoutStatus,
+): Promise<LiveBout> {
   const [east, west] = await Promise.all([
     getKanjiShikona(bout.east),
     getKanjiShikona(bout.west),
   ]);
-  return { ...mapBout(bout), east, west };
+  return { ...mapBout(bout, status), east, west };
 }
 
 async function fetchDivision(id: number, name: string, day: number): Promise<LiveDivisionSource> {
@@ -281,7 +288,20 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
   const payload = (await response.json()) as UpstreamPayload;
   const bouts = Array.isArray(payload.TorikumiData) ? payload.TorikumiData : [];
   const completed = bouts.filter((bout) => Number(bout.judge ?? 0) > 0).length;
-  const next = bouts.find((bout) => Number(bout.judge ?? 0) === 0);
+  const currentIndex = bouts.findIndex((bout) => Number(bout.judge ?? 0) === 0);
+  const next = currentIndex >= 0 ? bouts[currentIndex] : null;
+  const recentResultSources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }> =
+    currentIndex >= 0
+      ? [
+          ...bouts
+            .slice(Math.max(0, currentIndex - 2), currentIndex)
+            .map((bout) => ({ bout, status: "past" as const })),
+          { bout: bouts[currentIndex], status: "current" as const },
+          ...bouts
+            .slice(currentIndex + 1, currentIndex + 3)
+            .map((bout) => ({ bout, status: "next" as const })),
+        ]
+      : bouts.slice(-2).map((bout) => ({ bout, status: "past" as const }));
   return {
     id,
     name: payload.kakuName || name,
@@ -291,8 +311,8 @@ async function fetchDivision(id: number, name: string, day: number): Promise<Liv
     total: bouts.length,
     nextBout: null,
     recentResults: [],
-    nextBoutSource: next ?? null,
-    recentResultSources: bouts.filter((bout) => Number(bout.judge ?? 0) > 0).slice(-5).reverse(),
+    nextBoutSource: next,
+    recentResultSources,
   };
 }
 
@@ -328,10 +348,12 @@ async function loadLiveData(): Promise<LiveResponse> {
         completed: currentSource.completed,
         total: currentSource.total,
         nextBout: currentSource.nextBoutSource
-          ? await mapBoutWithKanjiNames(currentSource.nextBoutSource)
+          ? await mapBoutWithKanjiNames(currentSource.nextBoutSource, "current")
           : null,
         recentResults: await Promise.all(
-          currentSource.recentResultSources.map(mapBoutWithKanjiNames),
+          currentSource.recentResultSources.map(({ bout, status }) =>
+            mapBoutWithKanjiNames(bout, status),
+          ),
         ),
       }
     : null;
