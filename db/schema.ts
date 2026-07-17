@@ -129,3 +129,27 @@ export const ratingSnapshots = sqliteTable(
     index("rating_snapshots_wrestler_idx").on(table.wrestlerId, table.bashoId),
   ],
 );
+
+export const predictionRecords = sqliteTable(
+  "prediction_records",
+  {
+    id: text("id").primaryKey(),
+    bashoId: integer("basho_id").notNull(),
+    day: integer("day").notNull(),
+    division: integer("division").notNull(),
+    eastNskId: integer("east_nsk_id").notNull(),
+    westNskId: integer("west_nsk_id").notNull(),
+    modelVersion: text("model_version").notNull(),
+    eloEastBp: integer("elo_east_bp").notNull(),
+    glickoEastBp: integer("glicko_east_bp").notNull(),
+    dohyoV2EastBp: integer("dohyo_v2_east_bp").notNull(),
+    dohyoV3EastBp: integer("dohyo_v3_east_bp"),
+    winnerNskId: integer("winner_nsk_id"),
+    predictedAt: text("predicted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    resolvedAt: text("resolved_at"),
+  },
+  (table) => [
+    index("prediction_records_basho_idx").on(table.bashoId, table.day, table.division),
+    index("prediction_records_unresolved_idx").on(table.winnerNskId, table.bashoId),
+  ],
+);

@@ -48,6 +48,7 @@ type LiveDivision = {
 type LivePayload = {
   live: boolean;
   basho?: string;
+  bashoId?: number;
   day?: number | null;
   dayLabel?: string;
   currentDivision?: LiveDivision | null;
@@ -81,22 +82,36 @@ type PredictionPayload = {
   models?: {
     elo?: { eastProbability: number; westProbability: number };
     glicko2?: { eastProbability: number; westProbability: number };
+    dohyoV2?: { eastProbability: number; westProbability: number };
+    dohyoV3?: { eastProbability: number; westProbability: number };
   };
   east?: { elo: number; glickoRating?: number; probability: number };
   west?: { elo: number; glickoRating?: number; probability: number };
 };
 
 const predictionCache = new Map<string, { expiresAt: number; promise: Promise<PredictionPayload> }>();
+const resolvedPredictionKeys = new Set<string>();
 
-function usePrediction(eastNskId: number | null, westNskId: number | null) {
+function usePrediction(
+  eastNskId: number | null,
+  westNskId: number | null,
+  context: { bashoId?: number; day?: number | null; divisionId: number },
+) {
   const [prediction, setPrediction] = useState<PredictionPayload | null>(null);
   useEffect(() => {
     if (!eastNskId || !westNskId) return;
-    const key = `${eastNskId}-${westNskId}`;
+    const key = `${context.bashoId ?? 0}-${context.day ?? 0}-${context.divisionId}-${eastNskId}-${westNskId}`;
     const now = Date.now();
     let cached = predictionCache.get(key);
     if (!cached || cached.expiresAt < now) {
-      const promise = fetch(`/api/prediction?east=${eastNskId}&west=${westNskId}`)
+      const query = new URLSearchParams({
+        east: String(eastNskId),
+        west: String(westNskId),
+        basho: String(context.bashoId ?? 0),
+        day: String(context.day ?? 0),
+        division: String(context.divisionId),
+      });
+      const promise = fetch(`/api/prediction?${query}`)
         .then(async (response) => response.ok ? response.json() as Promise<PredictionPayload> : { available: false })
         .catch(() => ({ available: false }));
       cached = { expiresAt: now + 60_000, promise };
@@ -105,12 +120,17 @@ function usePrediction(eastNskId: number | null, westNskId: number | null) {
     let cancelled = false;
     cached.promise.then((value) => { if (!cancelled) setPrediction(value); });
     return () => { cancelled = true; };
-  }, [eastNskId, westNskId]);
+  }, [context.bashoId, context.day, context.divisionId, eastNskId, westNskId]);
   return prediction?.available ? prediction : null;
 }
 
-function WinProbability({ bout, compact = false }: { bout: LiveBout; compact?: boolean }) {
-  const prediction = usePrediction(bout.eastNskId, bout.westNskId);
+function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout; divisionId: number; compact?: boolean }) {
+  const { data } = useLiveSumo();
+  const prediction = usePrediction(bout.eastNskId, bout.westNskId, {
+    bashoId: data?.bashoId,
+    day: data?.day,
+    divisionId,
+  });
   if (!prediction?.east || !prediction.west) return null;
   if (compact) {
     return <small className="result-prediction">勝機 東{prediction.east.probability}%・西{prediction.west.probability}%</small>;
@@ -123,6 +143,7 @@ function WinProbability({ bout, compact = false }: { bout: LiveBout; compact?: b
       <small>
         地力 {prediction.east.glickoRating ?? prediction.east.elo} 対 {prediction.west.glickoRating ?? prediction.west.elo}
         {prediction.models?.elo ? ` ／ Elo予想 ${prediction.models.elo.eastProbability}–${prediction.models.elo.westProbability}%` : ""}
+        {prediction.models?.dohyoV3 ? ` ／ v3実験 東${prediction.models.dohyoV3.eastProbability}%` : ""}
         {` ／ ${confidence}`}
       </small>
     </div>
@@ -144,6 +165,36 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`/api/live-sumo${query}`, { cache: "no-store" });
       const payload = (await response.json()) as LivePayload;
       setData(payload);
+      if (payload.bashoId && payload.day) {
+        const divisions = [payload.currentDivision, payload.resultDivision].filter(Boolean) as LiveDivision[];
+        const results = divisions.flatMap((division) => division.recentResults
+          .filter((bout) => bout.status === "past" && bout.winner && bout.eastNskId && bout.westNskId)
+          .map((bout) => ({
+            bashoId: payload.bashoId!,
+            day: payload.day!,
+            division: division.id,
+            eastNskId: bout.eastNskId!,
+            westNskId: bout.westNskId!,
+            winnerNskId: bout.winner === "east" ? bout.eastNskId! : bout.westNskId!,
+          })))
+          .filter((result, index, all) => all.findIndex((candidate) =>
+            candidate.division === result.division
+            && candidate.eastNskId === result.eastNskId
+            && candidate.westNskId === result.westNskId) === index)
+          .filter((result) => {
+            const resultKey = `${result.bashoId}-${result.day}-${result.division}-${result.eastNskId}-${result.westNskId}`;
+            if (resolvedPredictionKeys.has(resultKey)) return false;
+            resolvedPredictionKeys.add(resultKey);
+            return true;
+          });
+        if (results.length) {
+          void fetch("/api/prediction/resolve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ results }),
+          });
+        }
+      }
     } catch {
       setData((previous) => previous ? { ...previous, message: "再接続を待っています。" } : null);
     } finally {
@@ -259,7 +310,7 @@ export function LiveHeroBout() {
               <small>{bout.westScore}</small>
             </div>
           </div>
-          {isNext && <WinProbability bout={bout} />}
+          {isNext && <WinProbability bout={bout} divisionId={division?.id ?? 1} />}
         </>
       ) : (
         <div className="live-empty">{data?.message ?? "取組情報の更新を待っています。"}</div>
@@ -325,7 +376,7 @@ export function LiveResultsBoard() {
                   </span>
                   <span className="result-technique">
                     <span>{bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"}</span>
-                    {bout.status !== "past" && <WinProbability bout={bout} compact />}
+                    {bout.status !== "past" && <WinProbability bout={bout} divisionId={division.id} compact />}
                   </span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>

@@ -29,9 +29,10 @@
     "glickoSnapshots": 110527
   },
   "storage": {
-    "sqliteBytes": 81113088,
-    "sqliteMiB": 77.36,
-    "targetMiB": 500
+    "sqliteBytes": 120389632,
+    "sqliteMiB": 114.81,
+    "targetMiB": 500,
+    "predictionBacktests": 401995
   },
   "divisions": [
     {

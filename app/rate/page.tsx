@@ -44,8 +44,8 @@ const releaseSteps = [
 const methodRoles = [
   { number: "01", name: "Elo", english: "BASELINE", status: "公開中", copy: "一番ごとの勝敗と相手の強さから更新する、説明しやすい基準線。" },
   { number: "02", name: "地力", english: "GLICKO-2", status: "公開中", copy: "現在の強さに、どれほど確かな推定かを示すRDを添えた値。" },
-  { number: "03", name: "勝機", english: "MATCH FORECAST", status: "試験版", copy: "地力差と、強く縮めた直接対戦相性から出す一番ごとの予想勝率。" },
-  { number: "04", name: "相撲偏差値", english: "ERA SCORE", status: "公開中", copy: "同じ場所・同じ段の中で、どれほど傑出しているかを50基準で表す。" },
+  { number: "03", name: "勝機", english: "MATCH FORECAST", status: "検証公開", copy: "地力差と、強く縮めた直接対戦相性から出す一番ごとの予想勝率。" },
+  { number: "04", name: "相撲偏差値", english: "ERA SCORE", status: "歴代実験公開", copy: "同じ場所・同じ段の中で、どれほど傑出しているかを50基準で表す。" },
 ];
 
 const initialDivisions = ratings.divisions.map((division) => ({
@@ -179,6 +179,17 @@ export default function RatePage() {
         </div>
       </section>
 
+      <section className="rate-shell lab-gateway" aria-labelledby="lab-gateway-title">
+        <div className="rate-section-heading">
+          <div><p>OPEN RESEARCH</p><h2 id="lab-gateway-title">数字の成績も、歴代比較も公開する。</h2></div>
+          <span>研究室</span>
+        </div>
+        <div className="lab-gateway-grid">
+          <Link href="/rate/validation"><small>MODEL SCORECARD</small><strong>予測成績・検証</strong><p>Elo、Glicko-2、v2、v3実験を未学習期間で比較。log lossと較正まで見る。</p><span>検証場へ →</span></Link>
+          <Link href="/rate/era"><small>ACROSS ERAS</small><strong>歴代力士・時代補正</strong><p>最高到達点と上位6場所から、1999年以降の幕内支配度を比べる実験版。</p><span>歴代比較へ →</span></Link>
+        </div>
+      </section>
+
       <section className="rate-shell rate-methodology" id="methodology" aria-labelledby="methodology-title">
         <div className="rate-section-heading">
           <div>
@@ -241,6 +252,8 @@ export default function RatePage() {
               <p>現在・次の取組では、両力士の地力差を勝率へ変換し、過去の直接対戦が十分ある場合だけ相性を少し加えます。対戦1回の1勝0敗を「相性100%」とは扱わず、8番分の事前値で強く縮めます。</p>
               <div className="rate-method-formula"><span>勝機</span><b>＝</b><span>Glicko-2地力差</span><b>＋</b><span>縮小した直接対戦残差</span></div>
               <aside><strong>直近成績について</strong>単純な「最近5勝だから加点」は時系列検証で予測を改善しませんでした。相手の強さを二重に数えるため、初版では係数を0にしています。</aside>
+              <aside><strong>確率の較正</strong>1999〜2019年で確率の傾きを整え、2020年以降は触らずに答え合わせしています。公開後の予測は計算時点の値を固定保存し、結果が出たら勝敗だけを追記します。</aside>
+              <p><Link className="rate-inline-link" href="/rate/validation">2020年以降の予測成績・較正を見る →</Link></p>
               <details><summary>相性補正の中身</summary><p>各直接対戦で「実際の結果 − 当時のElo期待値」を合計し、対戦数＋8で割った残差だけを使用します。相撲に相性が存在しても、再戦数が少ない組合せでは補正をほぼゼロへ戻します。</p><a href="https://doi.org/10.1515/jqas-2025-0150" target="_blank" rel="noreferrer">Pairwise-Elo rating system ↗</a></details>
             </article>
 
@@ -258,6 +271,7 @@ export default function RatePage() {
               <p>過去場所へ切り替えると、その時点のElo・地力・相撲偏差値を見られます。異なる時代の比較では、一場所の最高値だけでなく、ベスト6場所平均と高水準を維持した期間を組み合わせる設計です。</p>
               <p>将来は、重なり合う現役期間を橋にして全履歴を平滑化する歴代補正レートを別枠で公開します。未来の実績を過去へ反映するため、ライブ予想とは混ぜません。</p>
               <aside><strong>原理的な限界</strong>直接つながっていない時代の「絶対的な強さ」は勝敗だけでは証明できません。歴代補正値には必ず推定区間と実験表示を添えます。</aside>
+              <p><Link className="rate-inline-link" href="/rate/era">1999年以降の歴代指数・実験版を見る →</Link></p>
               <details><summary>歴史モデルの候補</summary><p>TrueSkill Through TimeやWhole-History Ratingを参考にし、年齢曲線、休場中の不確実性、世代間の橋を検証します。</p><a href="https://www.microsoft.com/en-us/research/publication/trueskill-through-time-revisiting-the-history-of-chess/" target="_blank" rel="noreferrer">TrueSkill Through Time ↗</a></details>
             </article>
 
@@ -298,7 +312,7 @@ export default function RatePage() {
             <p>力士、番付、全取組、各一番の前後Elo、場所ごとのレート履歴と検索用インデックスまで含む実測値です。</p>
           </div>
           <ul>
-            <li><span>保存する</span>力士マスター・番付・取組・レート履歴</li>
+            <li><span>保存する</span>力士マスター・番付・取組・レート履歴・予測と答え合わせ</li>
             <li><span>保存しない</span>取得元HTML・画像・同じしこ名の重複</li>
             <li><span>余裕</span>500MB上限の約{Math.round((ratings.storage.sqliteMiB / ratings.storage.targetMiB) * 100)}%を使用</li>
           </ul>
@@ -327,7 +341,7 @@ export default function RatePage() {
         <p>NOW AVAILABLE</p>
         <h2>順位から、地力と勝機へ。</h2>
         <div>
-          <span>Elo／地力／偏差値切替</span><span>Glicko-2推定幅</span><span>土俵日和予測 v2</span><span>レート推移グラフ</span>
+          <span>Elo／地力／偏差値切替</span><span>Glicko-2推定幅</span><span>土俵日和予測 v2.1</span><span>公開バックテスト</span><span>歴代指数・実験版</span>
         </div>
         <p>順位表や今日の取組から力士名を選ぶと、個別プロフィールと複数のレート履歴を見られます。</p>
       </section>

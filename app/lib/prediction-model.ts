@@ -4,6 +4,10 @@ const clampProbability = (value: number) => Math.min(0.95, Math.max(0.05, value)
 const logistic = (value: number) => 1 / (1 + Math.exp(-value));
 const logit = (value: number) => Math.log(value / (1 - value));
 
+export function calibrateProbability(probability: number, slope = 1) {
+  return clampProbability(logistic(slope * logit(clampProbability(probability))));
+}
+
 export function eloProbability(firstRating: number, secondRating: number) {
   return 1 / (1 + 10 ** ((secondRating - firstRating) / 400));
 }
@@ -18,11 +22,28 @@ export function symmetricGlickoProbability(
   return logistic(attenuation * ratingDifference);
 }
 
-export function dohyoPredictionV2(baseProbability: number, matchupResidual: number) {
+export function dohyoPredictionV2(baseProbability: number, matchupResidual: number, calibrationSlope = 1) {
   const matchupLogit = 1.78 * matchupResidual;
+  const rawProbability = clampProbability(logistic(logit(baseProbability) + matchupLogit));
   return {
-    probability: clampProbability(logistic(logit(baseProbability) + matchupLogit)),
+    probability: calibrateProbability(rawProbability, calibrationSlope),
+    rawProbability,
     matchupLogit,
+  };
+}
+
+export function dohyoPredictionV3(
+  baseProbability: number,
+  features: number[],
+  weights: number[],
+) {
+  const featureLogit = features.reduce(
+    (sum, feature, index) => sum + feature * (weights[index] ?? 0),
+    0,
+  );
+  return {
+    probability: clampProbability(logistic(logit(baseProbability) + featureLogit)),
+    featureLogit,
   };
 }
 

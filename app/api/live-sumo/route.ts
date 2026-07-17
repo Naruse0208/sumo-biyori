@@ -98,6 +98,7 @@ type LiveBanzukeRow = {
 type LiveResponse = {
   live: boolean;
   basho: string;
+  bashoId?: number;
   day: number | null;
   dayLabel: string;
   currentDivision: LiveDivision | null;
@@ -552,6 +553,7 @@ async function loadLiveData(requestedDivisionId: number | null): Promise<LiveRes
   const value: LiveResponse = {
     live: Boolean(currentDivision?.total),
     basho: `${getEraYear(snapshot.dayHead)} ${snapshot.bashoName}`.trim(),
+    bashoId: snapshot.bashoId,
     day: snapshot.day,
     dayLabel: getDayLabel(snapshot.dayHead, snapshot.day),
     currentDivision,

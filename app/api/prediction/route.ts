@@ -1,10 +1,14 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
-import { bouts, ratingSnapshots, wrestlers } from "../../../db/schema";
+import { bouts, predictionRecords, ratingSnapshots, wrestlers } from "../../../db/schema";
+import evaluation from "../../../data/model-evaluation.json";
 import { japaneseRikishiName, rikishiProfilePath } from "../../lib/rikishi-names";
 import { loadRikishiModelHistory } from "../../lib/rating-model-assets";
+import { predictionRecordId, validPredictionContext } from "../../lib/prediction-record";
 import {
+  calibrateProbability,
   dohyoPredictionV2,
+  dohyoPredictionV3,
   eloProbability,
   predictionConfidence,
   symmetricGlickoProbability,
@@ -22,6 +26,8 @@ async function latestByNskId(nskId: number) {
       elo: ratingSnapshots.elo,
       dohyoScoreTenths: ratingSnapshots.dohyoScoreTenths,
       bashoId: ratingSnapshots.bashoId,
+      heightMm: wrestlers.heightMm,
+      weightKg: wrestlers.weightKg,
     })
     .from(wrestlers)
     .innerJoin(ratingSnapshots, eq(ratingSnapshots.wrestlerId, wrestlers.id))
@@ -60,6 +66,10 @@ export async function GET(request: Request) {
     const glickoRaw = eastMetric && westMetric
       ? symmetricGlickoProbability(eastGlicko, westGlicko)
       : eloRaw;
+    const glickoCalibrated = calibrateProbability(
+      glickoRaw,
+      evaluation.calibrationSlopes.glicko2,
+    );
 
     const lowId = Math.min(east.id, west.id);
     const highId = Math.max(east.id, west.id);
@@ -92,19 +102,56 @@ export async function GET(request: Request) {
       eastHeadToHeadWins += actual;
     }
     const matchupResidual = pairResidualSum / (pairEvidence + 8);
-    const v2 = dohyoPredictionV2(glickoRaw, matchupResidual);
+    const v2 = dohyoPredictionV2(
+      glickoRaw,
+      matchupResidual,
+      evaluation.calibrationSlopes.dohyoV2,
+    );
+    const styleRows = evaluation.currentStyles as Record<string, number[]>;
+    const eastStyle = styleRows[String(east.id)] ?? [0.25, 0.25, 0.25, 0.25, 0];
+    const westStyle = styleRows[String(west.id)] ?? [0.25, 0.25, 0.25, 0.25, 0];
+    const hasBody = east.heightMm !== null && east.weightKg !== null
+      && west.heightMm !== null && west.weightKg !== null;
+    const features = [
+      hasBody ? Math.max(-2.5, Math.min(2.5, (east.weightKg! - west.weightKg!) / 40)) : 0,
+      hasBody ? Math.max(-2.5, Math.min(2.5, (east.heightMm! - west.heightMm!) / 150)) : 0,
+      (eastStyle[0] ?? 0.25) - (westStyle[0] ?? 0.25),
+      (eastStyle[1] ?? 0.25) - (westStyle[1] ?? 0.25),
+      (eastStyle[2] ?? 0.25) - (westStyle[2] ?? 0.25),
+    ];
+    const v3 = dohyoPredictionV3(v2.probability, features, evaluation.v3.weights);
     const eastProbability = Math.round(v2.probability * 100);
+    const v3EastProbability = Math.round(v3.probability * 100);
     const eloEastProbability = Math.round(eloRaw * 100);
-    const glickoEastProbability = Math.round(glickoRaw * 100);
+    const glickoEastProbability = Math.round(glickoCalibrated * 100);
     const confidence = predictionConfidence(eastGlicko.rd, westGlicko.rd);
+    const bashoId = Number(url.searchParams.get("basho"));
+    const day = Number(url.searchParams.get("day"));
+    const division = Number(url.searchParams.get("division"));
+    if (validPredictionContext([bashoId, day, division])) {
+      await getDb().insert(predictionRecords).values({
+        id: predictionRecordId(bashoId, day, division, eastNskId, westNskId),
+        bashoId,
+        day,
+        division,
+        eastNskId,
+        westNskId,
+        modelVersion: "dohyo-v2.1-v3exp",
+        eloEastBp: Math.round(eloRaw * 10_000),
+        glickoEastBp: Math.round(glickoCalibrated * 10_000),
+        dohyoV2EastBp: Math.round(v2.probability * 10_000),
+        dohyoV3EastBp: Math.round(v3.probability * 10_000),
+      }).onConflictDoNothing();
+    }
     return Response.json({
       available: true,
-      model: "土俵日和予測 v2",
+      model: "土俵日和予測 v2.1",
       confidence,
       models: {
         elo: { eastProbability: eloEastProbability, westProbability: 100 - eloEastProbability },
         glicko2: { eastProbability: glickoEastProbability, westProbability: 100 - glickoEastProbability },
         dohyoV2: { eastProbability, westProbability: 100 - eastProbability },
+        dohyoV3: { eastProbability: v3EastProbability, westProbability: 100 - v3EastProbability },
       },
       explanation: {
         base: "Glicko-2による地力差",
@@ -112,8 +159,17 @@ export async function GET(request: Request) {
         eastHeadToHeadWins,
         westHeadToHeadWins: pairEvidence - eastHeadToHeadWins,
         matchupAdjustmentPoints: Number(((v2.probability - glickoRaw) * 100).toFixed(1)),
+        calibrationUsed: true,
         recentFormUsed: false,
         recentFormNote: "単純な直近成績補正は時系列検証で改善しなかったため未使用",
+        v3: {
+          status: "experimental",
+          bodyUsed: hasBody,
+          styleBoutsEast: eastStyle[4] ?? 0,
+          styleBoutsWest: westStyle[4] ?? 0,
+          adjustmentPoints: Number(((v3.probability - v2.probability) * 100).toFixed(1)),
+          note: evaluation.v3.caveat,
+        },
       },
       east: {
         id: east.id,
