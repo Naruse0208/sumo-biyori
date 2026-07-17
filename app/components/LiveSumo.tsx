@@ -158,11 +158,6 @@ export function LiveHeroBout() {
               <small>{bout.westScore}</small>
             </div>
           </div>
-          <div className="bout-foot">
-            <span>{isNext ? "次の一番" : "直近の取組"}</span>
-            <span>{isNext ? `${division?.completed ?? 0}番まで終了` : `決まり手　${bout.technique}`}</span>
-            <a href="#live-results">速報を見る →</a>
-          </div>
         </>
       ) : (
         <div className="live-empty">{data?.message ?? "取組情報の更新を待っています。"}</div>
@@ -172,7 +167,7 @@ export function LiveHeroBout() {
 }
 
 export function LiveResultsBoard() {
-  const { data, loading, seconds } = useLiveSumo();
+  const { data, seconds } = useLiveSumo();
   const division = data?.currentDivision;
   const progress = division?.total ? Math.round((division.completed / division.total) * 100) : 0;
   const updated = data?.updatedAt
@@ -182,10 +177,6 @@ export function LiveResultsBoard() {
   return (
     <section className="live-section section-shell" id="live-results" aria-live="polite">
       <div className="live-board-header">
-        <div>
-          <p className="eyebrow"><span className="live-dot" aria-hidden="true" /> LIVE TORIKUMI</p>
-          <h2>{loading ? "公式取組情報を確認しています" : division ? `ただいま、${division.name}の取組中。` : "取組情報の更新待ち"}</h2>
-        </div>
         <div className="live-timestamp">
           <span>表示確認まで {seconds}秒</span>
           <small>最終取得 {updated}</small>

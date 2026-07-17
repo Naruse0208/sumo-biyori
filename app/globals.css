@@ -234,16 +234,12 @@ h1 { margin-bottom: 10px; font-size: clamp(46px, 4.2vw, 68px); letter-spacing: .
 .wrestler-name-link:hover strong, .wrestler-name-link:focus-visible strong { color: var(--crimson); text-decoration: underline; text-underline-offset: 5px; }
 .wrestler.is-winner strong::after { content: " 勝"; color: var(--crimson); font-size: 10px; vertical-align: middle; letter-spacing: .04em; }
 .versus { width: 60px; height: 60px; margin: auto; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--crimson); font-size: 21px; }
-.bout-foot { min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 28px; border-top: 1px solid rgba(88,68,35,.25); font-size: 15px; color: #66553c; }
-.bout-foot a { color: var(--crimson); font-weight: 700; }
 .live-empty { margin: 0; padding: 34px 22px; text-align: center; color: #766b5b; font-size: 15px; letter-spacing: .08em; }
 
 .live-section { margin-top: 30px; margin-bottom: 32px; padding: 34px 38px 28px; background: rgba(20,28,34,.96); border-top: 2px solid var(--gold); border-bottom: 1px solid rgba(200,164,93,.28); position: relative; }
 .live-section::before, .live-section::after { content: ""; position: absolute; top: 0; width: 18px; height: 18px; border-top: 1px solid var(--gold); }
 .live-section::before { left: 0; border-left: 1px solid var(--gold); }.live-section::after { right: 0; border-right: 1px solid var(--gold); }
-.live-board-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; margin-bottom: 26px; }
-.live-board-header h2 { margin: 0; font-size: clamp(25px, 2.6vw, 38px); letter-spacing: .07em; }
-.live-board-header .eyebrow { display: flex; align-items: center; gap: 9px; }
+.live-board-header { display: flex; justify-content: flex-end; margin-bottom: 20px; }
 .live-timestamp { display: grid; justify-items: end; gap: 7px; color: var(--gold-light); font: 13px/1.5 var(--sans); letter-spacing: .06em; }
 .live-timestamp small { color: #8f887c; }
 .live-progress-row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; color: #bdb5a6; font: 13px/1 var(--sans); }
@@ -375,9 +371,8 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   .bout-ribbon { letter-spacing: .08em; }
   .bout-main { grid-template-columns: 1fr 38px 1fr; padding: 18px 10px 14px; }
   .wrestler span { font-size: 12px; }.wrestler strong { font-size: 24px; }.wrestler small { font-size: 12px; line-height: 1.5; }.versus { width: 36px; height: 36px; font-size: 14px; }
-  .bout-foot { gap: 7px; flex-wrap: wrap; padding: 10px 16px; line-height: 1.5; }.bout-foot span:nth-child(2) { display: none; }
   .section-shell { width: calc(100% - 34px); }
-  .live-section { padding: 27px 18px 22px; margin-top: 20px; }.live-board-header { display: grid; gap: 15px; }.live-timestamp { justify-items: start; }.division-track { grid-template-columns: repeat(2, 1fr); }.result-row { grid-template-columns: 1fr 76px 1fr; gap: 8px; font-size: 14px; }.result-rikishi { gap: 3px 6px; align-items: center; }.result-rikishi.east { grid-template-columns: minmax(0, 1fr) 16px; grid-template-areas: "name mark" "rank mark"; }.result-rikishi.west { grid-template-columns: 16px minmax(0, 1fr); grid-template-areas: "mark name" "mark rank"; }.result-name { grid-area: name; font-size: 14px; }.result-rank { grid-area: rank; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }.result-mark { grid-area: mark; width: 16px; }.result-technique { font-size: 12px; }.live-source { display: grid; }
+  .live-section { padding: 27px 18px 22px; margin-top: 20px; }.live-timestamp { justify-items: start; }.division-track { grid-template-columns: repeat(2, 1fr); }.result-row { grid-template-columns: 1fr 76px 1fr; gap: 8px; font-size: 14px; }.result-rikishi { gap: 3px 6px; align-items: center; }.result-rikishi.east { grid-template-columns: minmax(0, 1fr) 16px; grid-template-areas: "name mark" "rank mark"; }.result-rikishi.west { grid-template-columns: 16px minmax(0, 1fr); grid-template-areas: "mark name" "mark rank"; }.result-name { grid-area: name; font-size: 14px; }.result-rank { grid-area: rank; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }.result-mark { grid-area: mark; width: 16px; }.result-technique { font-size: 12px; }.live-source { display: grid; }
   .feature-grid { display: grid; grid-template-columns: 1fr; padding: 22px 0 54px; }
   .rikishi-card { grid-column: auto; }.feature-card { min-height: auto; padding: 24px 20px; }
   .rikishi-body { grid-template-columns: 74px 1fr; gap: 16px; }.name-plaque { height: 130px; font-size: 21px; }.profile-facts { flex-wrap: wrap; gap: 12px; }
