@@ -234,6 +234,7 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
           <p className="rikishi-rankline">{latest ? `${divisionNames[latest.division - 1]}・${latest.rank}` : "番付記録を確認中"}</p>
           <div className="rikishi-profile-links">
             <Link href="/rate">← レート順位へ</Link>
+            <Link href={`/rate/compare?left=${wrestler.id}`}>この力士を比較する →</Link>
             {wrestler.officialProfileUrl && <a href={wrestler.officialProfileUrl} target="_blank" rel="noreferrer">日本相撲協会プロフィール ↗</a>}
           </div>
         </div>
