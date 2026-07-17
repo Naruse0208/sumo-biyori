@@ -210,9 +210,7 @@ export function LiveResultsBoard() {
   const updated = data?.updatedAt
     ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(data.updatedAt))
     : "--:--:--";
-  const displayedBouts = expanded
-    ? [...(division?.recentResults ?? [])].reverse()
-    : division?.recentResults ?? [];
+  const displayedBouts = [...(division?.recentResults ?? [])].reverse();
 
   return (
     <section className="live-section section-shell" id="live-results" aria-live="polite">
