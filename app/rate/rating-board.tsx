@@ -9,6 +9,7 @@ type RikishiRating = {
   shikonaJp: string | null;
   shikonaEn: string;
   profileUrl: string | null;
+  officialProfileUrl: string | null;
   banzukeRank: string;
   elo: number;
   peakElo: number;
@@ -193,7 +194,7 @@ export default function RatingBoard({
             <strong>{String(rikishi.position).padStart(2, "0")}</strong>
             <span className="rate-ranking-rikishi">
               {rikishi.profileUrl ? (
-                <a href={rikishi.profileUrl} target="_blank" rel="noreferrer">
+                <a href={rikishi.profileUrl}>
                   <b>{rikishi.shikonaJp ?? rikishi.shikonaEn}</b>
                 </a>
               ) : <b>{rikishi.shikonaJp ?? rikishi.shikonaEn}</b>}

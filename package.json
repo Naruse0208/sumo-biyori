@@ -16,7 +16,8 @@
     "ratings:audit": "node scripts/audit-ratings-data.mjs",
     "ratings:build": "node scripts/build-ratings-dataset.mjs",
     "ratings:export": "node scripts/export-ratings-seed.mjs",
-    "ratings:import": "node scripts/import-ratings-to-site.mjs"
+    "ratings:import": "node scripts/import-ratings-to-site.mjs",
+    "ratings:names": "node scripts/enrich-japanese-names.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

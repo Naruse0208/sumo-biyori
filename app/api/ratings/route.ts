@@ -1,6 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { banzukeEntries, ratingSnapshots, wrestlers } from "../../../db/schema";
+import {
+  japaneseRikishiName,
+  officialRikishiProfile,
+  rikishiProfilePath,
+} from "../../lib/rikishi-names";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +68,9 @@ export async function GET(request: Request) {
       rows: rows.map((row, index) => ({
         ...row,
         position: index + 1,
-        profileUrl: row.nskId
-          ? `https://www.sumo.or.jp/ResultRikishiData/profile/${row.nskId}/`
-          : null,
+        shikonaJp: japaneseRikishiName(row.id, row.shikonaJp),
+        profileUrl: rikishiProfilePath(row.id),
+        officialProfileUrl: officialRikishiProfile(row.nskId),
       })),
     });
   } catch (error) {

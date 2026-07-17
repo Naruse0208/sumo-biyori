@@ -71,10 +71,10 @@ export default function Home() {
             <span>RIKISHI PROFILE</span>
           </div>
           <div className="rikishi-body">
-            <a className="name-plaque" href="https://www.sumo.or.jp/ResultRikishiData/profile/4227/" target="_blank" rel="noreferrer" aria-label="大の里 公式プロフィール">大<br />の<br />里</a>
+            <a className="name-plaque" href="/rikishi/nsk-4227" aria-label="大の里 力士プロフィール">大<br />の<br />里</a>
             <div>
               <p className="eyebrow">西・横綱 / 二所ノ関部屋</p>
-              <h3><a className="profile-name-link" href="https://www.sumo.or.jp/ResultRikishiData/profile/4227/" target="_blank" rel="noreferrer">大の里 泰輝</a></h3>
+              <h3><a className="profile-name-link" href="/rikishi/nsk-4227">大の里 泰輝</a></h3>
               <p>堂々たる押し相撲と、土俵際で見せる冷静さ。故郷・石川への思いを胸に、綱への責任を背負う。</p>
               <dl className="profile-facts">
                 <div><dt>身長</dt><dd>192cm</dd></div>

@@ -13,6 +13,8 @@ import {
 type LiveBout = {
   east: string;
   west: string;
+  eastNskId: number | null;
+  westNskId: number | null;
   eastProfileUrl: string | null;
   westProfileUrl: string | null;
   eastRank: string;
@@ -71,6 +73,50 @@ type LiveContextValue = {
 };
 
 const LiveContext = createContext<LiveContextValue | null>(null);
+
+type PredictionPayload = {
+  available: boolean;
+  east?: { elo: number; probability: number };
+  west?: { elo: number; probability: number };
+};
+
+const predictionCache = new Map<string, { expiresAt: number; promise: Promise<PredictionPayload> }>();
+
+function usePrediction(eastNskId: number | null, westNskId: number | null) {
+  const [prediction, setPrediction] = useState<PredictionPayload | null>(null);
+  useEffect(() => {
+    if (!eastNskId || !westNskId) return;
+    const key = `${eastNskId}-${westNskId}`;
+    const now = Date.now();
+    let cached = predictionCache.get(key);
+    if (!cached || cached.expiresAt < now) {
+      const promise = fetch(`/api/prediction?east=${eastNskId}&west=${westNskId}`)
+        .then(async (response) => response.ok ? response.json() as Promise<PredictionPayload> : { available: false })
+        .catch(() => ({ available: false }));
+      cached = { expiresAt: now + 60_000, promise };
+      predictionCache.set(key, cached);
+    }
+    let cancelled = false;
+    cached.promise.then((value) => { if (!cancelled) setPrediction(value); });
+    return () => { cancelled = true; };
+  }, [eastNskId, westNskId]);
+  return prediction?.available ? prediction : null;
+}
+
+function WinProbability({ bout, compact = false }: { bout: LiveBout; compact?: boolean }) {
+  const prediction = usePrediction(bout.eastNskId, bout.westNskId);
+  if (!prediction?.east || !prediction.west) return null;
+  if (compact) {
+    return <small className="result-prediction">予想 東{prediction.east.probability}%・西{prediction.west.probability}%</small>;
+  }
+  return (
+    <div className="bout-prediction" aria-label={`Elo予想勝率 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
+      <div><span>東 {prediction.east.probability}%</span><em>Elo予想勝率</em><span>西 {prediction.west.probability}%</span></div>
+      <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
+      <small>Elo {prediction.east.elo} 対 {prediction.west.elo}</small>
+    </div>
+  );
+}
 
 export function LiveSumoProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<LivePayload | null>(null);
@@ -149,7 +195,7 @@ function ProfileLink({
   children: ReactNode;
 }) {
   return href ? (
-    <a className={className} href={href} target="_blank" rel="noreferrer">{children}</a>
+    <a className={className} href={href}>{children}</a>
   ) : (
     <span className={className}>{children}</span>
   );
@@ -202,6 +248,7 @@ export function LiveHeroBout() {
               <small>{bout.westScore}</small>
             </div>
           </div>
+          {isNext && <WinProbability bout={bout} />}
         </>
       ) : (
         <div className="live-empty">{data?.message ?? "取組情報の更新を待っています。"}</div>
@@ -266,7 +313,8 @@ export function LiveResultsBoard() {
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
                   <span className="result-technique">
-                    {bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"}
+                    <span>{bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"}</span>
+                    {bout.status !== "past" && <WinProbability bout={bout} compact />}
                   </span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>

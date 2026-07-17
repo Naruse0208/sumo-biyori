@@ -42,6 +42,8 @@ type LiveBoutStatus = "past" | "current" | "next";
 type LiveBout = {
   east: string;
   west: string;
+  eastNskId: number | null;
+  westNskId: number | null;
   eastProfileUrl: string | null;
   westProfileUrl: string | null;
   eastRank: string;
@@ -180,7 +182,7 @@ function cleanShikona(rikishi?: UpstreamRikishi): string {
 
 function profileUrl(rikishiId?: number): string | null {
   return rikishiId
-    ? `https://www.sumo.or.jp/ResultRikishiData/profile/${rikishiId}/`
+    ? `/rikishi/nsk-${rikishiId}`
     : null;
 }
 
@@ -225,6 +227,8 @@ function mapBout(bout: UpstreamBout, status: LiveBoutStatus): LiveBout {
   return {
     east: cleanShikona(bout.east),
     west: cleanShikona(bout.west),
+    eastNskId: bout.east?.rikishi_id ?? null,
+    westNskId: bout.west?.rikishi_id ?? null,
     eastProfileUrl: profileUrl(bout.east?.rikishi_id),
     westProfileUrl: profileUrl(bout.west?.rikishi_id),
     eastRank: bout.east?.banzuke_name ?? "東",

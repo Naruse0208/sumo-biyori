@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ratings from "../../data/ratings-latest.json";
+import { japaneseRikishiName, officialRikishiProfile, rikishiProfilePath } from "../lib/rikishi-names";
 import RatingBoard from "./rating-board";
 
 export const metadata: Metadata = {
@@ -21,6 +22,16 @@ const releaseSteps = [
   { number: "参", title: "時代差をならす", copy: "同時代・同階級の分布で標準化し、土俵偏差値へ変換。" },
   { number: "肆", title: "今日の取組へ", copy: "順位、推移、対戦相性、現在と次の一番の勝率を公開。" },
 ];
+
+const initialDivisions = ratings.divisions.map((division) => ({
+  ...division,
+  ranking: division.ranking.map((rikishi) => ({
+    ...rikishi,
+    shikonaJp: japaneseRikishiName(rikishi.id, rikishi.shikonaJp),
+    profileUrl: rikishiProfilePath(rikishi.id),
+    officialProfileUrl: officialRikishiProfile(rikishi.nskId),
+  })),
+}));
 
 export default function RatePage() {
   return (
@@ -123,7 +134,7 @@ export default function RatePage() {
         </div>
 
         <RatingBoard
-          divisions={ratings.divisions}
+          divisions={initialDivisions}
           initialBasho={Number(ratings.scope.latestBasho)}
         />
         <div className="rate-ranking-board rate-ranking-method">
@@ -187,12 +198,12 @@ export default function RatePage() {
       </section>
 
       <section className="rate-shell rate-next">
-        <p>COMING NEXT</p>
-        <h2>順位だけで終わらない。</h2>
+        <p>NOW AVAILABLE</p>
+        <h2>順位から、力士の物語へ。</h2>
         <div>
-          <span>レート推移</span><span>対戦勝率</span><span>得意な決まり手</span><span>相性分析</span>
+          <span>Elo推移グラフ</span><span>取組予想勝率</span><span>公式プロフィール連携</span><span>漢字四股名</span>
         </div>
-        <p>力士プロフィールと今日の取組へ、同じ計算結果をつなぎます。</p>
+        <p>順位表や今日の取組から力士名を選ぶと、個別プロフィールとレート履歴を見られます。</p>
       </section>
 
       <footer>
