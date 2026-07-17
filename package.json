@@ -12,7 +12,11 @@
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "ratings:pilot": "node scripts/pilot-ratings.mjs"
+    "ratings:pilot": "node scripts/pilot-ratings.mjs",
+    "ratings:audit": "node scripts/audit-ratings-data.mjs",
+    "ratings:build": "node scripts/build-ratings-dataset.mjs",
+    "ratings:export": "node scripts/export-ratings-seed.mjs",
+    "ratings:import": "node scripts/import-ratings-to-site.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

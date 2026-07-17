@@ -392,17 +392,29 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 .rate-ranking { padding: 72px 0 92px; border-top: 1px solid var(--line); }
 .rate-pending { color: var(--gold-light) !important; }
 .rate-ranking-board { border: 1px solid rgba(200,164,93,.3); background: rgba(15,21,26,.9); }
+.rate-division-tabs { display: grid; grid-template-columns: repeat(6, 1fr); border-bottom: 1px solid rgba(200,164,93,.3); }
+.rate-division-tabs button { min-height: 66px; border: 0; border-right: 1px solid rgba(200,164,93,.16); color: #aaa194; background: transparent; font: 16px/1.2 var(--serif); cursor: pointer; }
+.rate-division-tabs button:last-child { border-right: 0; }
+.rate-division-tabs button small { display: block; margin-top: 6px; color: #756e64; font: 10px/1 var(--sans); letter-spacing: .08em; }
+.rate-division-tabs button:hover, .rate-division-tabs button:focus-visible { color: #fff0d2; background: rgba(200,164,93,.07); }
+.rate-division-tabs button.is-active { color: #fff0d2; background: var(--crimson-dark); box-shadow: inset 0 -2px var(--gold); }
 .rate-ranking-head { display: grid; grid-template-columns: 80px 1fr 140px 160px 120px; gap: 18px; padding: 15px 28px; color: #958d80; border-bottom: 1px solid rgba(200,164,93,.22); font: 11px/1 var(--sans); letter-spacing: .1em; }
 .rate-ranking-row { display: grid; grid-template-columns: 80px 1fr 140px 160px 120px; gap: 18px; align-items: center; min-height: 72px; padding: 12px 28px; border-bottom: 1px solid rgba(238,228,205,.08); }
 .rate-ranking-row > strong { color: var(--crimson); font-size: 19px; font-weight: 500; }
 .rate-ranking-row > span:not(.rate-ranking-rikishi) { color: #e7dac1; font: 600 16px/1 var(--sans); }
+.rate-ranking-row > span:not(.rate-ranking-rikishi) small { display: block; margin-top: 5px; color: #777064; font: 10px/1 var(--sans); font-weight: 400; }
 .rate-ranking-rikishi { display: grid; gap: 3px; }
 .rate-ranking-rikishi b { color: #fff0d2; font-size: 18px; letter-spacing: .06em; }
+.rate-ranking-rikishi a { width: fit-content; text-decoration: none; }
+.rate-ranking-rikishi a:hover b, .rate-ranking-rikishi a:focus-visible b { color: var(--gold-light); text-decoration: underline; text-underline-offset: 4px; }
 .rate-ranking-rikishi small { color: #827b70; font: 10px/1.2 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .rate-ranking-note { display: grid; grid-template-columns: 1fr auto; gap: 4px 24px; padding: 22px 28px; background: rgba(112,21,31,.15); }
 .rate-ranking-note p { margin: 0; color: #9f9789; font-size: 12px; }
 .rate-ranking-note p strong { color: var(--gold-light); margin-right: 8px; }
 .rate-ranking-note a { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--gold); font-size: 12px; }
+.rate-ranking-method { margin-top: 14px; }
+.rate-show-all { display: block; width: calc(100% - 56px); margin: 20px 28px; padding: 13px; border: 1px solid rgba(200,164,93,.35); color: var(--gold-light); background: rgba(200,164,93,.05); font: 13px/1 var(--sans); letter-spacing: .08em; cursor: pointer; }
+.rate-show-all:hover, .rate-show-all:focus-visible { background: rgba(200,164,93,.12); }
 .rate-ranking-empty { min-height: 300px; display: grid; place-items: center; align-content: center; padding: 44px 24px; text-align: center; }
 .rate-dohyo-mark { width: 72px; height: 72px; margin-bottom: 22px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold-light); position: relative; }
 .rate-dohyo-mark::before, .rate-dohyo-mark::after { content: ""; position: absolute; inset: 7px; border: 1px solid rgba(200,164,93,.24); border-radius: 50%; }
@@ -515,6 +527,9 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   .rate-metric-card { min-height: 320px; padding: 28px 24px; }
   .rate-formula { justify-content: flex-start; flex-wrap: wrap; gap: 10px; padding: 22px 18px; font-size: 12px; }
   .rate-ranking, .rate-data, .rate-roadmap { padding: 58px 0 68px; }
+  .rate-division-tabs { grid-template-columns: repeat(3, 1fr); }
+  .rate-division-tabs button:nth-child(3) { border-right: 0; }
+  .rate-division-tabs button:nth-child(-n+3) { border-bottom: 1px solid rgba(200,164,93,.16); }
   .rate-ranking-head { grid-template-columns: 44px 1fr 64px 78px; gap: 8px; padding: 14px 12px; }
   .rate-ranking-head span:last-child { display: none; }
   .rate-ranking-row { grid-template-columns: 44px 1fr 64px 78px; gap: 8px; min-height: 68px; padding: 10px 12px; }
@@ -523,6 +538,7 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   .rate-ranking-rikishi b { font-size: 15px; }
   .rate-ranking-note { grid-template-columns: 1fr; padding: 20px 16px; }
   .rate-ranking-note a { grid-column: 1; grid-row: auto; margin-top: 8px; }
+  .rate-show-all { width: calc(100% - 24px); margin: 16px 12px; }
   .rate-ranking-empty { min-height: 270px; padding-inline: 20px; }
   .rate-audit-grid { grid-template-columns: 1fr 1fr; }
   .rate-audit-stat { min-height: 108px; padding: 17px; }

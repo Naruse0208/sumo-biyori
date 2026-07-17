@@ -15,6 +15,13 @@
       "when": 1784272256021,
       "tag": "0001_high_the_enforcers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784276137078,
+      "tag": "0002_colossal_moonstone",
+      "breakpoints": true
     }
   ]
 }

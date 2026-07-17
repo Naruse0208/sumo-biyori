@@ -70,12 +70,12 @@ export const banzukeEntries = sqliteTable(
     division: integer("division").notNull(),
     wrestlerId: integer("wrestler_id").notNull().references(() => wrestlers.id),
     side: integer("side").notNull(),
-    rankCode: text("rank_code").notNull(),
-    rankNumber: integer("rank_number"),
+    rank: text("rank").notNull(),
+    rankValue: integer("rank_value"),
   },
   (table) => [
     primaryKey({ columns: [table.bashoId, table.division, table.wrestlerId] }),
-    index("banzuke_basho_division_idx").on(table.bashoId, table.division, table.rankNumber),
+    index("banzuke_basho_division_idx").on(table.bashoId, table.division, table.rankValue),
     index("banzuke_wrestler_idx").on(table.wrestlerId, table.bashoId),
   ],
 );
@@ -87,24 +87,28 @@ export const bouts = sqliteTable(
     bashoId: integer("basho_id").notNull().references(() => basho.id),
     division: integer("division").notNull(),
     day: integer("day").notNull(),
-    matchNo: integer("match_no").notNull(),
-    eastWrestlerId: integer("east_wrestler_id").notNull().references(() => wrestlers.id),
-    westWrestlerId: integer("west_wrestler_id").notNull().references(() => wrestlers.id),
+    wrestlerAId: integer("wrestler_a_id").notNull().references(() => wrestlers.id),
+    wrestlerBId: integer("wrestler_b_id").notNull().references(() => wrestlers.id),
     winnerWrestlerId: integer("winner_wrestler_id").references(() => wrestlers.id),
-    eastRank: text("east_rank"),
-    westRank: text("west_rank"),
     kimarite: text("kimarite"),
-    eastEloBefore: integer("east_elo_before"),
-    westEloBefore: integer("west_elo_before"),
-    eastEloAfter: integer("east_elo_after"),
-    westEloAfter: integer("west_elo_after"),
+    wrestlerAEloBefore: integer("wrestler_a_elo_before"),
+    wrestlerBEloBefore: integer("wrestler_b_elo_before"),
+    wrestlerAEloAfter: integer("wrestler_a_elo_after"),
+    wrestlerBEloAfter: integer("wrestler_b_elo_after"),
   },
   (table) => [
-    uniqueIndex("bouts_order_uq").on(table.bashoId, table.division, table.day, table.matchNo),
-    index("bouts_east_wrestler_idx").on(table.eastWrestlerId, table.bashoId, table.day),
-    index("bouts_west_wrestler_idx").on(table.westWrestlerId, table.bashoId, table.day),
+    index("bouts_order_idx").on(table.bashoId, table.day, table.division),
+    index("bouts_wrestler_a_idx").on(table.wrestlerAId, table.bashoId, table.day),
+    index("bouts_wrestler_b_idx").on(table.wrestlerBId, table.bashoId, table.day),
   ],
 );
+
+export const ratingImportBatches = sqliteTable("rating_import_batches", {
+  batchId: text("batch_id").primaryKey(),
+  tableName: text("table_name").notNull(),
+  rowCount: integer("row_count").notNull(),
+  importedAt: text("imported_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 export const ratingSnapshots = sqliteTable(
   "rating_snapshots",

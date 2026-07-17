@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import pilot from "../../data/pilot-199901-makuuchi.json";
+import ratings from "../../data/ratings-latest.json";
+import RatingBoard from "./rating-board";
 
 export const metadata: Metadata = {
   title: "力士レート｜土俵日和",
-  description: "1999年以降の全取組からEloと土俵日和独自の土俵偏差値を算出する、力士レート計画。",
+  description: "1999年以降・全六段の40万件を超える取組から再計算したEloと、土俵日和独自の土俵偏差値。",
 };
 
 const auditStats = [
   { value: "1999—", label: "収録対象" },
   { value: "全六段", label: "幕内から序ノ口" },
-  { value: "9,125", label: "力士マスター初期監査" },
-  { value: "642,266+", label: "確認済み取組の下限" },
+  { value: ratings.counts.sourceWrestlers.toLocaleString(), label: "力士マスター" },
+  { value: ratings.counts.ratedBouts.toLocaleString(), label: "Elo計算済み取組" },
 ];
 
 const releaseSteps = [
@@ -20,21 +21,6 @@ const releaseSteps = [
   { number: "参", title: "時代差をならす", copy: "同時代・同階級の分布で標準化し、土俵偏差値へ変換。" },
   { number: "肆", title: "今日の取組へ", copy: "順位、推移、対戦相性、現在と次の一番の勝率を公開。" },
 ];
-
-const pilotNames: Record<string, string> = {
-  Chiyotaikai: "千代大海",
-  Wakanohana: "若乃花",
-  Akinoshima: "安芸乃島",
-  Chiyotenzan: "千代天山",
-  Musoyama: "武双山",
-  Kaio: "魁皇",
-  Kyokushuzan: "旭鷲山",
-  Shikishima: "敷島",
-  Tochiazuma: "栃東",
-  Hamanoshima: "濱ノ嶋",
-};
-
-const pilotRanking = pilot.ranking.slice(0, 10);
 
 export default function RatePage() {
   return (
@@ -88,7 +74,7 @@ export default function RatePage() {
             生のEloと、時代を越えて見比べるための独自指標を、ここから育てます。
           </p>
           <div className="rate-hero-actions">
-            <span className="rate-status"><i aria-hidden="true" />データベース準備中</span>
+            <span className="rate-status"><i aria-hidden="true" />全期間Elo 計算完了</span>
             <a href="#method">算出方法を見る <span>↓</span></a>
           </div>
         </div>
@@ -136,26 +122,15 @@ export default function RatePage() {
             <p>RIKISHI RATING</p>
             <h2 id="ranking-title">力士レート順位</h2>
           </div>
-          <span className="rate-pending">実データ試算</span>
+          <span className="rate-pending">令和八年 七月場所</span>
         </div>
 
-        <div className="rate-ranking-board">
-          <div className="rate-ranking-head">
-            <span>順位</span><span>力士</span><span>Elo</span><span>土俵偏差値</span><span>成績</span>
-          </div>
-          {pilotRanking.map((rikishi) => (
-            <div className="rate-ranking-row" key={rikishi.id}>
-              <strong>{String(rikishi.rank).padStart(2, "0")}</strong>
-              <span className="rate-ranking-rikishi"><b>{pilotNames[rikishi.shikona] ?? rikishi.shikona}</b><small>{rikishi.shikona}</small></span>
-              <span>{rikishi.elo}</span>
-              <span>{rikishi.dohyoScore.toFixed(1)}</span>
-              <span>{rikishi.wins}勝{rikishi.losses}敗</span>
-            </div>
-          ))}
+        <RatingBoard divisions={ratings.divisions} />
+        <div className="rate-ranking-board rate-ranking-method">
           <div className="rate-ranking-note">
-            <p><strong>試算範囲</strong> 1999年一月場所・幕内・全15日／{pilot.counts.ratedBouts}取組・{pilot.counts.wrestlers}力士</p>
-            <p>基準Elo {pilot.model.startingElo}、K値 {pilot.model.kFactor}。全六段・全期間の計算前なので、この順位は方式検証用です。</p>
-            <a href={pilot.source.guideUrl} target="_blank" rel="noreferrer">取得元：Sumo API ↗</a>
+            <p><strong>計算範囲</strong> 1999年一月場所〜令和八年七月場所・全六段／{ratings.counts.ratedBouts.toLocaleString()}取組・{ratings.counts.wrestlersInScope.toLocaleString()}力士</p>
+            <p>基準Elo {ratings.model.startingElo}、K値 {ratings.model.kFactor}。七月場所は進行中のため、取得済み取組までを反映しています。</p>
+            <a href="https://sumo-api.com/api-guide" target="_blank" rel="noreferrer">取組データ仕様：Sumo API ↗</a>
           </div>
         </div>
       </section>
@@ -181,14 +156,14 @@ export default function RatePage() {
         <div className="rate-storage-grid">
           <div>
             <p className="rate-storage-label">DATABASE TARGET</p>
-            <strong>250–450<small> MB 想定</small></strong>
-            <div className="rate-storage-bar"><span /></div>
-            <p>力士、改名履歴、番付、取組、レート履歴を数値IDで正規化。実測後に容量を再掲します。</p>
+            <strong>{ratings.storage.sqliteMiB}<small> MB 実測</small></strong>
+            <div className="rate-storage-bar"><span style={{ width: `${(ratings.storage.sqliteMiB / ratings.storage.targetMiB) * 100}%` }} /></div>
+            <p>力士、番付、全取組、各一番の前後Elo、場所ごとのレート履歴と検索用インデックスまで含む実測値です。</p>
           </div>
           <ul>
             <li><span>保存する</span>力士マスター・番付・取組・レート履歴</li>
             <li><span>保存しない</span>取得元HTML・画像・同じしこ名の重複</li>
-            <li><span>目標</span>無料枠の500MB以内で全六段を運用</li>
+            <li><span>余裕</span>500MB上限の約{Math.round((ratings.storage.sqliteMiB / ratings.storage.targetMiB) * 100)}%を使用</li>
           </ul>
         </div>
       </section>
