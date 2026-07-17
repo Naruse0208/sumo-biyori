@@ -1,3 +1,5 @@
+import { readOfficialNames, saveOfficialNames } from "../../../db/official-name-cache";
+
 const DIVISIONS = [
   { id: 6, name: "序ノ口" },
   { id: 5, name: "序二段" },
@@ -7,7 +9,7 @@ const DIVISIONS = [
   { id: 1, name: "幕内" },
 ] as const;
 
-const UPSTREAM_TTL_MS = 60_000;
+const UPSTREAM_TTL_MS = 15_000;
 
 type UpstreamRikishi = {
   rikishi_id?: number;
@@ -276,34 +278,83 @@ async function fetchMakuuchiBanzuke(bashoId: number): Promise<LiveBanzukeRow[]> 
   return [...rows.values()];
 }
 
-async function mapBoutWithKanjiNames(
-  bout: UpstreamBout,
-  status: LiveBoutStatus,
-): Promise<LiveBout> {
-  const [east, west] = await Promise.all([
-    getKanjiShikona(bout.east),
-    getKanjiShikona(bout.west),
-  ]);
-  return { ...mapBout(bout, status), east, west };
+function isKanjiName(value: string): boolean {
+  return /[一-龯々]/.test(value);
+}
+
+async function resolveKanjiNames(
+  sources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>,
+): Promise<Map<number, string>> {
+  const rikishiById = new Map<number, UpstreamRikishi>();
+  for (const { bout } of sources) {
+    for (const rikishi of [bout.east, bout.west]) {
+      const id = Number(rikishi?.rikishi_id ?? 0);
+      if (id) rikishiById.set(id, rikishi ?? {});
+    }
+  }
+
+  const result = new Map<number, string>();
+  const idsMissingFromMemory = [...rikishiById.keys()].filter((id) => !profileNameCache.has(id));
+  const stored = await readOfficialNames(idsMissingFromMemory);
+  const toFetch: UpstreamRikishi[] = [];
+  const toPersist: Array<{ nskId: number; shikonaJp: string }> = [];
+
+  for (const [id, rikishi] of rikishiById) {
+    const upstreamName = cleanShikona(rikishi);
+    const memoryName = profileNameCache.get(id);
+    const storedName = stored.get(id);
+
+    if (isKanjiName(upstreamName)) {
+      result.set(id, upstreamName);
+      profileNameCache.set(id, upstreamName);
+      if (storedName !== upstreamName && memoryName !== upstreamName) {
+        toPersist.push({ nskId: id, shikonaJp: upstreamName });
+      }
+    } else if (memoryName) {
+      result.set(id, memoryName);
+    } else if (storedName) {
+      result.set(id, storedName);
+      profileNameCache.set(id, storedName);
+    } else {
+      toFetch.push(rikishi);
+    }
+  }
+
+  let cursor = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(4, toFetch.length) }, async () => {
+      while (cursor < toFetch.length) {
+        const index = cursor;
+        cursor += 1;
+        const rikishi = toFetch[index];
+        const id = Number(rikishi.rikishi_id ?? 0);
+        const shikonaJp = await getKanjiShikona(rikishi);
+        if (id && isKanjiName(shikonaJp)) {
+          result.set(id, shikonaJp);
+          toPersist.push({ nskId: id, shikonaJp });
+        }
+      }
+    }),
+  );
+
+  await saveOfficialNames(toPersist);
+  return result;
 }
 
 async function mapBoutSourcesWithKanjiNames(
   sources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>,
 ): Promise<LiveBout[]> {
-  const results = new Array<LiveBout>(sources.length);
-  let cursor = 0;
-  const workerCount = Math.min(4, sources.length);
-  await Promise.all(
-    Array.from({ length: workerCount }, async () => {
-      while (cursor < sources.length) {
-        const index = cursor;
-        cursor += 1;
-        const { bout, status } = sources[index];
-        results[index] = await mapBoutWithKanjiNames(bout, status);
-      }
-    }),
-  );
-  return results;
+  const resolvedNames = await resolveKanjiNames(sources);
+  return sources.map(({ bout, status }) => {
+    const mapped = mapBout(bout, status);
+    const eastId = Number(bout.east?.rikishi_id ?? 0);
+    const westId = Number(bout.west?.rikishi_id ?? 0);
+    return {
+      ...mapped,
+      east: resolvedNames.get(eastId) ?? mapped.east,
+      west: resolvedNames.get(westId) ?? mapped.west,
+    };
+  });
 }
 
 async function fetchDivision(id: number, name: string, day: number): Promise<LiveDivisionSource> {
@@ -407,17 +458,18 @@ async function mapDivision(
   expanded: boolean,
 ): Promise<LiveDivision | null> {
   if (!source) return null;
+  const recentResults = await mapBoutSourcesWithKanjiNames(
+    expanded ? source.allBoutSources : source.recentResultSources,
+  );
   return {
     id: source.id,
     name: source.name,
     completed: source.completed,
     total: source.total,
     nextBout: source.nextBoutSource
-      ? await mapBoutWithKanjiNames(source.nextBoutSource, "current")
+      ? recentResults.find((bout) => bout.status === "current") ?? null
       : null,
-    recentResults: await mapBoutSourcesWithKanjiNames(
-      expanded ? source.allBoutSources : source.recentResultSources,
-    ),
+    recentResults,
   };
 }
 
@@ -447,7 +499,7 @@ async function loadLiveData(requestedDivisionId: number | null): Promise<LiveRes
     updatedAt: snapshot.updatedAt,
     sourceUrl: `https://www.sumo.or.jp/ResultData/torikumi/${selectedSource?.id ?? 1}/${snapshot.day}/`,
     displayRefreshSeconds: 10,
-    sourceRefreshSeconds: 60,
+    sourceRefreshSeconds: 15,
   };
   responseCache.set(cacheKey, value);
   return value;
@@ -464,7 +516,7 @@ export async function GET(request: Request) {
   try {
     const value = await loadLiveData(requestedDivisionId);
     return Response.json(value, {
-      headers: { "Cache-Control": "public, max-age=0, s-maxage=10, stale-while-revalidate=50" },
+      headers: { "Cache-Control": "public, max-age=0, s-maxage=5, stale-while-revalidate=10" },
     });
   } catch {
     const cached = responseCache.get(cacheKey) ?? responseCache.get("current");

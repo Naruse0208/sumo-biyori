@@ -32,6 +32,13 @@ export const wrestlers = sqliteTable(
   ],
 );
 
+export const officialNameCache = sqliteTable("official_name_cache", {
+  nskId: integer("nsk_id").primaryKey(),
+  shikonaJp: text("shikona_jp").notNull(),
+  profileUrl: text("profile_url").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const shikonaHistory = sqliteTable(
   "shikona_history",
   {
