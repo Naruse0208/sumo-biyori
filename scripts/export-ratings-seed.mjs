@@ -76,7 +76,7 @@ const missingWrestlers = database.prepare(`WITH referenced(id) AS (
 SELECT referenced.id
 FROM referenced LEFT JOIN wrestlers ON wrestlers.id = referenced.id
 WHERE wrestlers.id IS NULL
-ORDER BY referenced.id`).all().map(({ id }) => [id, null, null, null, null, null, null, null, null, null, null, null]);
+ORDER BY referenced.id`).all().map(({ id }) => [id, null, null, null, `unknown-${id}`, null, null, null, null, null, null, null]);
 if (missingWrestlers.length) {
   const file = "wrestlers-9999.json.gz";
   await writeFile(join(OUTPUT_DIR, file), gzipSync(JSON.stringify(missingWrestlers), { level: 9 }));
