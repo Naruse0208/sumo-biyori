@@ -5,7 +5,7 @@ import RateLabNav from "../rate-lab-nav";
 
 export const metadata: Metadata = {
   title: "歴代力士・時代補正ランキング｜土俵日和",
-  description: "1999年以降の幕内力士を、最高相撲偏差値と上位6場所平均から比較する歴代指数の実験版。",
+  description: "1958年以降の幕内力士を、最高相撲偏差値と上位6場所平均から比較する歴代指数の実験版。",
 };
 
 function bashoLabel(bashoId: number) {
@@ -26,7 +26,7 @@ export default function EraPage() {
 
       <section className="lab-hero era-hero">
         <div><p>ACROSS ERAS / EXPERIMENT</p><h1>時代の頂を、<br />同じ目盛りに置く。</h1><p>幕内平均からの傑出度を場所ごとに測り、最高到達点と上位6場所の持続力を合成。直接対戦できない時代を「絶対的な強さ」と言い切らないための歴代指数です。</p></div>
-        <div className="lab-hero-score"><small>収録範囲</small><strong>1999—</strong><span>幕内在位6場所以上</span></div>
+        <div className="lab-hero-score"><small>収録範囲</small><strong>1958—</strong><span>幕内在位6場所以上</span></div>
       </section>
 
       <section className="rate-shell era-shell" aria-labelledby="era-title">
@@ -52,7 +52,7 @@ export default function EraPage() {
       <section className="rate-shell era-reading">
         <div className="rate-section-heading"><div><p>HOW TO READ</p><h2>これは「もし戦ったら」の勝率ではない。</h2></div><span>読み方</span></div>
         <div><article><span>見るもの</span><h3>同時代での支配度</h3><p>その場所の幕内平均から、どれほど抜けていたかを比較します。</p></article><article><span>見ないもの</span><h3>体格・技術の年代進化</h3><p>白鵬と昭和の横綱を直接戦わせる勝率ではありません。</p></article><article><span>次の研究</span><h3>世代間の橋と推定幅</h3><p>現役期間が重なる力士を橋にした全履歴モデルを別枠で検証します。</p></article></div>
-        <aside><strong>現在の限界</strong><p>{era.caveat} したがって昭和の大横綱はまだランキング対象外です。データが揃うまで順位を推測で埋めません。</p></aside>
+        <aside><strong>現在の限界</strong><p>{era.caveat} 1958年以前の実績は含まず、収録開始直後は全力士を同じ初期値から計算するため、初期数年間の値にはコールドスタートの影響があります。</p></aside>
       </section>
 
       <footer><div className="footer-brand"><span className="brand-crest" aria-hidden="true">土</span><div><strong>土俵日和</strong><small>時代を越えて、相撲を語る。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate">レート研究室へ戻る →</Link></footer>

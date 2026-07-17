@@ -6,7 +6,7 @@ const evaluation = JSON.parse(await readFile(new URL("../data/model-evaluation.j
 const era = JSON.parse(await readFile(new URL("../data/era-rankings.json", import.meta.url), "utf8"));
 
 test("holdout evaluation is temporal and contains enough bouts", () => {
-  assert.equal(evaluation.scope.training, "1999–2019");
+  assert.equal(evaluation.scope.training, "1958–2019");
   assert.equal(evaluation.scope.holdout, "2020–2026");
   assert.ok(evaluation.scope.holdoutBouts > 80_000);
 });

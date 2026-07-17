@@ -14,11 +14,13 @@
     "db:generate": "drizzle-kit generate",
     "ratings:pilot": "node scripts/pilot-ratings.mjs",
     "ratings:audit": "node scripts/audit-ratings-data.mjs",
+    "ratings:audit:full": "node scripts/audit-ratings-data.mjs",
     "ratings:build": "node scripts/build-ratings-dataset.mjs",
     "ratings:lab": "node scripts/build-model-lab.mjs",
     "ratings:export": "node scripts/export-ratings-seed.mjs",
     "ratings:import": "node scripts/import-ratings-to-site.mjs",
-    "ratings:names": "node scripts/enrich-japanese-names.mjs"
+    "ratings:names": "node scripts/enrich-japanese-names.mjs",
+    "ratings:era-names": "node scripts/enrich-era-names.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

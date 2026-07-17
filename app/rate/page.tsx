@@ -7,7 +7,7 @@ import RateLabNav from "./rate-lab-nav";
 
 export const metadata: Metadata = {
   title: "力士レーティング研究室｜土俵日和",
-  description: "1999年以降・全六段の40万件を超える取組から再計算したElo、Glicko-2による地力、相撲偏差値と土俵日和予測。",
+  description: "1958年以降・全六段の取組から再計算したElo、Glicko-2による地力、相撲偏差値と土俵日和予測。",
   openGraph: {
     title: "力士レーティング研究室｜土俵日和",
     description: "Elo・Glicko-2・相撲偏差値で、力士の強さと一番の勝機を読み解く。",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 const auditStats = [
-  { value: "1999—", label: "収録対象" },
+  { value: "1958—", label: "収録対象" },
   { value: "全六段", label: "幕内から序ノ口" },
   { value: ratings.counts.sourceWrestlers.toLocaleString(), label: "力士マスター" },
   { value: ratings.counts.ratedBouts.toLocaleString(), label: "Elo計算済み取組" },
@@ -66,7 +66,7 @@ export default function RatePage() {
 
       <div className="notice-bar rate-notice">
         <strong>土俵日和 レーティング研究室</strong>
-        <span>1999年以降・全六段・用途の違う三つのものさし</span>
+        <span>1958年以降・全六段・用途の違う三つのものさし</span>
       </div>
 
       <header className="site-header">
@@ -106,7 +106,7 @@ export default function RatePage() {
           <p className="rate-kicker">DOHYO BIYORI RATING LAB</p>
           <h1>強さを、<br />時代の中で測る。</h1>
           <p className="rate-lead">
-            1999年以降の全取組を一番ずつ積み上げ、対戦相手の強さまで含めて数値化する。
+            1958年以降の全取組を一番ずつ積み上げ、対戦相手の強さまで含めて数値化する。
             Elo、地力、相撲偏差値。目的の違う数字を分けて、今の強さと時代の中での傑出度を読み解きます。
           </p>
           <div className="rate-hero-actions">
@@ -166,7 +166,7 @@ export default function RatePage() {
             <p>RIKISHI RATING</p>
             <h2 id="ranking-title">力士レート順位</h2>
           </div>
-          <span className="rate-pending">1999年以降・{ratings.scope.basho}場所</span>
+          <span className="rate-pending">1958年以降・{ratings.scope.basho}場所</span>
         </div>
 
         <RatingBoard
@@ -175,7 +175,7 @@ export default function RatePage() {
         />
         <div className="rate-ranking-board rate-ranking-method">
           <div className="rate-ranking-note">
-            <p><strong>計算範囲</strong> 1999年一月場所〜令和八年七月場所・全六段／{ratings.counts.ratedBouts.toLocaleString()}取組・{ratings.counts.wrestlersInScope.toLocaleString()}力士</p>
+            <p><strong>計算範囲</strong> 1958年一月場所〜令和八年七月場所・全六段／{ratings.counts.ratedBouts.toLocaleString()}取組・{ratings.counts.wrestlersInScope.toLocaleString()}力士</p>
             <p>基準Elo {ratings.model.startingElo}・K値 {ratings.model.kFactor}。地力は場所単位Glicko-2・初期RD {ratings.model.glicko2.initialRd}。最新場所は取得済み取組までを反映します。</p>
             <a href="https://sumo-api.com/api-guide" target="_blank" rel="noreferrer">取組データ仕様：Sumo API ↗</a>
           </div>
@@ -244,7 +244,7 @@ export default function RatePage() {
               <p>現在・次の取組では、両力士の地力差を勝率へ変換し、過去の直接対戦が十分ある場合だけ相性を少し加えます。対戦1回の1勝0敗を「相性100%」とは扱わず、8番分の事前値で強く縮めます。</p>
               <div className="rate-method-formula"><span>勝機</span><b>＝</b><span>Glicko-2地力差</span><b>＋</b><span>縮小した直接対戦残差</span></div>
               <aside><strong>直近成績について</strong>単純な「最近5勝だから加点」は時系列検証で予測を改善しませんでした。相手の強さを二重に数えるため、初版では係数を0にしています。</aside>
-              <aside><strong>確率の較正</strong>1999〜2019年で確率の傾きを整え、2020年以降は触らずに答え合わせしています。公開後の予測は計算時点の値を固定保存し、結果が出たら勝敗だけを追記します。</aside>
+              <aside><strong>確率の較正</strong>1958〜2019年で確率の傾きを整え、2020年以降は触らずに答え合わせしています。公開後の予測は計算時点の値を固定保存し、結果が出たら勝敗だけを追記します。</aside>
               <p><Link className="rate-inline-link" href="/rate/validation">2020年以降の予測成績・較正を見る →</Link></p>
               <details><summary>相性補正の中身</summary><p>各直接対戦で「実際の結果 − 当時のElo期待値」を合計し、対戦数＋8で割った残差だけを使用します。相撲に相性が存在しても、再戦数が少ない組合せでは補正をほぼゼロへ戻します。</p><a href="https://doi.org/10.1515/jqas-2025-0150" target="_blank" rel="noreferrer">Pairwise-Elo rating system ↗</a></details>
             </article>
@@ -263,7 +263,7 @@ export default function RatePage() {
               <p>過去場所へ切り替えると、その時点のElo・地力・相撲偏差値を見られます。異なる時代の比較では、一場所の最高値だけでなく、ベスト6場所平均と高水準を維持した期間を組み合わせる設計です。</p>
               <p>将来は、重なり合う現役期間を橋にして全履歴を平滑化する歴代補正レートを別枠で公開します。未来の実績を過去へ反映するため、ライブ予想とは混ぜません。</p>
               <aside><strong>原理的な限界</strong>直接つながっていない時代の「絶対的な強さ」は勝敗だけでは証明できません。歴代補正値には必ず推定区間と実験表示を添えます。</aside>
-              <p><Link className="rate-inline-link" href="/rate/era">1999年以降の歴代指数・実験版を見る →</Link></p>
+              <p><Link className="rate-inline-link" href="/rate/era">1958年以降の歴代指数・実験版を見る →</Link></p>
               <details><summary>歴史モデルの候補</summary><p>TrueSkill Through TimeやWhole-History Ratingを参考にし、年齢曲線、休場中の不確実性、世代間の橋を検証します。</p><a href="https://www.microsoft.com/en-us/research/publication/trueskill-through-time-revisiting-the-history-of-chess/" target="_blank" rel="noreferrer">TrueSkill Through Time ↗</a></details>
             </article>
 

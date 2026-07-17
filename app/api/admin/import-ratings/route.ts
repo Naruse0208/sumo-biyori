@@ -27,10 +27,22 @@ const insertSql: Record<string, string> = {
   basho: "INSERT OR IGNORE INTO basho (id) VALUES (?)",
   banzuke_entries: `INSERT OR REPLACE INTO banzuke_entries
     (basho_id, division, wrestler_id, side, rank, rank_value) VALUES (?, ?, ?, ?, ?, ?)`,
-  bouts: `INSERT OR IGNORE INTO bouts
+  bouts: `INSERT INTO bouts
     (id, basho_id, division, day, wrestler_a_id, wrestler_b_id, winner_wrestler_id, kimarite,
      wrestler_a_elo_before, wrestler_b_elo_before, wrestler_a_elo_after, wrestler_b_elo_after)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       basho_id = excluded.basho_id,
+       division = excluded.division,
+       day = excluded.day,
+       wrestler_a_id = excluded.wrestler_a_id,
+       wrestler_b_id = excluded.wrestler_b_id,
+       winner_wrestler_id = excluded.winner_wrestler_id,
+       kimarite = excluded.kimarite,
+       wrestler_a_elo_before = excluded.wrestler_a_elo_before,
+       wrestler_b_elo_before = excluded.wrestler_b_elo_before,
+       wrestler_a_elo_after = excluded.wrestler_a_elo_after,
+       wrestler_b_elo_after = excluded.wrestler_b_elo_after`,
   rating_snapshots: `INSERT OR REPLACE INTO rating_snapshots
     (wrestler_id, basho_id, division, elo, peak_elo, dohyo_score_tenths, bouts, wins, losses)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

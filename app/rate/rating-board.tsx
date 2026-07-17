@@ -60,8 +60,9 @@ function bashoLabel(bashoId: number) {
   const year = Math.floor(bashoId / 100);
   const month = bashoId % 100;
   const isReiwa = year > 2019 || (year === 2019 && month >= 5);
-  const era = isReiwa ? "令和" : "平成";
-  const eraYear = isReiwa ? year - 2018 : year - 1988;
+  const isHeisei = year > 1989 || (year === 1989 && month >= 1);
+  const era = isReiwa ? "令和" : isHeisei ? "平成" : "昭和";
+  const eraYear = isReiwa ? year - 2018 : isHeisei ? year - 1988 : year - 1925;
   return `${era}${eraYear === 1 ? "元" : toKanjiNumber(eraYear)}年 ${toKanjiNumber(month)}月場所`;
 }
 

@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { GLICKO2_DEFAULTS, updateGlicko2 } from "./lib/glicko2.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-199901-202607.sqlite");
+const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-195801-202607.sqlite");
 const EVALUATION_PATH = join(ROOT, "data", "model-evaluation.json");
 const ERA_PATH = join(ROOT, "data", "era-rankings.json");
 const NAME_PATH = join(ROOT, "data", "rikishi-names.json");
@@ -346,7 +346,7 @@ const evaluation = {
     firstBasho: bashoIds[0],
     latestBasho: bashoIds.at(-1),
     totalBouts: rows.length,
-    training: `1999–${Math.floor(TRAIN_END_BASHO / 100)}`,
+    training: `${Math.floor(bashoIds[0] / 100)}–${Math.floor(TRAIN_END_BASHO / 100)}`,
     holdout: `${Math.floor(TEST_START_BASHO / 100)}–${Math.floor(bashoIds.at(-1) / 100)}`,
     holdoutBouts: testRows.length,
   },
@@ -427,9 +427,9 @@ eraRanking.sort((a, b) => b.eraIndex - a.eraIndex || b.peakHensachi - a.peakHens
 const eraOutput = {
   generatedAt: new Date().toISOString(),
   status: "experimental",
-  scope: "1999年以降・幕内在位6場所以上",
+  scope: "1958年以降・幕内在位6場所以上",
   formula: "歴代指数 = 最高相撲偏差値 × 40% + 上位6場所平均 × 60%",
-  caveat: "同時代での傑出度を比べる実験値。1999年以前の取組は未収録。",
+  caveat: "同時代での傑出度を比べる実験値。取組収録の始まる1958年以前は比較対象外。",
   ranking: eraRanking.slice(0, 120).map((row, index) => ({ position: index + 1, ...row })),
 };
 

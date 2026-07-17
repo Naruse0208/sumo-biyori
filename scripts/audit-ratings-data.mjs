@@ -1,16 +1,24 @@
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
-const START_BASHO = "199901";
-const END_BASHO = "202607";
+const START_BASHO = process.env.RATING_START_BASHO ?? "195801";
+const END_BASHO = process.env.RATING_END_BASHO ?? "202607";
 const API_ROOT = "https://sumo-api.com/api";
 const REQUEST_DELAY_MS = 250;
 const DIVISIONS = ["Makuuchi", "Juryo", "Makushita", "Sandanme", "Jonidan", "Jonokuchi"];
 const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "work", "rating-audit");
-const DATABASE_PATH = join(OUTPUT_DIR, `rating-audit-${START_BASHO}-${END_BASHO}.sqlite`);
-const REPORT_PATH = join(OUTPUT_DIR, `rating-audit-${START_BASHO}-${END_BASHO}.json`);
+const DATABASE_PATH = process.env.RATING_DATABASE_PATH
+  ? join(process.cwd(), process.env.RATING_DATABASE_PATH)
+  : join(OUTPUT_DIR, `rating-audit-${START_BASHO}-${END_BASHO}.sqlite`);
+const REPORT_PATH = process.env.RATING_REPORT_PATH
+  ? join(process.cwd(), process.env.RATING_REPORT_PATH)
+  : join(OUTPUT_DIR, `rating-audit-${START_BASHO}-${END_BASHO}.json`);
+const SEED_DATABASE_PATH = process.env.RATING_SEED_DATABASE_PATH
+  ? join(process.cwd(), process.env.RATING_SEED_DATABASE_PATH)
+  : join(OUTPUT_DIR, "rating-audit-199901-202607.sqlite");
+const MAX_DATABASE_MIB = Number(process.env.RATING_MAX_DATABASE_MIB ?? 450);
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -114,10 +122,21 @@ async function loadWrestlers(database) {
   const first = await fetchJson(`${API_ROOT}/rikishis?intai=true&limit=1000&skip=0`);
   const pages = Math.ceil(first.total / 1000);
   const insert = database.prepare(`
-    INSERT OR REPLACE INTO wrestlers (
+    INSERT INTO wrestlers (
       id, sumodb_id, nsk_id, shikona_en, heya, birth_date, shusshin,
       height_cm, weight_kg, debut_basho_id, intai_date
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      sumodb_id = excluded.sumodb_id,
+      nsk_id = excluded.nsk_id,
+      shikona_en = excluded.shikona_en,
+      heya = excluded.heya,
+      birth_date = excluded.birth_date,
+      shusshin = excluded.shusshin,
+      height_cm = excluded.height_cm,
+      weight_kg = excluded.weight_kg,
+      debut_basho_id = excluded.debut_basho_id,
+      intai_date = excluded.intai_date
   `);
 
   const saveRecords = (records) => inTransaction(database, () => {
@@ -238,8 +257,45 @@ function createSizeModel(database) {
   database.exec("VACUUM");
 }
 
+async function fileExists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function prepareDatabase() {
+  if (await fileExists(DATABASE_PATH)) return false;
+  if (!(await fileExists(SEED_DATABASE_PATH))) return false;
+  await copyFile(SEED_DATABASE_PATH, DATABASE_PATH);
+  const database = new DatabaseSync(DATABASE_PATH);
+  database.exec(`
+    PRAGMA journal_mode = WAL;
+    DROP TABLE IF EXISTS rating_snapshot_size_model;
+    DROP TABLE IF EXISTS rating_snapshots_actual;
+    DROP TABLE IF EXISTS glicko_snapshots_actual;
+    DROP TABLE IF EXISTS rating_meta;
+    DROP TABLE IF EXISTS prediction_backtests_actual;
+    PRAGMA wal_checkpoint(TRUNCATE);
+  `);
+  database.close();
+  console.log(`Seeded full-history database from ${SEED_DATABASE_PATH}`);
+  return true;
+}
+
+async function assertSizeWithinBudget() {
+  const bytes = (await stat(DATABASE_PATH)).size;
+  const mib = bytes / 1024 / 1024;
+  if (mib > MAX_DATABASE_MIB) {
+    throw new Error(`Database reached ${mib.toFixed(2)} MiB (guard: ${MAX_DATABASE_MIB} MiB)`);
+  }
+}
+
 async function main() {
   await mkdir(OUTPUT_DIR, { recursive: true });
+  await prepareDatabase();
   const database = new DatabaseSync(DATABASE_PATH);
   setupDatabase(database);
 
@@ -274,6 +330,10 @@ async function main() {
       completed += 1;
     }
     console.log(`Banzuke audit ${completed}/${totalRequests} (${bashoId})`);
+    if (Number(bashoId.slice(0, 4)) % 5 === 0 && bashoId.endsWith("11")) {
+      database.exec("PRAGMA wal_checkpoint(PASSIVE)");
+      await assertSizeWithinBudget();
+    }
   }
 
   createSizeModel(database);

@@ -1,9 +1,9 @@
 {
   "version": "glicko2-basho-v1",
-  "generatedAt": "2026-07-17T11:30:06.548Z",
-  "firstBasho": 199901,
+  "generatedAt": "2026-07-17T20:22:05.850Z",
+  "firstBasho": 195803,
   "latestBasho": 202607,
-  "bashoFiles": 164,
+  "bashoFiles": 409,
   "historyShards": 32,
   "parameters": {
     "initialRating": 1500,

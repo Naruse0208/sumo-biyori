@@ -5,9 +5,10 @@ import { gzipSync } from "node:zlib";
 import { DatabaseSync } from "node:sqlite";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-199901-202607.sqlite");
+const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-195801-202607.sqlite");
 const OUTPUT_DIR = join(ROOT, "public", "rating-seed");
 const CHUNK_SIZE = 2000;
+const CHUNK_INDEX_OFFSET = 5000;
 
 const database = new DatabaseSync(DATABASE_PATH, { readOnly: true });
 
@@ -54,7 +55,7 @@ const manifest = { generatedAt: new Date().toISOString(), chunkSize: CHUNK_SIZE,
 for (const source of sources) {
   const rows = database.prepare(source.sql).all().map((row) => Object.values(row));
   for (let offset = 0; offset < rows.length; offset += CHUNK_SIZE) {
-    const index = offset / CHUNK_SIZE;
+    const index = CHUNK_INDEX_OFFSET + offset / CHUNK_SIZE;
     const file = `${source.table}-${String(index).padStart(4, "0")}.json.gz`;
     const chunk = rows.slice(offset, offset + CHUNK_SIZE);
     await writeFile(join(OUTPUT_DIR, file), gzipSync(JSON.stringify(chunk), { level: 9 }));
@@ -78,7 +79,7 @@ FROM referenced LEFT JOIN wrestlers ON wrestlers.id = referenced.id
 WHERE wrestlers.id IS NULL
 ORDER BY referenced.id`).all().map(({ id }) => [id, null, null, null, `unknown-${id}`, null, null, null, null, null, null, null]);
 if (missingWrestlers.length) {
-  const file = "wrestlers-9999.json.gz";
+  const file = "wrestlers-9998.json.gz";
   await writeFile(join(OUTPUT_DIR, file), gzipSync(JSON.stringify(missingWrestlers), { level: 9 }));
   manifest.batches.splice(5, 0, { file, table: "wrestlers", rows: missingWrestlers.length });
   console.log(`wrestlers supplemental: ${missingWrestlers.length} rows`);

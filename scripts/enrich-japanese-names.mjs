@@ -4,12 +4,20 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-199901-202607.sqlite");
+const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-195801-202607.sqlite");
 const OUTPUT_PATH = join(ROOT, "data", "rikishi-names.json");
 const API_ROOT = "https://www.sumo-api.com/api";
 const PAGE_SIZE = 1_000;
 const MAX_DIVISION = Math.min(6, Math.max(1, Number(process.env.NAME_MAX_DIVISION ?? 6)));
 const VERIFIED_FALLBACKS = new Map([
+  [971, "北天佑勝彦"],
+  [1023, "琴風豪規"],
+  [1030, "貴ノ花利彰"],
+  [1384, "信夫山治貞"],
+  [1392, "時津山仁一"],
+  [1400, "若前田英一朗"],
+  [1513, "大豪久照"],
+  [1888, "長谷川勝洋"],
   [3158, "琴勇輝"],
   [3247, "安美錦"],
   [3248, "嘉風"],
