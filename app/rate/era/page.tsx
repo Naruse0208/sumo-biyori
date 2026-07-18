@@ -26,8 +26,7 @@ export default function EraPage() {
       <RateLabNav active="era" />
 
       <section className="rate-shell era-shell" aria-labelledby="era-title">
-        <div className="rate-section-heading"><div><p>ERA DOMINANCE INDEX</p><h2 id="era-title">歴代指数・実験ランキング</h2></div><span>PREVIEW</span></div>
-        <Link className="era-yokozuna-cta" href="/rate/yokozuna"><span>NEW / YOKOZUNA LAB</span><strong>歴代横綱を二人選び、全盛期曲線まで詳しく比べる</strong><b>横綱比較室へ →</b></Link>
+        <div className="rate-section-heading"><div><p>ERA DOMINANCE INDEX</p><h2 id="era-title">歴代指数・実験ランキング</h2></div></div>
         <div className="era-podium">
           {leaders.map((rikishi) => (
             <article key={rikishi.id}><span>第{rikishi.position}位</span><Link href={`/rikishi/${rikishi.id}`}>{rikishi.name}</Link><strong>{rikishi.eraIndex}</strong><dl><div><dt>最高偏差値</dt><dd>{rikishi.peakHensachi}</dd></div><div><dt>上位6場所</dt><dd>{rikishi.sustainedHensachi}</dd></div></dl><small>頂点 {bashoLabel(rikishi.peakBasho)}</small></article>
@@ -47,7 +46,7 @@ export default function EraPage() {
       </section>
 
       <section className="rate-shell era-reading">
-        <div className="rate-section-heading"><div><p>HOW TO READ</p><h2>これは「もし戦ったら」の勝率ではない。</h2></div><span>読み方</span></div>
+        <div className="rate-section-heading"><div><h2>これは「もし戦ったら」の勝率ではない。</h2></div></div>
         <div><article><span>見るもの</span><h3>同時代での支配度</h3><p>その場所の幕内平均から、どれほど抜けていたかを比較します。</p></article><article><span>見ないもの</span><h3>体格・技術の年代進化</h3><p>白鵬と昭和の横綱を直接戦わせる勝率ではありません。</p></article><article><span>次の研究</span><h3>世代間の橋と推定幅</h3><p>現役期間が重なる力士を橋にした全履歴モデルを別枠で検証します。</p></article></div>
         <aside><strong>現在の限界</strong><p>{era.caveat} 1958年以前の実績は含まず、収録開始直後は全力士を同じ初期値から計算するため、初期数年間の値にはコールドスタートの影響があります。</p></aside>
       </section>

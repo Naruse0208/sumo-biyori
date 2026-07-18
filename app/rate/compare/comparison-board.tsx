@@ -352,7 +352,7 @@ export default function ComparisonBoard({
 
   return (
     <>
-      <section className="compare-toolbox" aria-label="比較のショートカット">
+      <section className={`compare-toolbox${variant === "yokozuna" ? " is-yokozuna" : ""}`} aria-label="比較のショートカット">
         {variant === "rikishi" ? (
           <div className="compare-popular-pairs">
             <span>人気の組合せ</span>
@@ -362,7 +362,7 @@ export default function ComparisonBoard({
               </button>
             ))}
           </div>
-        ) : <span className="compare-toolbox-label">比較する横綱を選ぶ</span>}
+        ) : null}
         <div className="compare-tool-actions">
           <button type="button" onClick={swapRikishi}>左右を入れ替える ⇄</button>
           <button type="button" onClick={copyComparisonUrl} aria-live="polite">{copyLabel}</button>
