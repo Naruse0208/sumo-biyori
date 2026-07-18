@@ -1,4 +1,14 @@
 import { readOfficialNames, saveOfficialNames } from "../../../db/official-name-cache";
+import {
+  claimSharedLiveSumoRefresh,
+  readSharedLiveSumoCache,
+  releaseSharedLiveSumoRefresh,
+  saveSharedLiveSumoCache,
+} from "../../../db/live-sumo-cache";
+import {
+  syncOfficialPredictionRecords,
+  type OfficialPredictionResult,
+} from "../../lib/prediction-service";
 
 const DIVISIONS = [
   { id: 6, name: "序ノ口" },
@@ -10,6 +20,8 @@ const DIVISIONS = [
 ] as const;
 
 const UPSTREAM_TTL_MS = 15_000;
+const SHARED_CACHE_KEY = "official-live-sumo-v1";
+const REFRESH_LEASE_MS = 60_000;
 
 type UpstreamRikishi = {
   rikishi_id?: number;
@@ -130,6 +142,26 @@ let banzukeCache: {
 } | null = null;
 const responseCache = new Map<string, LiveResponse>();
 const profileNameCache = new Map<number, string>();
+
+function sleep(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function parseSharedSnapshot(payload: string | null): LiveSourceSnapshot | null {
+  if (!payload) return null;
+  try {
+    const value = JSON.parse(payload) as LiveSourceSnapshot;
+    return Number.isInteger(value.day) && Array.isArray(value.divisions) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function adoptSnapshot(value: LiveSourceSnapshot, updatedAtMs: number): LiveSourceSnapshot {
+  if (sourceCache?.value.updatedAt !== value.updatedAt) responseCache.clear();
+  sourceCache = { expiresAt: updatedAtMs + UPSTREAM_TTL_MS, value };
+  return value;
+}
 
 function toKanjiNumber(value: number): string {
   const digits = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
@@ -417,6 +449,18 @@ async function mapBoutSourcesWithKanjiNames(
   });
 }
 
+async function applyKanjiNamesToSources(divisions: LiveDivisionSource[]): Promise<void> {
+  const sources = divisions.flatMap((division) => division.allBoutSources);
+  const resolvedNames = await resolveKanjiNames(sources);
+  for (const { bout } of sources) {
+    for (const rikishi of [bout.east, bout.west]) {
+      const id = Number(rikishi?.rikishi_id ?? 0);
+      const shikona = resolvedNames.get(id);
+      if (rikishi && shikona) rikishi.shikona = shikona;
+    }
+  }
+}
+
 async function fetchDivision(id: number, name: string, day: number): Promise<LiveDivisionSource> {
   const url = `https://www.sumo.or.jp/ResultData/torikumiAjax/${id}/${day}/`;
   const response = await fetch(url, {
@@ -486,10 +530,60 @@ function findCurrentDivision(divisions: LiveDivisionSource[]): LiveDivisionSourc
   return firstWaiting ?? withBouts[withBouts.length - 1];
 }
 
-async function loadSourceSnapshot(): Promise<LiveSourceSnapshot> {
-  const now = Date.now();
-  if (sourceCache && sourceCache.expiresAt > now) return sourceCache.value;
+function banzukeFromPreviousSnapshot(previous: LiveSourceSnapshot | null, bashoId: number) {
+  if (previous?.bashoId !== bashoId || !previous.banzuke.length) return null;
+  const sides = new Map<number, 1 | 2>();
+  for (const division of previous.divisions) {
+    for (const { bout } of division.allBoutSources) {
+      for (const rikishi of [bout.east, bout.west]) {
+        const id = Number(rikishi?.rikishi_id ?? 0);
+        const side = Number(rikishi?.banzuke_ew ?? 0);
+        if (id && (side === 1 || side === 2)) sides.set(id, side);
+      }
+    }
+  }
+  return { rows: previous.banzuke, sides };
+}
 
+function predictionSyncData(snapshot: LiveSourceSnapshot) {
+  const officialResults: OfficialPredictionResult[] = [];
+  for (const division of snapshot.divisions) {
+    for (const { bout } of division.allBoutSources) {
+      const judge = Number(bout.judge ?? 0);
+      const eastNskId = Number(bout.east?.rikishi_id ?? 0);
+      const westNskId = Number(bout.west?.rikishi_id ?? 0);
+      if ((judge !== 1 && judge !== 2) || !eastNskId || !westNskId || !snapshot.bashoId) continue;
+      officialResults.push({
+        bashoId: snapshot.bashoId,
+        day: snapshot.day,
+        division: division.id,
+        eastNskId,
+        westNskId,
+        winnerNskId: judge === 1 ? eastNskId : westNskId,
+      });
+    }
+  }
+  const current = findCurrentDivision(snapshot.divisions);
+  const pendingPredictions = (current?.allBoutSources ?? [])
+    .filter(({ bout }) => Number(bout.judge ?? 0) === 0)
+    .slice(0, 3)
+    .flatMap(({ bout }) => {
+      const eastNskId = Number(bout.east?.rikishi_id ?? 0);
+      const westNskId = Number(bout.west?.rikishi_id ?? 0);
+      return snapshot.bashoId && eastNskId && westNskId
+        ? [{
+            bashoId: snapshot.bashoId,
+            day: snapshot.day,
+            division: current!.id,
+            eastNskId,
+            westNskId,
+          }]
+        : [];
+    });
+  return { officialResults, pendingPredictions };
+}
+
+async function fetchFreshSourceSnapshot(previous: LiveSourceSnapshot | null): Promise<LiveSourceSnapshot> {
   const bashoContext = await fetchBashoContext();
   const day = bashoContext.day;
   const divisions = await Promise.all(
@@ -499,10 +593,12 @@ async function loadSourceSnapshot(): Promise<LiveSourceSnapshot> {
   const dayHead = liveSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
   const bashoId = liveSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
   const banzuke = bashoId
-    ? await fetchCurrentBanzuke(bashoId).catch(() => ({ rows: [], sides: new Map<number, 1 | 2>() }))
+    ? banzukeFromPreviousSnapshot(previous, bashoId)
+      ?? await fetchCurrentBanzuke(bashoId).catch(() => ({ rows: [], sides: new Map<number, 1 | 2>() }))
     : { rows: [], sides: new Map<number, 1 | 2>() };
   applyBanzukeSides(divisions, banzuke.sides);
-  const value = {
+  await applyKanjiNamesToSources(divisions);
+  return {
     bashoName: bashoContext.name,
     day,
     dayHead,
@@ -511,9 +607,68 @@ async function loadSourceSnapshot(): Promise<LiveSourceSnapshot> {
     banzuke: banzuke.rows,
     updatedAt: new Date().toISOString(),
   };
-  sourceCache = { expiresAt: now + UPSTREAM_TTL_MS, value };
-  responseCache.clear();
-  return value;
+}
+
+async function loadSourceSnapshot(request: Request): Promise<LiveSourceSnapshot> {
+  const now = Date.now();
+  if (sourceCache && sourceCache.expiresAt > now) return sourceCache.value;
+
+  const shared = await readSharedLiveSumoCache(SHARED_CACHE_KEY);
+  const sharedSnapshot = parseSharedSnapshot(shared?.payload ?? null);
+  if (sharedSnapshot && shared && shared.updatedAtMs + UPSTREAM_TTL_MS > now) {
+    return adoptSnapshot(sharedSnapshot, shared.updatedAtMs);
+  }
+
+  let leaseToken = await claimSharedLiveSumoRefresh(
+    SHARED_CACHE_KEY,
+    now,
+    REFRESH_LEASE_MS,
+  );
+  if (!leaseToken) {
+    if (sharedSnapshot && shared) return adoptSnapshot(sharedSnapshot, shared.updatedAtMs);
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await sleep(250);
+      const refreshed = await readSharedLiveSumoCache(SHARED_CACHE_KEY);
+      const refreshedSnapshot = parseSharedSnapshot(refreshed?.payload ?? null);
+      if (refreshedSnapshot && refreshed) return adoptSnapshot(refreshedSnapshot, refreshed.updatedAtMs);
+    }
+    leaseToken = await claimSharedLiveSumoRefresh(
+      SHARED_CACHE_KEY,
+      Date.now(),
+      REFRESH_LEASE_MS,
+    );
+    if (!leaseToken) throw new Error("Central live-sumo refresh is in progress");
+  }
+
+  try {
+    const value = await fetchFreshSourceSnapshot(sharedSnapshot);
+    const savedAt = Date.now();
+    const saved = await saveSharedLiveSumoCache(
+      SHARED_CACHE_KEY,
+      leaseToken,
+      JSON.stringify(value),
+      savedAt,
+    );
+    const adopted = saved
+      ? adoptSnapshot(value, savedAt)
+      : await readSharedLiveSumoCache(SHARED_CACHE_KEY).then((latest) => {
+          const latestSnapshot = parseSharedSnapshot(latest?.payload ?? null);
+          return latestSnapshot && latest
+            ? adoptSnapshot(latestSnapshot, latest.updatedAtMs)
+            : adoptSnapshot(value, savedAt);
+        });
+    const syncData = predictionSyncData(value);
+    await syncOfficialPredictionRecords(
+      request,
+      syncData.officialResults,
+      syncData.pendingPredictions,
+    ).catch(() => undefined);
+    return adopted;
+  } catch (error) {
+    await releaseSharedLiveSumoRefresh(SHARED_CACHE_KEY, leaseToken).catch(() => undefined);
+    if (sharedSnapshot && shared) return adoptSnapshot(sharedSnapshot, shared.updatedAtMs);
+    throw error;
+  }
 }
 
 async function mapDivision(
@@ -536,8 +691,8 @@ async function mapDivision(
   };
 }
 
-async function loadLiveData(requestedDivisionId: number | null): Promise<LiveResponse> {
-  const snapshot = await loadSourceSnapshot();
+async function loadLiveData(request: Request, requestedDivisionId: number | null): Promise<LiveResponse> {
+  const snapshot = await loadSourceSnapshot(request);
   const cacheKey = requestedDivisionId ? `division:${requestedDivisionId}` : "current";
   const cached = responseCache.get(cacheKey);
   if (cached) return cached;
@@ -578,7 +733,7 @@ export async function GET(request: Request) {
     : null;
   const cacheKey = requestedDivisionId ? `division:${requestedDivisionId}` : "current";
   try {
-    const value = await loadLiveData(requestedDivisionId);
+    const value = await loadLiveData(request, requestedDivisionId);
     return Response.json(value, {
       headers: { "Cache-Control": "public, max-age=0, s-maxage=5, stale-while-revalidate=10" },
     });

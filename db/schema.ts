@@ -39,6 +39,14 @@ export const officialNameCache = sqliteTable("official_name_cache", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const liveSumoCache = sqliteTable("live_sumo_cache", {
+  cacheKey: text("cache_key").primaryKey(),
+  payload: text("payload"),
+  updatedAtMs: integer("updated_at_ms").notNull().default(0),
+  leaseUntilMs: integer("lease_until_ms").notNull().default(0),
+  leaseToken: text("lease_token"),
+});
+
 export const shikonaHistory = sqliteTable(
   "shikona_history",
   {

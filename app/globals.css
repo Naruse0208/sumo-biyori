@@ -236,7 +236,6 @@ h1 { margin-bottom: 10px; font-size: clamp(46px, 4.2vw, 68px); letter-spacing: .
 .wrestler small { color: #786d5d; font-size: 16px; }
 .wrestler-name-link { display: inline-block; }
 .wrestler-name-link:hover strong, .wrestler-name-link:focus-visible strong { color: var(--crimson); text-decoration: underline; text-underline-offset: 5px; }
-.wrestler.is-winner strong::after { content: " 勝"; color: var(--crimson); font-size: 10px; vertical-align: middle; letter-spacing: .04em; }
 .versus { width: 60px; height: 60px; margin: auto; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--crimson); font-size: 21px; }
 .bout-prediction { padding: 0 42px 22px; font-family: var(--sans); }
 .bout-prediction > div:first-child { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-bottom: 8px; color: #654e2d; font-size: 13px; font-weight: 700; }

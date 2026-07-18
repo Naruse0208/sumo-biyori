@@ -23,17 +23,25 @@ test("publishes a prominent shared navigation for all rating lab routes", async 
   assert.match(era, /その場所の幕内平均から、どれほど抜けていたか/);
 });
 
-test("keeps prediction recording and result resolution wired", async () => {
-  const [prediction, resolver, schema] = await Promise.all([
+test("keeps prediction writes server-only and official-result driven", async () => {
+  const [prediction, predictionService, liveRoute, liveClient, schema, migration] = await Promise.all([
     readFile(new URL("app/api/prediction/route.ts", root), "utf8"),
-    readFile(new URL("app/api/prediction/resolve/route.ts", root), "utf8"),
+    readFile(new URL("app/lib/prediction-service.ts", root), "utf8"),
+    readFile(new URL("app/api/live-sumo/route.ts", root), "utf8"),
+    readFile(new URL("app/components/LiveSumo.tsx", root), "utf8"),
     readFile(new URL("db/schema.ts", root), "utf8"),
+    readFile(new URL("drizzle/0004_quiet_sabretooth.sql", root), "utf8"),
   ]);
 
-  assert.match(prediction, /predictionRecords/);
-  assert.match(prediction, /onConflictDoNothing/);
-  assert.match(resolver, /resolvedAt/);
+  assert.doesNotMatch(prediction, /predictionRecords|\.insert\(|\.update\(/);
+  assert.match(predictionService, /syncOfficialPredictionRecords/);
+  assert.match(predictionService, /isNull\(predictionRecords\.winnerNskId\)/);
+  assert.match(liveRoute, /syncOfficialPredictionRecords/);
+  assert.match(liveRoute, /claimSharedLiveSumoRefresh/);
+  assert.doesNotMatch(liveClient, /prediction\/resolve|表示確認まで/);
   assert.match(schema, /prediction_records/);
+  assert.match(schema, /live_sumo_cache/);
+  assert.match(migration, /CREATE TABLE `live_sumo_cache`/);
 });
 
 test("production bundle and social card exist", async () => {

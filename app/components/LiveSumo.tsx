@@ -65,7 +65,6 @@ type LivePayload = {
 type LiveContextValue = {
   data: LivePayload | null;
   loading: boolean;
-  seconds: number;
   expanded: boolean;
   selectedDivisionId: number | null;
   resultLoading: boolean;
@@ -90,7 +89,6 @@ type PredictionPayload = {
 };
 
 const predictionCache = new Map<string, { expiresAt: number; promise: Promise<PredictionPayload> }>();
-const resolvedPredictionKeys = new Set<string>();
 
 function usePrediction(
   eastNskId: number | null,
@@ -153,7 +151,6 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
 export function LiveSumoProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<LivePayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [seconds, setSeconds] = useState(10);
   const [expanded, setExpanded] = useState(false);
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
@@ -165,42 +162,11 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`/api/live-sumo${query}`, { cache: "no-store" });
       const payload = (await response.json()) as LivePayload;
       setData(payload);
-      if (payload.bashoId && payload.day) {
-        const divisions = [payload.currentDivision, payload.resultDivision].filter(Boolean) as LiveDivision[];
-        const results = divisions.flatMap((division) => division.recentResults
-          .filter((bout) => bout.status === "past" && bout.winner && bout.eastNskId && bout.westNskId)
-          .map((bout) => ({
-            bashoId: payload.bashoId!,
-            day: payload.day!,
-            division: division.id,
-            eastNskId: bout.eastNskId!,
-            westNskId: bout.westNskId!,
-            winnerNskId: bout.winner === "east" ? bout.eastNskId! : bout.westNskId!,
-          })))
-          .filter((result, index, all) => all.findIndex((candidate) =>
-            candidate.division === result.division
-            && candidate.eastNskId === result.eastNskId
-            && candidate.westNskId === result.westNskId) === index)
-          .filter((result) => {
-            const resultKey = `${result.bashoId}-${result.day}-${result.division}-${result.eastNskId}-${result.westNskId}`;
-            if (resolvedPredictionKeys.has(resultKey)) return false;
-            resolvedPredictionKeys.add(resultKey);
-            return true;
-          });
-        if (results.length) {
-          void fetch("/api/prediction/resolve", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ results }),
-          });
-        }
-      }
     } catch {
       setData((previous) => previous ? { ...previous, message: "再接続を待っています。" } : null);
     } finally {
       setLoading(false);
       setResultLoading(false);
-      setSeconds(10);
     }
   }, [selectedDivisionId]);
 
@@ -221,22 +187,20 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
     const poll = window.setInterval(() => void refresh(), 10_000);
-    const countdown = window.setInterval(() => setSeconds((value) => (value <= 1 ? 10 : value - 1)), 1_000);
     const onVisibility = () => {
       if (document.visibilityState === "visible") void refresh();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearInterval(poll);
-      window.clearInterval(countdown);
       window.clearTimeout(initial);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [refresh]);
 
   const value = useMemo(
-    () => ({ data, loading, seconds, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults }),
-    [data, loading, seconds, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults],
+    () => ({ data, loading, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults }),
+    [data, loading, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults],
   );
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
 }
@@ -320,7 +284,7 @@ export function LiveHeroBout() {
 }
 
 export function LiveResultsBoard() {
-  const { data, seconds, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults } = useLiveSumo();
+  const { data, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults } = useLiveSumo();
   const division = data?.resultDivision ?? data?.currentDivision;
   const progress = division?.total ? Math.round((division.completed / division.total) * 100) : 0;
   const updated = data?.updatedAt
@@ -394,7 +358,7 @@ export function LiveResultsBoard() {
 
       <div className="live-source">
         <span className="live-timestamp live-timestamp-inline">
-          <span>表示確認まで {seconds}秒</span>
+          <span>{data?.displayRefreshSeconds ?? 10}秒ごとに表示を更新</span>
           <small>最終取得 {updated}</small>
         </span>
         {data?.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer">出典：日本相撲協会公式サイト ↗</a>}
