@@ -30,11 +30,6 @@ export default function SiteHeader({ active = "home" }: { active?: SiteArea }) {
         </Link>
 
         <div className="nav-group nav-right" aria-hidden="true" />
-
-        <details className="mobile-menu">
-          <summary aria-label="メニューを開く">目次</summary>
-          <div className="mobile-menu-panel">{links.map(navLink)}</div>
-        </details>
       </nav>
     </header>
   );

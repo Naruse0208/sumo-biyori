@@ -67,16 +67,22 @@ test("shows five current Glicko-2 risers across the top three divisions", async 
 });
 
 test("keeps the home result rows simple, clickable, and profile-safe", async () => {
-  const [home, liveSumo, header, comparePage, styles] = await Promise.all([
+  const [home, liveSumo, header, layout, comparePage, styles] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),
     readFile(new URL("app/components/LiveSumo.tsx", root), "utf8"),
     readFile(new URL("app/components/SiteHeader.tsx", root), "utf8"),
+    readFile(new URL("app/layout.tsx", root), "utf8"),
     readFile(new URL("app/rate/compare/page.tsx", root), "utf8"),
     readFile(new URL("app/globals.css", root), "utf8"),
   ]);
 
   assert.doesNotMatch(home, /土俵の美学|SUMO CULTURE|brand-crest/);
   assert.doesNotMatch(header, /brand-crest/);
+  assert.doesNotMatch(header, /mobile-menu|目次/);
+  assert.match(header, /今日の取組/);
+  assert.match(header, /力士レート/);
+  assert.doesNotMatch(layout, /MobileQuickNav/);
+  assert.doesNotMatch(styles, /mobile-quick-nav|padding-bottom: 68px/);
   assert.match(liveSumo, /<h2>番付<\/h2>/);
   assert.doesNotMatch(liveSumo, /幕内番付|BANZUKE/);
   assert.match(liveSumo, /leftNsk=.*rightNsk=/);
