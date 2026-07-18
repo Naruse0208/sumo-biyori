@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import MobileQuickNav from "./components/MobileQuickNav";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>{children}<MobileQuickNav /></body>
     </html>
   );
 }

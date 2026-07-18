@@ -1,5 +1,34 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1784270069729,
+      "tag": "0000_curly_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784272256021,
+      "tag": "0001_high_the_enforcers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784276137078,
+      "tag": "0002_colossal_moonstone",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784291725566,
+      "tag": "0003_awesome_owl",
+      "breakpoints": true
+    }
+  ]
 }

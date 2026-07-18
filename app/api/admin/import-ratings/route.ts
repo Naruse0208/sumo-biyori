@@ -1,0 +1,112 @@
+import { env } from "cloudflare:workers";
+
+export const dynamic = "force-dynamic";
+
+type RuntimeEnv = {
+  ASSETS: Fetcher;
+  DB: D1Database;
+  RATINGS_IMPORT_TOKEN?: string;
+};
+
+const insertSql: Record<string, string> = {
+  wrestlers: `INSERT INTO wrestlers
+    (id, sumodb_id, nsk_id, shikona_jp, shikona_en, heya, birth_date, shusshin,
+     height_mm, weight_kg, debut_basho_id, intai_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       sumodb_id = COALESCE(excluded.sumodb_id, wrestlers.sumodb_id),
+       nsk_id = COALESCE(excluded.nsk_id, wrestlers.nsk_id),
+       shikona_jp = COALESCE(excluded.shikona_jp, wrestlers.shikona_jp),
+       shikona_en = COALESCE(excluded.shikona_en, wrestlers.shikona_en),
+       heya = COALESCE(excluded.heya, wrestlers.heya),
+       birth_date = COALESCE(excluded.birth_date, wrestlers.birth_date),
+       shusshin = COALESCE(excluded.shusshin, wrestlers.shusshin),
+       height_mm = COALESCE(excluded.height_mm, wrestlers.height_mm),
+       weight_kg = COALESCE(excluded.weight_kg, wrestlers.weight_kg),
+       debut_basho_id = COALESCE(excluded.debut_basho_id, wrestlers.debut_basho_id),
+       intai_date = COALESCE(excluded.intai_date, wrestlers.intai_date)`,
+  basho: "INSERT OR IGNORE INTO basho (id) VALUES (?)",
+  banzuke_entries: `INSERT OR REPLACE INTO banzuke_entries
+    (basho_id, division, wrestler_id, side, rank, rank_value) VALUES (?, ?, ?, ?, ?, ?)`,
+  bouts: `INSERT INTO bouts
+    (id, basho_id, division, day, wrestler_a_id, wrestler_b_id, winner_wrestler_id, kimarite,
+     wrestler_a_elo_before, wrestler_b_elo_before, wrestler_a_elo_after, wrestler_b_elo_after)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       basho_id = excluded.basho_id,
+       division = excluded.division,
+       day = excluded.day,
+       wrestler_a_id = excluded.wrestler_a_id,
+       wrestler_b_id = excluded.wrestler_b_id,
+       winner_wrestler_id = excluded.winner_wrestler_id,
+       kimarite = excluded.kimarite,
+       wrestler_a_elo_before = excluded.wrestler_a_elo_before,
+       wrestler_b_elo_before = excluded.wrestler_b_elo_before,
+       wrestler_a_elo_after = excluded.wrestler_a_elo_after,
+       wrestler_b_elo_after = excluded.wrestler_b_elo_after`,
+  rating_snapshots: `INSERT OR REPLACE INTO rating_snapshots
+    (wrestler_id, basho_id, division, elo, peak_elo, dohyo_score_tenths, bouts, wins, losses)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  official_name_cache: `INSERT OR REPLACE INTO official_name_cache
+    (nsk_id, shikona_jp, profile_url) VALUES (?, ?, ?)`,
+};
+
+function runtime(): RuntimeEnv {
+  return env as unknown as RuntimeEnv;
+}
+
+function authorized(request: Request) {
+  const token = runtime().RATINGS_IMPORT_TOKEN;
+  return Boolean(token && request.headers.get("authorization") === `Bearer ${token}`);
+}
+
+export async function GET(request: Request) {
+  if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const database = runtime().DB;
+  const [wrestlers, bouts, snapshots, batches] = await database.batch([
+    database.prepare("SELECT COUNT(*) AS count FROM wrestlers"),
+    database.prepare("SELECT COUNT(*) AS count FROM bouts"),
+    database.prepare("SELECT COUNT(*) AS count FROM rating_snapshots"),
+    database.prepare("SELECT COUNT(*) AS count FROM rating_import_batches"),
+  ]);
+  return Response.json({
+    wrestlers: wrestlers.results[0]?.count ?? 0,
+    bouts: bouts.results[0]?.count ?? 0,
+    ratingSnapshots: snapshots.results[0]?.count ?? 0,
+    batches: batches.results[0]?.count ?? 0,
+  });
+}
+
+export async function POST(request: Request) {
+  if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await request.json() as { file?: string; table?: string; rows?: number };
+  const table = body.table ?? "";
+  const file = body.file ?? "";
+  if (!insertSql[table] || !new RegExp(`^${table}-\\d{4}\\.json\\.gz$`).test(file)) {
+    return Response.json({ error: "Invalid import batch" }, { status: 400 });
+  }
+
+  const database = runtime().DB;
+  const checkpoint = await database
+    .prepare("SELECT row_count FROM rating_import_batches WHERE batch_id = ?")
+    .bind(file)
+    .first<{ row_count: number }>();
+  if (checkpoint) return Response.json({ file, status: "already-imported", rows: checkpoint.row_count });
+
+  const asset = await runtime().ASSETS.fetch(new Request(new URL(`/rating-seed/${file}`, request.url)));
+  if (!asset.ok || !asset.body) return Response.json({ error: "Seed asset unavailable" }, { status: 404 });
+  const decompressed = asset.body.pipeThrough(new DecompressionStream("gzip"));
+  const rows = await new Response(decompressed).json() as unknown[][];
+  if (!Array.isArray(rows) || rows.length !== body.rows) {
+    return Response.json({ error: "Seed row count mismatch" }, { status: 422 });
+  }
+
+  const statement = insertSql[table];
+  for (let offset = 0; offset < rows.length; offset += 100) {
+    await database.batch(rows.slice(offset, offset + 100).map((row) => database.prepare(statement).bind(...row)));
+  }
+  await database.prepare(`INSERT INTO rating_import_batches
+    (batch_id, table_name, row_count) VALUES (?, ?, ?)`)
+    .bind(file, table, rows.length)
+    .run();
+  return Response.json({ file, table, status: "imported", rows: rows.length });
+}
