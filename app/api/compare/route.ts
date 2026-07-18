@@ -137,18 +137,27 @@ async function searchRikishi(query: string) {
 
 async function yokozunaCandidates() {
   const db = getDb();
+  const firstYokozunaBasho = sql<number>`min(${banzukeEntries.bashoId})`;
   const rows = await db
-    .selectDistinct({
+    .select({
       id: wrestlers.id,
       nskId: wrestlers.nskId,
       shikonaJp: wrestlers.shikonaJp,
       shikonaEn: wrestlers.shikonaEn,
       intaiDate: wrestlers.intaiDate,
+      firstYokozunaBasho,
     })
     .from(wrestlers)
     .innerJoin(banzukeEntries, eq(banzukeEntries.wrestlerId, wrestlers.id))
     .where(like(banzukeEntries.rank, "%Yokozuna%"))
-    .orderBy(asc(wrestlers.shikonaJp));
+    .groupBy(
+      wrestlers.id,
+      wrestlers.nskId,
+      wrestlers.shikonaJp,
+      wrestlers.shikonaEn,
+      wrestlers.intaiDate,
+    )
+    .orderBy(asc(firstYokozunaBasho), asc(wrestlers.id));
   return rows.map((row) => ({ ...row, name: displayName(row), profileUrl: rikishiProfilePath(row.id) }));
 }
 

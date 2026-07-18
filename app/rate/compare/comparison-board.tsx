@@ -282,7 +282,7 @@ export default function ComparisonBoard({
 
   useEffect(() => {
     if (variant !== "yokozuna") return;
-    fetch("/api/compare?mode=yokozuna")
+    fetch("/api/compare?mode=yokozuna&order=chronological")
       .then((response) => response.json())
       .then((body: { rows?: RikishiOption[] }) => { if (body.rows?.length) setCandidates(body.rows); })
       .catch(() => undefined);

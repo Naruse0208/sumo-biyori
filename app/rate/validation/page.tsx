@@ -30,11 +30,6 @@ export default function ValidationPage() {
 
       <RateLabNav active="validation" />
 
-      <section className="lab-hero">
-        <div><p>DOHYO FORECAST SCORECARD</p><h1>予想は、<br />当てた後までが予想。</h1><p>未来を知ってから過去の予想を作り直さない。1958〜2019年で調整し、2020年以降の{evaluation.scope.holdoutBouts.toLocaleString()}番を未学習のまま採点しました。</p></div>
-        <div className="lab-hero-score"><small>BEST HOLDOUT LOG LOSS</small><strong>{evaluation.overall.holdout.dohyoV3.logLoss.toFixed(4)}</strong><span>v3実験／正式表示はv2.1</span></div>
-      </section>
-
       <section className="rate-shell validation-shell" aria-labelledby="validation-title">
         <div className="rate-section-heading"><div><p>OUT-OF-SAMPLE TEST</p><h2 id="validation-title">{evaluation.scope.holdout}年、未学習期間の成績。</h2></div><span>{evaluation.scope.holdoutBouts.toLocaleString()}番</span></div>
         <p className="validation-intro">的中率だけなら、50.1%予想も99%予想も同じ一勝です。そこで確率の誠実さを見るBrierスコアとlog loss、予想帯と実勝率のずれも並べます。</p>
