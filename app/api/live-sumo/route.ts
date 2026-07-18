@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { getDb } from "../../../db";
+import { banzukeEntries, wrestlers } from "../../../db/schema";
 import { readOfficialNames, saveOfficialNames } from "../../../db/official-name-cache";
 import {
   claimSharedLiveSumoRefresh,
@@ -349,6 +352,12 @@ async function fetchCurrentBanzuke(bashoId: number): Promise<{
     const ew = Number(wrestler.ew ?? 0);
     if (id && (ew === 1 || ew === 2)) sides.set(id, ew);
   }
+  const storedSides = await loadBanzukeSidesFromDatabase(bashoId).catch(
+    () => new Map<number, 1 | 2>(),
+  );
+  for (const [nskId, side] of storedSides) {
+    if (!sides.has(nskId)) sides.set(nskId, side);
+  }
 
   const rows = mapMakuuchiBanzuke(tables[DIVISIONS.findIndex((division) => division.id === 1)] ?? []);
   banzukeCache = { bashoId, rows, sides };
@@ -368,6 +377,21 @@ function applyBanzukeSides(
       }
     }
   }
+}
+
+async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number, 1 | 2>> {
+  const rows = await getDb()
+    .select({ nskId: wrestlers.nskId, side: banzukeEntries.side })
+    .from(banzukeEntries)
+    .innerJoin(wrestlers, eq(wrestlers.id, banzukeEntries.wrestlerId))
+    .where(eq(banzukeEntries.bashoId, bashoId));
+  const sides = new Map<number, 1 | 2>();
+  for (const row of rows) {
+    const nskId = Number(row.nskId ?? 0);
+    const side = Number(row.side ?? 0);
+    if (nskId && (side === 1 || side === 2)) sides.set(nskId, side);
+  }
+  return sides;
 }
 
 function isKanjiName(value: string): boolean {
