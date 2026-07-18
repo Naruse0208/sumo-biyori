@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import era from "../../../data/era-rankings.json";
+import SiteHeader from "../../components/SiteHeader";
 import RateLabNav from "../rate-lab-nav";
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ export default function EraPage() {
     <main className="rate-page lab-subpage era-page">
       <div className="rate-frame" aria-hidden="true" />
       <div className="notice-bar rate-notice"><strong>土俵日和 歴代比較室</strong><span>強さではなく、その時代をどれほど支配したか</span></div>
-      <header className="site-header"><nav className="nav-shell" aria-label="メインナビゲーション"><div className="nav-group nav-left"><Link href="/#torikumi">取組</Link><Link href="/rate">レート</Link><Link href="/rate/validation">検証</Link></div><Link className="brand" href="/" aria-label="土俵日和 ホーム"><span className="brand-crest" aria-hidden="true">土</span><span className="brand-title">土俵日和</span><span className="brand-roman">DOHYO BIYORI</span></Link><div className="nav-group nav-right"><Link className="is-current" href="/rate/era">歴代比較</Link></div></nav></header>
+      <SiteHeader active="rate" />
 
       <RateLabNav active="era" />
 

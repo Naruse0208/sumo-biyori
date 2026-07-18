@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SiteHeader from "../../components/SiteHeader";
 import RateLabNav from "../rate-lab-nav";
 import ComparisonBoard from "../compare/comparison-board";
 
 export const metadata: Metadata = {
   title: "歴代横綱・全盛期比較｜土俵日和",
-  description: "1958年以降の歴代横綱を、最高地力・最高相撲偏差値・持続力・全盛期曲線で詳細比較します。",
+  description: "1958年以降の歴代横綱を、最高Glicko-2・最高相撲偏差値・持続力・全盛期曲線で詳細比較します。",
 };
 
 export default function YokozunaPage() {
@@ -13,7 +14,7 @@ export default function YokozunaPage() {
     <main className="rate-page lab-subpage compare-page yokozuna-page">
       <div className="rate-frame" aria-hidden="true" />
       <div className="notice-bar rate-notice"><strong>土俵日和 歴代横綱比較室</strong><span>頂点の高さと、頂点にいた長さを比べる</span></div>
-      <header className="site-header"><nav className="nav-shell" aria-label="メインナビゲーション"><div className="nav-group nav-left"><Link href="/#torikumi">取組</Link><Link href="/rate">レート</Link><Link href="/rate/era">歴代指数</Link></div><Link className="brand" href="/" aria-label="土俵日和 ホーム"><span className="brand-crest" aria-hidden="true">土</span><span className="brand-title">土俵日和</span><span className="brand-roman">DOHYO BIYORI</span></Link><div className="nav-group nav-right"><Link className="is-current" href="/rate/yokozuna">歴代横綱</Link></div></nav></header>
+      <SiteHeader active="yokozuna" />
 
       <RateLabNav active="yokozuna" />
 

@@ -154,7 +154,7 @@ export async function GET(request: Request) {
         dohyoV3: { eastProbability: v3EastProbability, westProbability: 100 - v3EastProbability },
       },
       explanation: {
-        base: "Glicko-2による地力差",
+        base: "Glicko-2によるレート差",
         headToHeadBouts: pairEvidence,
         eastHeadToHeadWins,
         westHeadToHeadWins: pairEvidence - eastHeadToHeadWins,

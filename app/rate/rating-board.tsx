@@ -75,7 +75,7 @@ function displayRank(rank: string) {
 
 const metricMeta: Record<RatingMetric, { label: string; short: string; description: string }> = {
   elo: { label: "Elo", short: "Elo", description: "一番ごとに更新する透明な基準値" },
-  glicko: { label: "地力", short: "地力", description: "Glicko-2による現在値と推定の確かさ" },
+  glicko: { label: "Glicko-2", short: "Glicko-2", description: "現在値と推定の確かさ" },
   hensachi: { label: "相撲偏差値", short: "偏差値", description: "同じ場所・同じ段の中での傑出度" },
 };
 
@@ -259,9 +259,9 @@ export default function RatingBoard({
             {metric === "elo" && <span><b>{rikishi.elo}</b><small>最高 {rikishi.peakElo}</small></span>}
             {metric === "glicko" && <span><b>{rikishi.glickoRating}</b><small>{confidenceLabel(rikishi.glickoRdTenths)}</small></span>}
             {metric === "hensachi" && <span><b>{(rikishi.sumoHensachiTenths / 10).toFixed(1)}</b><small>同場所・同段</small></span>}
-            {metric === "elo" && <span><b>{rikishi.glickoRating}</b><small>地力</small></span>}
+            {metric === "elo" && <span><b>{rikishi.glickoRating}</b><small>Glicko-2</small></span>}
             {metric === "glicko" && <span><b>±{rikishi.glickoRdTenths === null ? "—" : Math.round((rikishi.glickoRdTenths / 10) * 2)}</b><small>95%目安</small></span>}
-            {metric === "hensachi" && <span><b>{rikishi.glickoRating}</b><small>地力</small></span>}
+            {metric === "hensachi" && <span><b>{rikishi.glickoRating}</b><small>Glicko-2</small></span>}
             <span>{rikishi.wins}勝{rikishi.losses}敗<small>{rikishi.bouts}取組</small></span>
           </div>
         ))}

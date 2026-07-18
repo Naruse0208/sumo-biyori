@@ -72,7 +72,7 @@ type ComparePayload = {
 
 type Metric = "glicko" | "elo" | "hensachi";
 
-const metricLabels: Record<Metric, string> = { glicko: "地力", elo: "Elo", hensachi: "相撲偏差値" };
+const metricLabels: Record<Metric, string> = { glicko: "Glicko-2", elo: "Elo", hensachi: "相撲偏差値" };
 
 const popularPairs: { label: string; left: RikishiOption; right: RikishiOption }[] = [
   {
@@ -248,10 +248,10 @@ function RikishiSummary({ rikishi, side }: { rikishi: ComparedRikishi; side: "le
       <h2><Link href={rikishi.profileUrl}>{rikishi.name}</Link></h2>
       <span>{rikishi.intaiDate ? `最終収録 ${bashoLabel(rikishi.career.lastBasho)}` : `最新 ${bashoLabel(rikishi.career.lastBasho)}`}</span>
       <dl>
-        <div><dt>地力</dt><dd>{latest?.glickoRating ?? "—"}</dd></div>
+        <div><dt>Glicko-2</dt><dd>{latest?.glickoRating ?? "—"}</dd></div>
         <div><dt>Elo</dt><dd>{latest?.elo ?? "—"}</dd></div>
         <div><dt>相撲偏差値</dt><dd>{latest ? (latest.sumoHensachiTenths / 10).toFixed(1) : "—"}</dd></div>
-        <div><dt>最高地力</dt><dd>{rikishi.career.peakGlicko?.value ?? "—"}</dd></div>
+        <div><dt>最高Glicko-2</dt><dd>{rikishi.career.peakGlicko?.value ?? "—"}</dd></div>
         <div><dt>最高偏差値</dt><dd>{rikishi.career.peakHensachi?.value.toFixed(1) ?? "—"}</dd></div>
         <div><dt>上位6場所</dt><dd>{rikishi.career.sustainedHensachi?.toFixed(1) ?? "—"}</dd></div>
       </dl>
@@ -397,7 +397,7 @@ export default function ComparisonBoard({
             <p className="compare-forecast-note">
               {forecastMode === "peak"
                 ? "両力士の最高Glicko-2を使った仮想比較です。時代の体格・技術差を断定するものではありません。"
-                : `Glicko-2の地力差に、直接対戦${payload.headToHead.bouts ? ` ${payload.headToHead.bouts}番` : "なし"}を小さく補正。直接対戦補正 ${payload.prediction.headToHeadAdjustmentPoints >= 0 ? "+" : ""}${payload.prediction.headToHeadAdjustmentPoints}pt。`}
+                : `Glicko-2のレート差に、直接対戦${payload.headToHead.bouts ? ` ${payload.headToHead.bouts}番` : "なし"}を小さく補正。直接対戦補正 ${payload.prediction.headToHeadAdjustmentPoints >= 0 ? "+" : ""}${payload.prediction.headToHeadAdjustmentPoints}pt。`}
             </p>
           </section>
 

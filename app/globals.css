@@ -240,6 +240,7 @@ h1 { margin-bottom: 10px; font-size: clamp(46px, 4.2vw, 68px); letter-spacing: .
 .versus { width: 60px; height: 60px; margin: auto; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--crimson); font-size: 21px; }
 .bout-prediction { padding: 0 42px 22px; font-family: var(--sans); }
 .bout-prediction > div:first-child { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-bottom: 8px; color: #654e2d; font-size: 13px; font-weight: 700; }
+.bout-prediction-east { justify-self: stretch; text-align: left; }
 .bout-prediction > div:first-child span:last-child { text-align: right; }
 .bout-prediction em { color: #8e6c32; font-size: 10px; font-style: normal; font-weight: 500; letter-spacing: .13em; }
 .bout-prediction-bar { height: 8px; overflow: hidden; background: var(--crimson); border: 1px solid rgba(94,62,24,.28); }
@@ -279,7 +280,9 @@ h1 { margin-bottom: 10px; font-size: clamp(46px, 4.2vw, 68px); letter-spacing: .
 .result-name:hover, .result-name:focus-visible { color: var(--gold-light); text-decoration: underline; text-underline-offset: 4px; }
 .result-mark { width: 20px; color: var(--gold-light); text-align: center; }
 .result-technique { display: grid; justify-items: center; gap: 4px; text-align: center; color: var(--gold); font-size: 14px; }
-.result-prediction { color: var(--gold-light); font: 9px/1.2 var(--sans); font-weight: 500; letter-spacing: .02em; white-space: nowrap; }
+.result-prediction { display: grid; gap: 2px; color: #fff0cf; font: 10px/1.15 var(--sans); font-weight: 600; letter-spacing: .03em; white-space: nowrap; }
+.result-prediction span { color: var(--gold); font-size: 10px; }
+.result-prediction strong { color: #fff1d5; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
 .result-row.is-current { background: rgba(130, 18, 36, .24); box-shadow: inset 3px 0 0 var(--crimson), inset -3px 0 0 var(--crimson); }
 .result-row.is-current .result-name { color: #fff1d5; font-weight: 700; }
 .result-row.is-current .result-rank { color: #efe3ca; }
@@ -868,20 +871,17 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 .rate-lab-nav-intro small { color: var(--gold); font: 9px/1 var(--sans); letter-spacing: .23em; }
 .rate-lab-nav-intro strong { margin: 7px 0 3px; color: var(--washi); font-size: 17px; letter-spacing: .1em; }
 .rate-lab-nav-intro span { color: #8e877b; font-size: 10px; }
-.rate-lab-nav > a { min-width: 0; min-height: 86px; padding: 15px 14px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; border-right: 1px solid rgba(200,164,93,.24); color: var(--washi-muted); position: relative; transition: color .2s ease, background .2s ease; }
+.rate-lab-nav > a { min-width: 0; min-height: 86px; padding: 15px 18px; display: flex; align-items: center; border-right: 1px solid rgba(200,164,93,.24); color: var(--washi-muted); position: relative; transition: color .2s ease, background .2s ease; }
 .rate-lab-nav > a:last-child { border-right: 0; }
 .rate-lab-nav > a::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: transparent; transition: background .2s ease; }
 .rate-lab-nav > a:hover { color: var(--washi); background: rgba(31,47,75,.56); }
 .rate-lab-nav > a:hover::before { background: var(--gold); }
 .rate-lab-nav > a.is-active { color: #fff4dc; background: linear-gradient(125deg, rgba(139,23,39,.94), rgba(92,17,29,.94)); }
 .rate-lab-nav > a.is-active::before { background: var(--gold-light); }
-.rate-lab-nav-number { color: var(--gold); font: 17px/1 Georgia, serif; }
 .rate-lab-nav-copy { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.rate-lab-nav-copy strong { overflow: hidden; font-size: 15px; font-weight: 600; letter-spacing: .05em; text-overflow: ellipsis; white-space: nowrap; }
+.rate-lab-nav-copy strong { overflow: hidden; font-size: 18px; font-weight: 600; line-height: 1.35; letter-spacing: .05em; text-overflow: ellipsis; white-space: nowrap; }
 .rate-lab-nav-copy small { overflow: hidden; color: #918b80; font: 10px/1.4 var(--sans); letter-spacing: .04em; text-overflow: ellipsis; white-space: nowrap; }
 .rate-lab-nav > a.is-active .rate-lab-nav-copy small { color: #e3cba4; }
-.rate-lab-nav-arrow { color: var(--gold-light); font-size: 14px; }
-.rate-lab-title-short { display: none; }
 .rate-inline-link { color: var(--gold-light); border-bottom: 1px solid var(--gold); padding-bottom: 4px; }
 
 .lab-subpage { min-height: 100vh; }
@@ -997,12 +997,10 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 @media (max-width: 700px) {
   .rate-lab-nav-wrap { padding: 7px 0; }
   .rate-lab-nav { width: calc(100% - 16px); }
-  .rate-lab-nav > a { min-height: 61px; padding: 9px 8px; grid-template-columns: auto minmax(0, 1fr); gap: 7px; }
-  .rate-lab-nav-number { font-size: 11px; }
+  .rate-lab-nav > a { min-height: 61px; padding: 9px 12px; justify-content: center; }
   .rate-lab-nav-copy { gap: 0; }
-  .rate-lab-nav-copy strong { font-size: 12px; letter-spacing: .02em; text-align: center; }
-  .rate-lab-nav-copy small, .rate-lab-nav-arrow, .rate-lab-title-wide { display: none; }
-  .rate-lab-title-short { display: inline; }
+  .rate-lab-nav-copy strong { font-size: 14px; letter-spacing: .02em; text-align: center; }
+  .rate-lab-nav-copy small { display: none; }
   .lab-hero { width: calc(100% - 34px); }
   .lab-hero { min-height: 0; margin-top: 34px; padding: 42px 24px; gap: 34px; }
   .lab-hero h1 { font-size: 40px; }
@@ -1027,7 +1025,7 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 
 @media (max-width: 700px) {
   .rate-lab-nav-wrap { overflow-x: auto; }
-  .rate-lab-nav { width: max-content; min-width: calc(100% - 16px); margin-inline: 8px; grid-template-columns: repeat(5, minmax(126px, 1fr)); }
+  .rate-lab-nav { width: max-content; min-width: calc(100% - 16px); margin-inline: 8px; grid-template-columns: repeat(5, minmax(158px, 1fr)); }
 }
 
 /* 2026 UI polish: clear entry points, calm artwork, comparison shortcuts */

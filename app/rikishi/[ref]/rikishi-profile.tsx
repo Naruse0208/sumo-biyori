@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import SiteHeader from "../../components/SiteHeader";
 
 type RatingPoint = {
   bashoId: number;
@@ -46,7 +47,7 @@ const divisionNames = ["幕内", "十両", "幕下", "三段目", "序二段", "
 type ProfileMetric = "elo" | "glicko" | "hensachi";
 const profileMetricLabels: Record<ProfileMetric, string> = {
   elo: "Elo",
-  glicko: "地力",
+  glicko: "Glicko-2",
   hensachi: "相撲偏差値",
 };
 
@@ -219,13 +220,7 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
     <main className="rikishi-page">
       <div className="rate-frame" aria-hidden="true" />
       <div className="notice-bar rate-notice"><strong>力士レート名鑑</strong><span>Elo HISTORY</span></div>
-      <header className="site-header">
-        <nav className="nav-shell" aria-label="メインナビゲーション">
-          <div className="nav-group nav-left"><Link href="/#torikumi">取組</Link><Link href="/#banzuke">番付</Link><Link href="/rate">レート</Link></div>
-          <Link className="brand" href="/"><span className="brand-crest" aria-hidden="true">土</span><span className="brand-title">土俵日和</span><span className="brand-roman">DOHYO BIYORI</span></Link>
-          <div className="nav-group nav-right"><Link href="/#culture">相撲文化</Link></div>
-        </nav>
-      </header>
+      <SiteHeader active="rate" />
 
       <section className="rikishi-profile-hero">
         <div>
@@ -246,7 +241,7 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
 
       <section className="rate-shell rikishi-summary" aria-label="力士概要">
         <div><span>相撲偏差値</span><strong>{latest ? (latest.sumoHensachiTenths / 10).toFixed(1) : "—"}</strong></div>
-        <div><span>現在の地力</span><strong>{latest?.glickoRating ?? "—"}</strong></div>
+        <div><span>現在のGlicko-2</span><strong>{latest?.glickoRating ?? "—"}</strong></div>
         <div><span>現在Elo</span><strong>{latest?.elo ?? "—"}</strong></div>
         <div><span>通算成績</span><strong>{latest ? `${latest.wins}勝 ${latest.losses}敗` : "—"}</strong></div>
         <div><span>所属部屋</span><strong>{wrestler.heya ?? "—"}</strong></div>
@@ -258,7 +253,7 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
           <div><p>RATING HISTORY</p><h2 id="elo-history-title">{profileMetricLabels[metric]}推移</h2></div>
           <div className="rikishi-history-controls">
             <div className="rikishi-range" role="group" aria-label="表示するレート">
-              {([['elo', 'Elo'], ['glicko', '地力'], ['hensachi', '偏差値']] as const).map(([value, label]) => (
+              {([['elo', 'Elo'], ['glicko', 'Glicko-2'], ['hensachi', '偏差値']] as const).map(([value, label]) => (
                 <button key={value} type="button" className={metric === value ? "is-active" : ""} onClick={() => setMetric(value)}>{label}</button>
               ))}
             </div>

@@ -133,15 +133,15 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
   });
   if (!prediction?.east || !prediction.west) return null;
   if (compact) {
-    return <small className="result-prediction">勝機 東{prediction.east.probability}%・西{prediction.west.probability}%</small>;
+    return <small className="result-prediction"><span>勝機</span><strong>東{prediction.east.probability}%・西{prediction.west.probability}%</strong></small>;
   }
   const confidence = prediction.confidence === "high" ? "信頼度 高" : prediction.confidence === "medium" ? "信頼度 中" : "参考値";
   return (
     <div className="bout-prediction" aria-label={`${prediction.model ?? "土俵日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
-      <div><span>東 {prediction.east.probability}%</span><em>{prediction.model ?? "土俵日和予想"}</em><span>西 {prediction.west.probability}%</span></div>
+      <div><span className="bout-prediction-east">東 {prediction.east.probability}%</span><em>{prediction.model ?? "土俵日和予想"}</em><span>西 {prediction.west.probability}%</span></div>
       <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
       <small>
-        地力 {prediction.east.glickoRating ?? prediction.east.elo} 対 {prediction.west.glickoRating ?? prediction.west.elo}
+        Glicko-2 {prediction.east.glickoRating ?? prediction.east.elo} 対 {prediction.west.glickoRating ?? prediction.west.elo}
         {prediction.models?.elo ? ` ／ Elo予想 ${prediction.models.elo.eastProbability}–${prediction.models.elo.westProbability}%` : ""}
         {prediction.models?.dohyoV3 ? ` ／ v3実験 東${prediction.models.dohyoV3.eastProbability}%` : ""}
         {` ／ ${confidence}`}
