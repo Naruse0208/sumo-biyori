@@ -374,14 +374,21 @@ function applyBanzukeSides(
 
 async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number, 1 | 2>> {
   const rows = await getDb()
-    .select({ nskId: wrestlers.nskId, side: banzukeEntries.side })
+    .select({
+      nskId: wrestlers.nskId,
+      rank: banzukeEntries.rank,
+    })
     .from(banzukeEntries)
     .innerJoin(wrestlers, eq(wrestlers.id, banzukeEntries.wrestlerId))
     .where(eq(banzukeEntries.bashoId, bashoId));
   const sides = new Map<number, 1 | 2>();
   for (const row of rows) {
     const nskId = Number(row.nskId ?? 0);
-    const side = Number(row.side ?? 0);
+    const side = /\bEast$/i.test(row.rank ?? "")
+      ? 1
+      : /\bWest$/i.test(row.rank ?? "")
+        ? 2
+        : 0;
     if (nskId && (side === 1 || side === 2)) sides.set(nskId, side);
   }
   return sides;

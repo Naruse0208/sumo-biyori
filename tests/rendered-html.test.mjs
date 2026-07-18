@@ -46,7 +46,7 @@ test("keeps prediction writes server-only and official-result driven", async () 
   assert.match(liveRoute, /syncOfficialPredictionRecords/);
   assert.match(liveRoute, /claimSharedLiveSumoRefresh/);
   assert.match(liveRoute, /loadBanzukeSidesFromDatabase/);
-  assert.match(liveRoute, /banzukeEntries\.side/);
+  assert.match(liveRoute, /banzukeEntries\.rank/);
   assert.doesNotMatch(liveClient, /prediction\/resolve|表示確認まで/);
   assert.match(schema, /prediction_records/);
   assert.match(schema, /live_sumo_cache/);
