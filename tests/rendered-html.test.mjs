@@ -44,6 +44,13 @@ test("keeps prediction writes server-only and official-result driven", async () 
   assert.match(migration, /CREATE TABLE `live_sumo_cache`/);
 });
 
+test("loads full-basho rating deltas without exceeding D1 bind limits", async () => {
+  const ratingsRoute = await readFile(new URL("app/api/ratings/route.ts", root), "utf8");
+
+  assert.doesNotMatch(ratingsRoute, /inArray\(ratingSnapshots\.wrestlerId/);
+  assert.match(ratingsRoute, /where\(eq\(ratingSnapshots\.bashoId, previousBashoId\)\)/);
+});
+
 test("keeps the home result rows simple, clickable, and profile-safe", async () => {
   const [home, liveSumo, header, comparePage, styles] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, asc, desc, eq, lt } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { banzukeEntries, ratingSnapshots, wrestlers } from "../../../db/schema";
 import { loadBashoModelMetrics } from "../../lib/rating-model-assets";
@@ -79,8 +79,7 @@ export async function GET(request: Request) {
       .orderBy(desc(ratingSnapshots.bashoId))
       .limit(1);
     const previousBashoId = previousBashoRows[0]?.bashoId ?? null;
-    const wrestlerIds = Array.from(new Set(rows.map((row) => row.id)));
-    const previousRows = previousBashoId !== null && wrestlerIds.length
+    const previousRows = previousBashoId !== null && rows.length
       ? await db
         .select({
           id: ratingSnapshots.wrestlerId,
@@ -88,10 +87,7 @@ export async function GET(request: Request) {
           dohyoScoreTenths: ratingSnapshots.dohyoScoreTenths,
         })
         .from(ratingSnapshots)
-        .where(and(
-          eq(ratingSnapshots.bashoId, previousBashoId),
-          inArray(ratingSnapshots.wrestlerId, wrestlerIds),
-        ))
+        .where(eq(ratingSnapshots.bashoId, previousBashoId))
       : [];
     const previousById = new Map(previousRows.map((row) => [row.id, row]));
     const [modelMetrics, previousModelMetrics] = await Promise.all([
