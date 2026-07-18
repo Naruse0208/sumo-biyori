@@ -310,7 +310,7 @@ const trainingRows = rows.filter((row) => row.bashoId <= TRAIN_END_BASHO);
 const testRows = rows.filter((row) => row.bashoId >= TEST_START_BASHO);
 const modelLabels = {
   elo: { label: "Elo", description: "一番ごとのレート差だけを使う基準線" },
-  glicko2: { label: "Glicko-2", description: "場所前の地力と推定幅を使う" },
+  glicko2: { label: "Glicko-2", description: "場所前のGlicko-2と推定幅を使う" },
   dohyoV2: { label: "土俵日和 v2", description: "Glicko-2に縮小した直接対戦相性を加える" },
   dohyoV3: { label: "土俵日和 v3実験", description: "v2に体格差と過去の決まり手傾向を加える" },
 };

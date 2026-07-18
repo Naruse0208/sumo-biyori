@@ -871,17 +871,15 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 .rate-lab-nav-intro small { color: var(--gold); font: 9px/1 var(--sans); letter-spacing: .23em; }
 .rate-lab-nav-intro strong { margin: 7px 0 3px; color: var(--washi); font-size: 17px; letter-spacing: .1em; }
 .rate-lab-nav-intro span { color: #8e877b; font-size: 10px; }
-.rate-lab-nav > a { min-width: 0; min-height: 86px; padding: 15px 18px; display: flex; align-items: center; border-right: 1px solid rgba(200,164,93,.24); color: var(--washi-muted); position: relative; transition: color .2s ease, background .2s ease; }
+.rate-lab-nav > a { min-width: 0; min-height: 72px; padding: 14px 16px; display: flex; align-items: center; justify-content: center; text-align: center; border-right: 1px solid rgba(200,164,93,.24); color: var(--washi-muted); position: relative; transition: color .2s ease, background .2s ease; }
 .rate-lab-nav > a:last-child { border-right: 0; }
 .rate-lab-nav > a::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: transparent; transition: background .2s ease; }
 .rate-lab-nav > a:hover { color: var(--washi); background: rgba(31,47,75,.56); }
 .rate-lab-nav > a:hover::before { background: var(--gold); }
 .rate-lab-nav > a.is-active { color: #fff4dc; background: linear-gradient(125deg, rgba(139,23,39,.94), rgba(92,17,29,.94)); }
 .rate-lab-nav > a.is-active::before { background: var(--gold-light); }
-.rate-lab-nav-copy { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.rate-lab-nav-copy strong { overflow: hidden; font-size: 18px; font-weight: 600; line-height: 1.35; letter-spacing: .05em; text-overflow: ellipsis; white-space: nowrap; }
-.rate-lab-nav-copy small { overflow: hidden; color: #918b80; font: 10px/1.4 var(--sans); letter-spacing: .04em; text-overflow: ellipsis; white-space: nowrap; }
-.rate-lab-nav > a.is-active .rate-lab-nav-copy small { color: #e3cba4; }
+.rate-lab-nav-copy { min-width: 0; display: block; }
+.rate-lab-nav-copy strong { font-size: 18px; font-weight: 600; line-height: 1.35; letter-spacing: .05em; white-space: nowrap; }
 .rate-inline-link { color: var(--gold-light); border-bottom: 1px solid var(--gold); padding-bottom: 4px; }
 
 .lab-subpage { min-height: 100vh; }
@@ -997,10 +995,8 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 @media (max-width: 700px) {
   .rate-lab-nav-wrap { padding: 7px 0; }
   .rate-lab-nav { width: calc(100% - 16px); }
-  .rate-lab-nav > a { min-height: 61px; padding: 9px 12px; justify-content: center; }
-  .rate-lab-nav-copy { gap: 0; }
+  .rate-lab-nav > a { min-height: 58px; padding: 9px 12px; }
   .rate-lab-nav-copy strong { font-size: 14px; letter-spacing: .02em; text-align: center; }
-  .rate-lab-nav-copy small { display: none; }
   .lab-hero { width: calc(100% - 34px); }
   .lab-hero { min-height: 0; margin-top: 34px; padding: 42px 24px; gap: 34px; }
   .lab-hero h1 { font-size: 40px; }
@@ -1025,7 +1021,7 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 
 @media (max-width: 700px) {
   .rate-lab-nav-wrap { overflow-x: auto; }
-  .rate-lab-nav { width: max-content; min-width: calc(100% - 16px); margin-inline: 8px; grid-template-columns: repeat(5, minmax(158px, 1fr)); }
+  .rate-lab-nav { width: max-content; min-width: calc(100% - 16px); margin-inline: 8px; grid-template-columns: repeat(5, minmax(148px, 1fr)); }
 }
 
 /* 2026 UI polish: clear entry points, calm artwork, comparison shortcuts */

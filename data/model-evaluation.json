@@ -15,7 +15,7 @@
     },
     "glicko2": {
       "label": "Glicko-2",
-      "description": "場所前の地力と推定幅を使う"
+      "description": "場所前のGlicko-2と推定幅を使う"
     },
     "dohyoV2": {
       "label": "土俵日和 v2",

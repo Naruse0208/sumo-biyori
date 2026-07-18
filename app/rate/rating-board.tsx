@@ -169,6 +169,7 @@ export default function RatingBoard({
   const olderBasho = selectedIndex >= 0 && selectedIndex < availableBasho.length - 1
     ? availableBasho[selectedIndex + 1]
     : null;
+  const auxiliaryLabel = metric === "glicko" ? "推定幅（95%）" : "Glicko-2";
 
   return (
     <div className="rate-ranking-board" aria-busy={loading}>
@@ -223,7 +224,6 @@ export default function RatingBoard({
               onClick={() => { setMetric(value); setShowAll(false); }}
             >
               {metricMeta[value].label}
-              {value === "glicko" && <small>Glicko-2</small>}
             </button>
           ))}
         </div>
@@ -243,7 +243,7 @@ export default function RatingBoard({
         </div>
 
         <div className="rate-ranking-head">
-          <span>順位</span><span>力士</span><span>{metricMeta[metric].short}</span><span>補助値</span><span>通算</span>
+          <span>順位</span><span>力士</span><span>{metricMeta[metric].short}</span><span>{auxiliaryLabel}</span><span>通算</span>
         </div>
         {rows.map((rikishi) => (
           <div className="rate-ranking-row" key={rikishi.id}>
@@ -259,9 +259,9 @@ export default function RatingBoard({
             {metric === "elo" && <span><b>{rikishi.elo}</b><small>最高 {rikishi.peakElo}</small></span>}
             {metric === "glicko" && <span><b>{rikishi.glickoRating}</b><small>{confidenceLabel(rikishi.glickoRdTenths)}</small></span>}
             {metric === "hensachi" && <span><b>{(rikishi.sumoHensachiTenths / 10).toFixed(1)}</b><small>同場所・同段</small></span>}
-            {metric === "elo" && <span><b>{rikishi.glickoRating}</b><small>Glicko-2</small></span>}
-            {metric === "glicko" && <span><b>±{rikishi.glickoRdTenths === null ? "—" : Math.round((rikishi.glickoRdTenths / 10) * 2)}</b><small>95%目安</small></span>}
-            {metric === "hensachi" && <span><b>{rikishi.glickoRating}</b><small>Glicko-2</small></span>}
+            {metric === "elo" && <span><b>{rikishi.glickoRating}</b></span>}
+            {metric === "glicko" && <span><b>±{rikishi.glickoRdTenths === null ? "—" : Math.round((rikishi.glickoRdTenths / 10) * 2)}</b></span>}
+            {metric === "hensachi" && <span><b>{rikishi.glickoRating}</b></span>}
             <span>{rikishi.wins}勝{rikishi.losses}敗<small>{rikishi.bouts}取組</small></span>
           </div>
         ))}
