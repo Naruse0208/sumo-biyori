@@ -457,3 +457,5 @@ console.log(JSON.stringify({
   dataQuality: evaluation.dataQuality,
   eraLeaders: eraOutput.ranking.slice(0, 10),
 }, null, 2));
+
+await import("./build-featured-risers.mjs");

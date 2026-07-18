@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-07-18T13:56:35.334Z",
+  "metric": "Glicko-2",
+  "latestBasho": 202607,
+  "previousBasho": 202605,
+  "rows": [
+    {
+      "position": 1,
+      "id": 9115,
+      "nskId": 4376,
+      "name": "不動豊",
+      "shikonaEn": "Fudoho",
+      "heya": "Tokitsukaze",
+      "rank": "Makushita 30 East",
+      "division": 3,
+      "rating": 1647,
+      "previousRating": 1589,
+      "delta": 58,
+      "rdTenths": 880,
+      "profileUrl": "/rikishi/9115"
+    },
+    {
+      "position": 2,
+      "id": 8858,
+      "nskId": 4267,
+      "name": "嵐富士",
+      "shikonaEn": "Arashifuji",
+      "heya": "Isegahama",
+      "rank": "Juryo 13 East",
+      "division": 2,
+      "rating": 1680,
+      "previousRating": 1648,
+      "delta": 32,
+      "rdTenths": 412,
+      "profileUrl": "/rikishi/8858"
+    },
+    {
+      "position": 3,
+      "id": 9103,
+      "nskId": 4358,
+      "name": "旭富士",
+      "shikonaEn": "Asahifuji",
+      "heya": "Isegahama",
+      "rank": "Makushita 11 East",
+      "division": 3,
+      "rating": 1927,
+      "previousRating": 1898,
+      "delta": 29,
+      "rdTenths": 1099,
+      "profileUrl": "/rikishi/9103"
+    },
+    {
+      "position": 4,
+      "id": 9099,
+      "nskId": 4356,
+      "name": "竜鳳",
+      "shikonaEn": "Ryuho",
+      "heya": "Otowayama",
+      "rank": "Makushita 17 East",
+      "division": 3,
+      "rating": 1710,
+      "previousRating": 1682,
+      "delta": 28,
+      "rdTenths": 693,
+      "profileUrl": "/rikishi/9099"
+    },
+    {
+      "position": 5,
+      "id": 86,
+      "nskId": 3990,
+      "name": "獅司",
+      "shikonaEn": "Shishi",
+      "heya": "Ikazuchi",
+      "rank": "Maegashira 14 West",
+      "division": 1,
+      "rating": 1770,
+      "previousRating": 1752,
+      "delta": 18,
+      "rdTenths": 313,
+      "profileUrl": "/rikishi/86"
+    }
+  ]
+}

@@ -51,6 +51,21 @@ test("loads full-basho rating deltas without exceeding D1 bind limits", async ()
   assert.match(ratingsRoute, /where\(eq\(ratingSnapshots\.bashoId, previousBashoId\)\)/);
 });
 
+test("shows five current Glicko-2 risers across the top three divisions", async () => {
+  const [home, risers, featured] = await Promise.all([
+    readFile(new URL("app/page.tsx", root), "utf8"),
+    readFile(new URL("app/components/FeaturedRisers.tsx", root), "utf8"),
+    readFile(new URL("data/featured-risers.json", root), "utf8"),
+  ]);
+  const data = JSON.parse(featured);
+
+  assert.match(home, /<FeaturedRisers \/>/);
+  assert.match(risers, /Glicko-2/);
+  assert.equal(data.rows.length, 5);
+  assert.ok(data.rows.every((row) => row.division >= 1 && row.division <= 3));
+  assert.ok(data.rows.every((row) => row.delta > 0));
+});
+
 test("keeps the home result rows simple, clickable, and profile-safe", async () => {
   const [home, liveSumo, header, comparePage, styles] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),
