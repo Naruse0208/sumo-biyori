@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { banzukeEntries, ratingSnapshots, wrestlers } from "../../../db/schema";
 import { loadBashoModelMetrics } from "../../lib/rating-model-assets";
@@ -72,20 +72,63 @@ export async function GET(request: Request) {
         .orderBy(desc(ratingSnapshots.elo), desc(ratingSnapshots.wins))
         .limit(limit);
 
-    const modelMetrics = await loadBashoModelMetrics(request, bashoId);
+    const previousBashoRows = await db
+      .selectDistinct({ bashoId: ratingSnapshots.bashoId })
+      .from(ratingSnapshots)
+      .where(lt(ratingSnapshots.bashoId, bashoId))
+      .orderBy(desc(ratingSnapshots.bashoId))
+      .limit(1);
+    const previousBashoId = previousBashoRows[0]?.bashoId ?? null;
+    const wrestlerIds = Array.from(new Set(rows.map((row) => row.id)));
+    const previousRows = previousBashoId !== null && wrestlerIds.length
+      ? await db
+        .select({
+          id: ratingSnapshots.wrestlerId,
+          elo: ratingSnapshots.elo,
+          dohyoScoreTenths: ratingSnapshots.dohyoScoreTenths,
+        })
+        .from(ratingSnapshots)
+        .where(and(
+          eq(ratingSnapshots.bashoId, previousBashoId),
+          inArray(ratingSnapshots.wrestlerId, wrestlerIds),
+        ))
+      : [];
+    const previousById = new Map(previousRows.map((row) => [row.id, row]));
+    const [modelMetrics, previousModelMetrics] = await Promise.all([
+      loadBashoModelMetrics(request, bashoId),
+      previousBashoId === null
+        ? Promise.resolve(new Map())
+        : loadBashoModelMetrics(request, previousBashoId),
+    ]);
     const decorate = (row: (typeof rows)[number], index: number) => {
       const metric = modelMetrics.get(row.id);
+      const previous = previousById.get(row.id);
+      const previousMetric = previousModelMetrics.get(row.id);
+      const glickoRating = metric?.glickoRating ?? row.elo;
+      const sumoHensachiTenths = metric?.sumoHensachiTenths ?? row.dohyoScoreTenths;
+      const previousGlickoRating = previous
+        ? previousMetric?.glickoRating ?? previous.elo
+        : null;
+      const previousHensachiTenths = previous
+        ? previousMetric?.sumoHensachiTenths ?? previous.dohyoScoreTenths
+        : null;
       return {
         ...row,
         position: index + 1,
         shikonaJp: japaneseRikishiName(row.id, row.shikonaJp),
         profileUrl: rikishiProfilePath(row.id),
         officialProfileUrl: officialRikishiProfile(row.nskId),
-        glickoRating: metric?.glickoRating ?? row.elo,
+        previousBashoId,
+        glickoRating,
         glickoRdTenths: metric?.glickoRdTenths ?? null,
         glickoVolatilityMillionths: metric?.glickoVolatilityMillionths ?? null,
-        sumoHensachiTenths: metric?.sumoHensachiTenths ?? row.dohyoScoreTenths,
+        sumoHensachiTenths,
         sekitoriHensachiTenths: metric?.sekitoriHensachiTenths ?? null,
+        eloDelta: previous ? row.elo - previous.elo : null,
+        glickoDelta: previousGlickoRating === null ? null : glickoRating - previousGlickoRating,
+        hensachiDeltaTenths: previousHensachiTenths === null
+          ? null
+          : sumoHensachiTenths - previousHensachiTenths,
         modelAvailable: Boolean(metric),
       };
     };

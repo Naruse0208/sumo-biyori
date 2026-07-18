@@ -30,20 +30,6 @@ export const metadata: Metadata = {
   },
 };
 
-const auditStats = [
-  { value: "1958—", label: "収録対象" },
-  { value: "全六段", label: "幕内から序ノ口" },
-  { value: ratings.counts.sourceWrestlers.toLocaleString(), label: "力士マスター" },
-  { value: ratings.counts.ratedBouts.toLocaleString(), label: "Elo計算済み取組" },
-];
-
-const releaseSteps = [
-  { number: "壱", title: "基準線を作る", copy: "全取組を時系列に揃え、透明なEloを一番ごとに再計算。" },
-  { number: "弐", title: "不確かさを測る", copy: "場所単位のGlicko-2で、レートと推定幅を同時に記録。" },
-  { number: "参", title: "勝機を読む", copy: "Glicko-2のレート差に、十分な対戦数があるときだけ相性を加える。" },
-  { number: "肆", title: "時代をつなぐ", copy: "同時代偏差値を土台に、歴代比較モデルを検証していく。" },
-];
-
 const methodRoles = [
   { number: "01", name: "Elo", english: "BASELINE", status: "公開中", copy: "一番ごとの勝敗と相手の強さから更新する、説明しやすい基準線。" },
   { number: "02", name: "Glicko-2", english: "CURRENT RATING", status: "公開中", copy: "現在の強さに、どれほど確かな推定かを示すRDを添えた値。" },
@@ -256,66 +242,6 @@ export default function RatePage() {
             </article>
           </div>
         </div>
-      </section>
-
-      <section className="rate-shell rate-data" aria-labelledby="data-title">
-        <div className="rate-section-heading">
-          <div>
-            <p>DATA AUDIT</p>
-            <h2 id="data-title">500MBに収める設計。</h2>
-          </div>
-          <span>初期調査</span>
-        </div>
-
-        <div className="rate-audit-grid">
-          {auditStats.map((stat) => (
-            <div className="rate-audit-stat" key={stat.label}>
-              <strong>{stat.value}</strong>
-              <span>{stat.label}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="rate-storage-grid">
-          <div>
-            <p className="rate-storage-label">DATABASE TARGET</p>
-            <strong>{ratings.storage.sqliteMiB}<small> MB 実測</small></strong>
-            <div className="rate-storage-bar"><span style={{ width: `${(ratings.storage.sqliteMiB / ratings.storage.targetMiB) * 100}%` }} /></div>
-            <p>力士、番付、全取組、各一番の前後Elo、場所ごとのレート履歴と検索用インデックスまで含む実測値です。</p>
-          </div>
-          <ul>
-            <li><span>保存する</span>力士マスター・番付・取組・レート履歴・予測と答え合わせ</li>
-            <li><span>保存しない</span>取得元HTML・画像・同じしこ名の重複</li>
-            <li><span>余裕</span>500MB上限の約{Math.round((ratings.storage.sqliteMiB / ratings.storage.targetMiB) * 100)}%を使用</li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="rate-shell rate-roadmap" aria-labelledby="roadmap-title">
-        <div className="rate-section-heading">
-          <div>
-            <p>ROAD TO RELEASE</p>
-            <h2 id="roadmap-title">研究の四段階。</h2>
-          </div>
-          <span>現在地</span>
-        </div>
-        <ol>
-          {releaseSteps.map((step) => (
-            <li key={step.number}>
-              <span>{step.number}</span>
-              <div><h3>{step.title}</h3><p>{step.copy}</p></div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="rate-shell rate-next">
-        <p>NOW AVAILABLE</p>
-        <h2>順位から、Glicko-2と勝機へ。</h2>
-        <div>
-          <span>Elo／Glicko-2／偏差値切替</span><span>Glicko-2推定幅</span><span>土俵日和予測 v2.1</span><span>公開バックテスト</span><span>歴代指数・実験版</span>
-        </div>
-        <p>順位表や今日の取組から力士名を選ぶと、個別プロフィールと複数のレート履歴を見られます。</p>
       </section>
 
       <footer>

@@ -3,7 +3,7 @@ import Link from "next/link";
 type SiteArea = "home" | "rate" | "compare" | "yokozuna";
 
 const links = [
-  { id: "home", href: "/#torikumi", label: "今日の取組" },
+  { id: "home", href: "/", label: "今日の取組" },
   { id: "rate", href: "/rate", label: "力士レート" },
 ] as const;
 
