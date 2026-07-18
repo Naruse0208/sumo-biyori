@@ -58,20 +58,10 @@ export default function Home() {
           </div>
         </article>
 
-        <article className="feature-card culture-card" id="culture">
-          <div className="section-heading">
-            <h2>土俵の美学</h2>
-            <span>SUMO CULTURE</span>
-          </div>
-          <span className="tag">相撲文化</span>
-          <h3>塩に込められた、<br />清めと勝負のこころ。</h3>
-          <p>力士が土俵に撒く塩には、古くから続く神事の記憶があります。所作を知れば、取組前の静けさももっと面白い。</p>
-        </article>
       </section>
 
       <footer>
         <div className="footer-brand">
-          <span className="brand-crest" aria-hidden="true">土</span>
           <div><strong>土俵日和</strong><small>相撲を、もっと近くに。</small></div>
         </div>
         <p>相撲を愛する人のための非公式ファンサイト</p>

@@ -240,6 +240,12 @@ function formatResultRank(
   return `${sideLabel}${withoutDivision || "—"}`;
 }
 
+function comparisonHref(bout: LiveBout): string | null {
+  return bout.eastNskId && bout.westNskId
+    ? `/rate/compare?leftNsk=${bout.eastNskId}&rightNsk=${bout.westNskId}`
+    : null;
+}
+
 export function LiveHeaderStatus() {
   const { data, loading } = useLiveSumo();
   if (loading) return <strong>本場所情報を確認中</strong>;
@@ -267,7 +273,7 @@ export function LiveHeroBout() {
               <ProfileLink className="wrestler-name-link" href={bout.eastProfileUrl}><strong>{bout.east}</strong></ProfileLink>
               <small>{bout.eastScore}</small>
             </div>
-            <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}>{isNext ? "対" : "了"}</div>
+            <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}>{isNext ? "対" : "終了"}</div>
             <div className={`wrestler wrestler-west ${bout.winner === "west" ? "is-winner" : ""}`}>
               <span>西・{bout.westRank}</span>
               <ProfileLink className="wrestler-name-link" href={bout.westProfileUrl}><strong>{bout.west}</strong></ProfileLink>
@@ -331,8 +337,27 @@ export function LiveResultsBoard() {
               {expanded && <button className="results-collapse" type="button" onClick={collapseResults}>折りたたむ ↑</button>}
             </div>
             <div className="result-list">
-              {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : displayedBouts.length ? displayedBouts.map((bout, index) => (
-                <div className={`result-row is-${bout.status}`} key={`${bout.east}-${bout.west}-${index}`}>
+              {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : displayedBouts.length ? displayedBouts.map((bout, index) => {
+                const compareUrl = comparisonHref(bout);
+                const openComparison = () => { if (compareUrl) window.location.href = compareUrl; };
+                return (
+                <div
+                  className={`result-row is-${bout.status} ${compareUrl ? "is-clickable" : ""}`}
+                  key={`${bout.east}-${bout.west}-${index}`}
+                  role={compareUrl ? "link" : undefined}
+                  tabIndex={compareUrl ? 0 : undefined}
+                  aria-label={compareUrl ? `${bout.east}と${bout.west}を対戦比較` : undefined}
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest("a, button")) return;
+                    openComparison();
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.target as HTMLElement).closest("a, button")) return;
+                    if (!compareUrl || (event.key !== "Enter" && event.key !== " ")) return;
+                    event.preventDefault();
+                    openComparison();
+                  }}
+                >
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
                     <small className="result-rank">{formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)}</small>
                     <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
@@ -348,7 +373,8 @@ export function LiveResultsBoard() {
                     <small className="result-rank">{formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)}</small>
                   </span>
                 </div>
-              )) : <p className="live-empty">取組順の更新を待っています。</p>}
+              );
+              }) : <p className="live-empty">取組順の更新を待っています。</p>}
             </div>
           </div>
         </>
@@ -374,8 +400,7 @@ export function LiveBanzukeCard() {
   return (
     <article className="feature-card banzuke-card" id="banzuke">
       <div className="section-heading">
-        <h2>幕内番付</h2>
-        <span>BANZUKE</span>
+        <h2>番付</h2>
       </div>
       <div className="rank-list">
         {loading ? (

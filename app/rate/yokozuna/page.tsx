@@ -32,7 +32,7 @@ export default function YokozunaPage() {
         <p>全盛期勝率は最高Glicko-2同士を置いた実験値です。時代を越えた実際の勝敗を保証する数字ではありません。</p>
       </section>
 
-      <footer><div className="footer-brand"><span className="brand-crest" aria-hidden="true">土</span><div><strong>土俵日和</strong><small>時代を越えて、相撲を語る。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate/era">歴代指数へ戻る →</Link></footer>
+      <footer><div className="footer-brand"><div><strong>土俵日和</strong><small>時代を越えて、相撲を語る。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate/era">歴代指数へ戻る →</Link></footer>
     </main>
   );
 }

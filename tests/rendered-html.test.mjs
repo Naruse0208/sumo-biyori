@@ -44,6 +44,27 @@ test("keeps prediction writes server-only and official-result driven", async () 
   assert.match(migration, /CREATE TABLE `live_sumo_cache`/);
 });
 
+test("keeps the home result rows simple, clickable, and profile-safe", async () => {
+  const [home, liveSumo, header, comparePage, styles] = await Promise.all([
+    readFile(new URL("app/page.tsx", root), "utf8"),
+    readFile(new URL("app/components/LiveSumo.tsx", root), "utf8"),
+    readFile(new URL("app/components/SiteHeader.tsx", root), "utf8"),
+    readFile(new URL("app/rate/compare/page.tsx", root), "utf8"),
+    readFile(new URL("app/globals.css", root), "utf8"),
+  ]);
+
+  assert.doesNotMatch(home, /土俵の美学|SUMO CULTURE|brand-crest/);
+  assert.doesNotMatch(header, /brand-crest/);
+  assert.match(liveSumo, /<h2>番付<\/h2>/);
+  assert.doesNotMatch(liveSumo, /幕内番付|BANZUKE/);
+  assert.match(liveSumo, /leftNsk=.*rightNsk=/);
+  assert.match(liveSumo, /closest\("a, button"\)/);
+  assert.match(liveSumo, /"終了"/);
+  assert.match(comparePage, /optionFromNskId/);
+  assert.match(styles, /\.live-timestamp-inline \{ display: flex;/);
+  assert.match(styles, /grid-template-columns: \.95fr 2\.23fr/);
+});
+
 test("production bundle and social card exist", async () => {
   await Promise.all([
     access(new URL("dist/server/index.js", root)),

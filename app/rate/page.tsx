@@ -246,7 +246,6 @@ export default function RatePage() {
 
       <footer>
         <div className="footer-brand">
-          <span className="brand-crest" aria-hidden="true">土</span>
           <div><strong>土俵日和</strong><small>相撲を、もっと近くに。</small></div>
         </div>
         <p>相撲を愛する人のための非公式ファンサイト</p>

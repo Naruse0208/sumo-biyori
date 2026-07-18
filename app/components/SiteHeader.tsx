@@ -25,7 +25,6 @@ export default function SiteHeader({ active = "home" }: { active?: SiteArea }) {
         <div className="nav-group nav-left">{links.map(navLink)}</div>
 
         <Link className="brand" href="/" aria-label="土俵日和 ホーム">
-          <span className="brand-crest" aria-hidden="true">土</span>
           <span className="brand-title">土俵日和</span>
           <span className="brand-roman">DOHYO BIYORI</span>
         </Link>

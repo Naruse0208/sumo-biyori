@@ -41,7 +41,7 @@ export default function ValidationPage() {
         <div><article><span>01</span><h3>時系列で分割</h3><p>未来の勝敗を過去のレートや相性へ混ぜません。</p></article><article><span>02</span><h3>確率で採点</h3><p>当否だけでなく、自信過剰もlog lossで罰します。</p></article><article><span>03</span><h3>実験表示を分離</h3><p>v3が僅かに改善しても、データ時点が弱い間は正式採用しません。</p></article></div>
       </section>
 
-      <footer><div className="footer-brand"><span className="brand-crest" aria-hidden="true">土</span><div><strong>土俵日和</strong><small>数字も、答え合わせする。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate">レート研究室へ戻る →</Link></footer>
+      <footer><div className="footer-brand"><div><strong>土俵日和</strong><small>数字も、答え合わせする。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate">レート研究室へ戻る →</Link></footer>
     </main>
   );
 }

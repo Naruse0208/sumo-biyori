@@ -316,6 +316,8 @@ export default function ComparisonBoard({
       const url = new URL(window.location.href);
       url.searchParams.set("left", String(body.left.id));
       url.searchParams.set("right", String(body.right.id));
+      url.searchParams.delete("leftNsk");
+      url.searchParams.delete("rightNsk");
       window.history.replaceState({}, "", url);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "比較データを読み込めませんでした");

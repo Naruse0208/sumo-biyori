@@ -284,7 +284,7 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
         </dl>
       </section>
 
-      <footer><div className="footer-brand"><span className="brand-crest" aria-hidden="true">土</span><div><strong>土俵日和</strong><small>相撲を、もっと近くに。</small></div></div><p>非公式ファンサイト</p><Link href="/rate">レート順位へ戻る →</Link></footer>
+      <footer><div className="footer-brand"><div><strong>土俵日和</strong><small>相撲を、もっと近くに。</small></div></div><p>非公式ファンサイト</p><Link href="/rate">レート順位へ戻る →</Link></footer>
     </main>
   );
 }

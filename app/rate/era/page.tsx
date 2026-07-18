@@ -51,7 +51,7 @@ export default function EraPage() {
         <aside><strong>現在の限界</strong><p>{era.caveat} 1958年以前の実績は含まず、収録開始直後は全力士を同じ初期値から計算するため、初期数年間の値にはコールドスタートの影響があります。</p></aside>
       </section>
 
-      <footer><div className="footer-brand"><span className="brand-crest" aria-hidden="true">土</span><div><strong>土俵日和</strong><small>時代を越えて、相撲を語る。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate">レート研究室へ戻る →</Link></footer>
+      <footer><div className="footer-brand"><div><strong>土俵日和</strong><small>時代を越えて、相撲を語る。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate">レート研究室へ戻る →</Link></footer>
     </main>
   );
 }
