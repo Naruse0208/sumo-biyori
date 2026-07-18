@@ -99,6 +99,9 @@ test("keeps the home result rows simple, clickable, and profile-safe", async () 
   assert.doesNotMatch(liveSumo, /幕内番付|BANZUKE/);
   assert.match(liveSumo, /leftNsk=.*rightNsk=/);
   assert.match(liveSumo, /closest\("a, button"\)/);
+  assert.match(liveSumo, /loadStoredBanzukeSides/);
+  assert.match(liveSumo, /\\bEast\$/);
+  assert.match(liveSumo, /\\bWest\$/);
   assert.match(liveSumo, /"終了"/);
   assert.match(comparePage, /optionFromNskId/);
   assert.match(styles, /\.live-timestamp-inline \{ display: flex;/);

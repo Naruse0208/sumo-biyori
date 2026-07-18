@@ -88,6 +88,72 @@ type PredictionPayload = {
   west?: { elo: number; glickoRating?: number; probability: number };
 };
 
+type BanzukeSide = "east" | "west";
+type RatingSideRow = { nskId?: number | null; banzukeRank?: string | null };
+
+const banzukeSideCache = new Map<string, Promise<Map<number, BanzukeSide>>>();
+
+function loadStoredBanzukeSides(bashoId: number, divisionId: number) {
+  const key = `${bashoId}-${divisionId}`;
+  let pending = banzukeSideCache.get(key);
+  if (!pending) {
+    const query = new URLSearchParams({
+      basho: String(bashoId),
+      division: String(divisionId),
+      limit: "400",
+    });
+    pending = fetch(`/api/ratings?${query}`)
+      .then(async (response) => {
+        if (!response.ok) return new Map<number, BanzukeSide>();
+        const payload = await response.json() as { rows?: RatingSideRow[] };
+        const sides = new Map<number, BanzukeSide>();
+        for (const row of payload.rows ?? []) {
+          const nskId = Number(row.nskId ?? 0);
+          const side = /\bEast$/i.test(row.banzukeRank ?? "")
+            ? "east"
+            : /\bWest$/i.test(row.banzukeRank ?? "")
+              ? "west"
+              : null;
+          if (nskId && side) sides.set(nskId, side);
+        }
+        return sides;
+      })
+      .catch(() => new Map<number, BanzukeSide>());
+    banzukeSideCache.set(key, pending);
+  }
+  return pending;
+}
+
+function applyStoredBanzukeSides(division: LiveDivision | null | undefined, sides: Map<number, BanzukeSide>) {
+  if (!division) return division;
+  const withSides = (bout: LiveBout): LiveBout => ({
+    ...bout,
+    eastBanzukeSide: bout.eastBanzukeSide ?? sides.get(Number(bout.eastNskId ?? 0)) ?? null,
+    westBanzukeSide: bout.westBanzukeSide ?? sides.get(Number(bout.westNskId ?? 0)) ?? null,
+  });
+  const recentResults = division.recentResults.map(withSides);
+  return {
+    ...division,
+    recentResults,
+    nextBout: division.nextBout ? withSides(division.nextBout) : null,
+  };
+}
+
+async function enrichPayloadBanzukeSides(payload: LivePayload): Promise<LivePayload> {
+  const division = payload.resultDivision ?? payload.currentDivision;
+  if (!payload.bashoId || !division) return payload;
+  const sides = await loadStoredBanzukeSides(payload.bashoId, division.id);
+  return {
+    ...payload,
+    resultDivision: payload.resultDivision?.id === division.id
+      ? applyStoredBanzukeSides(payload.resultDivision, sides)
+      : payload.resultDivision,
+    currentDivision: payload.currentDivision?.id === division.id
+      ? applyStoredBanzukeSides(payload.currentDivision, sides)
+      : payload.currentDivision,
+  };
+}
+
 const predictionCache = new Map<string, { expiresAt: number; promise: Promise<PredictionPayload> }>();
 
 function usePrediction(
@@ -161,7 +227,7 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
       const query = divisionId ? `?division=${divisionId}` : "";
       const response = await fetch(`/api/live-sumo${query}`, { cache: "no-store" });
       const payload = (await response.json()) as LivePayload;
-      setData(payload);
+      setData(await enrichPayloadBanzukeSides(payload));
     } catch {
       setData((previous) => previous ? { ...previous, message: "再接続を待っています。" } : null);
     } finally {
