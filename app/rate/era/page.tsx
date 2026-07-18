@@ -25,11 +25,6 @@ export default function EraPage() {
 
       <RateLabNav active="era" />
 
-      <section className="lab-hero era-hero">
-        <div><p>ACROSS ERAS / EXPERIMENT</p><h1>時代の頂を、<br />同じ目盛りに置く。</h1><p>幕内平均からの傑出度を場所ごとに測り、最高到達点と上位6場所の持続力を合成。直接対戦できない時代を「絶対的な強さ」と言い切らないための歴代指数です。</p></div>
-        <div className="lab-hero-score"><small>収録範囲</small><strong>1958—</strong><span>幕内在位6場所以上</span></div>
-      </section>
-
       <section className="rate-shell era-shell" aria-labelledby="era-title">
         <div className="rate-section-heading"><div><p>ERA DOMINANCE INDEX</p><h2 id="era-title">歴代指数・実験ランキング</h2></div><span>PREVIEW</span></div>
         <Link className="era-yokozuna-cta" href="/rate/yokozuna"><span>NEW / YOKOZUNA LAB</span><strong>歴代横綱を二人選び、全盛期曲線まで詳しく比べる</strong><b>横綱比較室へ →</b></Link>

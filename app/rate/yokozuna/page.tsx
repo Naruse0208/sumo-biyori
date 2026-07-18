@@ -14,14 +14,9 @@ export default function YokozunaPage() {
     <main className="rate-page lab-subpage compare-page yokozuna-page">
       <div className="rate-frame" aria-hidden="true" />
       <div className="notice-bar rate-notice"><strong>土俵日和 歴代横綱比較室</strong><span>頂点の高さと、頂点にいた長さを比べる</span></div>
-      <SiteHeader active="yokozuna" />
+      <SiteHeader active="rate" />
 
       <RateLabNav active="yokozuna" />
-
-      <section className="lab-hero compare-hero yokozuna-hero">
-        <div><p>YOKOZUNA / PEAK &amp; LEGACY</p><h1>横綱の全盛期を、<br />曲線で読む。</h1><p>白鵬の持続力、大鵬の時代支配、千代の富士のピーク。最高値だけで終わらず、幕内在位・上位6場所・年齢を重ねた推移から横綱の強さの形を比べます。</p></div>
-        <div className="lab-hero-score"><small>歴代比較の起点</small><strong>1958</strong><span>取組収録開始以降</span></div>
-      </section>
 
       <div className="compare-shell">
         <ComparisonBoard

@@ -5,8 +5,6 @@ type SiteArea = "home" | "rate" | "compare" | "yokozuna";
 const links = [
   { id: "home", href: "/#torikumi", label: "今日の取組" },
   { id: "rate", href: "/rate", label: "力士レート" },
-  { id: "compare", href: "/rate/compare", label: "対戦比較" },
-  { id: "yokozuna", href: "/rate/yokozuna", label: "歴代横綱" },
 ] as const;
 
 export default function SiteHeader({ active = "home" }: { active?: SiteArea }) {
@@ -24,7 +22,7 @@ export default function SiteHeader({ active = "home" }: { active?: SiteArea }) {
   return (
     <header className="site-header">
       <nav className="nav-shell" aria-label="メインナビゲーション">
-        <div className="nav-group nav-left">{links.slice(0, 2).map(navLink)}</div>
+        <div className="nav-group nav-left">{links.map(navLink)}</div>
 
         <Link className="brand" href="/" aria-label="土俵日和 ホーム">
           <span className="brand-crest" aria-hidden="true">土</span>
@@ -32,7 +30,7 @@ export default function SiteHeader({ active = "home" }: { active?: SiteArea }) {
           <span className="brand-roman">DOHYO BIYORI</span>
         </Link>
 
-        <div className="nav-group nav-right">{links.slice(2).map(navLink)}</div>
+        <div className="nav-group nav-right" aria-hidden="true" />
 
         <details className="mobile-menu">
           <summary aria-label="メニューを開く">目次</summary>

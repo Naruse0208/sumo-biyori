@@ -718,7 +718,7 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .compare-hero { background: linear-gradient(125deg, #17243b, #11171b 68%); }
 .yokozuna-hero { background: linear-gradient(125deg, #3c1520, #11171b 72%); }
-.compare-shell { width: min(1036px, calc(100% - 64px)); margin: 0 auto 96px; }
+.compare-shell { width: min(1036px, calc(100% - 64px)); margin: 58px auto 96px; }
 .compare-selectors { margin-bottom: 26px; display: grid; grid-template-columns: 1fr 112px 1fr; border: 1px solid rgba(200,164,93,.48); background: rgba(16,23,29,.92); box-shadow: 12px 14px 0 rgba(0,0,0,.2); }
 .compare-picker { min-width: 0; min-height: 210px; padding: 30px 34px; display: flex; flex-direction: column; justify-content: center; position: relative; }
 .compare-picker > small { color: var(--gold); font: 9px/1 var(--sans); letter-spacing: .22em; }
