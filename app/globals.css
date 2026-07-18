@@ -147,8 +147,7 @@ main {
 .hero {
   position: relative;
   min-height: 380px;
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) 92px;
+  display: block;
   width: min(1360px, calc(100% - 120px));
   margin: 0 auto;
   background:
@@ -156,40 +155,6 @@ main {
     linear-gradient(90deg, transparent, rgba(23,35,58,.88) 14%, rgba(23,35,58,.88) 86%, transparent);
   border-bottom: 1px solid var(--line);
 }
-
-.banner { display: flex; justify-content: center; padding-top: 0; }
-.banner span {
-  width: 58px;
-  height: 316px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  writing-mode: vertical-rl;
-  letter-spacing: .18em;
-  font-size: 19px;
-  border-left: 1px solid var(--gold);
-  border-right: 1px solid var(--gold);
-  position: relative;
-  animation: settle-banner 800ms ease-out both;
-}
-
-.banner span::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  margin: auto;
-  width: 0;
-  height: 0;
-  border-left: 29px solid transparent;
-  border-right: 29px solid transparent;
-}
-
-.banner-left span { background: linear-gradient(90deg, #dfd0ac, #f9efd7, #cbb783); color: #372b1e; }
-.banner-left span::after { border-top: 16px solid #cbb783; }
-.banner-right span { background: linear-gradient(90deg, var(--crimson-dark), #b32939, var(--crimson-dark)); color: #f7e6bf; }
-.banner-right span::after { border-top: 16px solid var(--crimson-dark); }
 
 .hero-core { display: flex; align-items: center; justify-content: center; text-align: center; padding: 38px 36px 46px; }
 .kicker { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--gold-light); font-size: 14px; letter-spacing: .23em; margin: 0 0 14px; }
@@ -317,20 +282,16 @@ h1 { margin-bottom: 10px; font-size: clamp(46px, 4.2vw, 68px); letter-spacing: .
 .rikishi-body h3, .culture-card h3 { font-size: 23px; letter-spacing: .06em; margin-bottom: 10px; }
 .rikishi-body > div > p:not(.eyebrow), .culture-card > p { color: #c5bdae; font-size: 15px; line-height: 1.9; }
 .riser-card { min-height: 0; }
-.riser-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin: 2px 0 14px; }
+.riser-summary { margin: 2px 0 14px; }
 .riser-summary p { margin: 0; color: #b8afa1; font-size: 13px; line-height: 1.7; }
-.riser-summary strong { flex: 0 0 auto; color: var(--gold); font: 9px/1 var(--sans); letter-spacing: .18em; }
 .riser-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(200,164,93,.26); }
-.riser-list li { min-height: 66px; display: grid; grid-template-columns: 48px minmax(170px, 1fr) 180px 66px; align-items: center; gap: 14px; padding: 9px 12px; border-bottom: 1px solid rgba(200,164,93,.16); }
+.riser-list li { min-height: 58px; display: grid; grid-template-columns: 170px minmax(110px, 1fr) auto; align-items: center; gap: 16px; padding: 9px 12px; border-bottom: 1px solid rgba(200,164,93,.16); }
 .riser-list li:nth-child(even) { background: rgba(239,225,195,.035); }
-.riser-position { color: var(--crimson-light); font: 20px/1 Georgia, serif; }
-.riser-identity { min-width: 0; display: grid; gap: 5px; }
-.riser-identity small, .riser-rating small { color: #91887b; font: 9px/1 var(--sans); letter-spacing: .1em; }
-.riser-identity a { width: fit-content; color: #f2e5ca; font-size: 19px; font-weight: 600; letter-spacing: .08em; }
-.riser-identity a:hover, .riser-identity a:focus-visible { color: var(--gold-light); text-decoration: underline; text-underline-offset: 4px; }
-.riser-rating { display: grid; gap: 6px; justify-items: end; color: #b9b0a2; font: 12px/1 var(--sans); }
-.riser-rating b { color: #f0dfbd; font-size: 16px; }
-.riser-delta { color: var(--gold-light); font: 25px/1 Georgia, serif; text-align: right; }
+.riser-rank { color: #a39a8d; font: 12px/1 var(--sans); letter-spacing: .07em; white-space: nowrap; }
+.riser-name { width: fit-content; color: #f2e5ca; font-size: 19px; font-weight: 600; letter-spacing: .08em; white-space: nowrap; }
+.riser-name:hover, .riser-name:focus-visible { color: var(--gold-light); text-decoration: underline; text-underline-offset: 4px; }
+.riser-current { color: #f0dfbd; font: 19px/1 Georgia, serif; text-align: right; white-space: nowrap; }
+.riser-current span { color: var(--gold-light); font-size: 16px; }
 .riser-note { margin: 14px 0 0; color: #847c70; font: 9px/1.6 var(--sans); letter-spacing: .06em; text-align: right; }
 .profile-facts { display: flex; gap: 20px; margin: 15px 0 17px; }
 .profile-facts div { display: grid; gap: 3px; }
@@ -587,12 +548,10 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   .nav-left { display: flex; justify-self: end; gap: 24px; }
   .nav-right { display: none; }
   .brand { justify-content: start; }
-  .hero { width: calc(100% - 56px); grid-template-columns: 60px 1fr 60px; }
-  .banner span { width: 46px; font-size: 16px; }
-  .banner span::after { border-left-width: 23px; border-right-width: 23px; }
+  .hero { width: calc(100% - 56px); }
   .feature-grid { grid-template-columns: .85fr 1.6fr; }
   .rikishi-card { grid-column: auto; }
-  .riser-list li { grid-template-columns: 42px minmax(140px, 1fr) 150px 58px; gap: 10px; }
+  .riser-list li { grid-template-columns: 150px minmax(90px, 1fr) auto; gap: 10px; }
   .guide { grid-template-columns: 80px 1fr; }.guide .gold-button { grid-column: 2; justify-self: start; }
   .division-track { grid-template-columns: repeat(3, 1fr); }
   .rate-hero { grid-template-columns: 1fr 160px; gap: 44px; }
@@ -620,7 +579,6 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   .nav-group a { font-size: 12px; letter-spacing: .08em; white-space: nowrap; }
   .brand-title { font-size: 21px; }.brand-roman { font-size: 7px; }
   .hero { width: calc(100% - 28px); display: block; min-height: 0; }
-  .banner { display: none; }
   .hero-core { padding: 30px 12px 28px; }
   .kicker { font-size: 10px; gap: 8px; }.kicker span { width: 30px; }
   h1 { font-size: 40px; line-height: 1.35; letter-spacing: .06em; }
@@ -635,10 +593,10 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   .feature-grid { display: grid; grid-template-columns: 1fr; padding: 22px 0 54px; }
   .rikishi-card { grid-column: auto; }.feature-card { min-height: auto; padding: 24px 20px; }
   .rikishi-body { grid-template-columns: 74px 1fr; gap: 16px; }.name-plaque { height: 130px; font-size: 21px; }.profile-facts { flex-wrap: wrap; gap: 12px; }
-  .riser-summary { display: block; }.riser-summary strong { display: none; }
-  .riser-list li { grid-template-columns: 36px 1fr auto; gap: 10px; padding-inline: 4px; }
-  .riser-rating { grid-column: 2; grid-row: 2; justify-items: start; }
-  .riser-delta { grid-column: 3; grid-row: 1 / 3; font-size: 22px; }
+  .riser-list li { grid-template-columns: minmax(106px, auto) 1fr auto; gap: 8px; padding-inline: 4px; }
+  .riser-rank { font-size: 10px; letter-spacing: .02em; }
+  .riser-name { font-size: 16px; letter-spacing: .04em; }
+  .riser-current { font-size: 16px; }.riser-current span { font-size: 13px; }
   .riser-note { text-align: left; }
   .stories { padding: 58px 0; }.stories-intro h2 { font-size: 30px; line-height: 1.5; }
   .story { grid-template-columns: 42px 1fr; gap: 14px; padding: 24px 0; }.story > a { grid-column: 2; justify-self: start; }

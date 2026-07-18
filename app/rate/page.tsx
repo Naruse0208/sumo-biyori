@@ -63,7 +63,6 @@ export default function RatePage() {
       <section className="rate-shell rate-ranking" aria-labelledby="ranking-title">
         <div className="rate-section-heading">
           <div>
-            <p>RIKISHI RATING</p>
             <h2 id="ranking-title">力士レート順位</h2>
           </div>
           <span className="rate-pending">1958年以降・{ratings.scope.basho}場所</span>

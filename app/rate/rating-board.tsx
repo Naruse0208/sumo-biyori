@@ -216,7 +216,7 @@ export default function RatingBoard({
               key={division.id}
               onClick={() => { setActiveId(division.id); setShowAll(false); }}
             >
-              {division.name}<small>{division.ranking.length}人</small>
+              {division.name}
             </button>
           ))}
         </div>

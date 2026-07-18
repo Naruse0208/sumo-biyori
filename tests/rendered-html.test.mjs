@@ -13,6 +13,7 @@ test("publishes a prominent shared navigation for all rating lab routes", async 
   ]);
 
   assert.match(rate, /<RateLabNav active="ranking" \/>/);
+  assert.doesNotMatch(rate, /RIKISHI RATING/);
   assert.match(validation, /<RateLabNav active="validation" \/>/);
   assert.match(era, /<RateLabNav active="era" \/>/);
   assert.match(labNavigation, /href: "\/rate"/);
@@ -21,6 +22,12 @@ test("publishes a prominent shared navigation for all rating lab routes", async 
   assert.match(validation, /og-model-lab\.png/);
   assert.match(validation, /未学習/);
   assert.match(era, /その場所の幕内平均から、どれほど抜けていたか/);
+});
+
+test("keeps division tabs label-only", async () => {
+  const ratingBoard = await readFile(new URL("app/rate/rating-board.tsx", root), "utf8");
+
+  assert.doesNotMatch(ratingBoard, /division\.ranking\.length}人<\/small>/);
 });
 
 test("keeps prediction writes server-only and official-result driven", async () => {
@@ -60,7 +67,9 @@ test("shows five current Glicko-2 risers across the top three divisions", async 
   const data = JSON.parse(featured);
 
   assert.match(home, /<FeaturedRisers \/>/);
-  assert.match(risers, /Glicko-2/);
+  assert.match(risers, /GLICKO-2/);
+  assert.doesNotMatch(risers, /GLICKO-2 RISE|riser-position|previousRating/);
+  assert.match(risers, /前場所よりレート\(GLICKO-2\)を伸ばした五人/);
   assert.equal(data.rows.length, 5);
   assert.ok(data.rows.every((row) => row.division >= 1 && row.division <= 3));
   assert.ok(data.rows.every((row) => row.delta > 0));
@@ -77,6 +86,7 @@ test("keeps the home result rows simple, clickable, and profile-safe", async () 
   ]);
 
   assert.doesNotMatch(home, /土俵の美学|SUMO CULTURE|brand-crest/);
+  assert.doesNotMatch(home, /満員御礼|大相撲名古屋場所/);
   assert.doesNotMatch(header, /brand-crest/);
   assert.doesNotMatch(header, /mobile-menu|目次/);
   assert.match(header, /今日の取組/);

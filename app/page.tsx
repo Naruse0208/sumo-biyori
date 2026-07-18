@@ -21,16 +21,8 @@ export default function Home() {
       <SiteHeader active="home" />
 
       <section className="hero" id="top">
-        <div className="banner banner-left" aria-hidden="true">
-          <span>満員御礼</span>
-        </div>
-
         <div className="hero-core">
           <LiveHeroBout />
-        </div>
-
-        <div className="banner banner-right" aria-hidden="true">
-          <span>大相撲名古屋場所</span>
         </div>
       </section>
 
