@@ -352,13 +352,6 @@ async function fetchCurrentBanzuke(bashoId: number): Promise<{
     const ew = Number(wrestler.ew ?? 0);
     if (id && (ew === 1 || ew === 2)) sides.set(id, ew);
   }
-  const storedSides = await loadBanzukeSidesFromDatabase(bashoId).catch(
-    () => new Map<number, 1 | 2>(),
-  );
-  for (const [nskId, side] of storedSides) {
-    if (!sides.has(nskId)) sides.set(nskId, side);
-  }
-
   const rows = mapMakuuchiBanzuke(tables[DIVISIONS.findIndex((division) => division.id === 1)] ?? []);
   banzukeCache = { bashoId, rows, sides };
   return { rows, sides };
@@ -620,6 +613,14 @@ async function fetchFreshSourceSnapshot(previous: LiveSourceSnapshot | null): Pr
     ? banzukeFromPreviousSnapshot(previous, bashoId)
       ?? await fetchCurrentBanzuke(bashoId).catch(() => ({ rows: [], sides: new Map<number, 1 | 2>() }))
     : { rows: [], sides: new Map<number, 1 | 2>() };
+  if (bashoId) {
+    const storedSides = await loadBanzukeSidesFromDatabase(bashoId).catch(
+      () => new Map<number, 1 | 2>(),
+    );
+    for (const [nskId, side] of storedSides) {
+      if (!banzuke.sides.has(nskId)) banzuke.sides.set(nskId, side);
+    }
+  }
   applyBanzukeSides(divisions, banzuke.sides);
   await applyKanjiNamesToSources(divisions);
   return {
