@@ -141,6 +141,11 @@ let banzukeCache: {
   rows: LiveBanzukeRow[];
   sides: Map<number, 1 | 2>;
 } | null = null;
+let storedBanzukeSideCache: {
+  bashoId: number;
+  expiresAt: number;
+  sides: Map<number, 1 | 2>;
+} | null = null;
 const responseCache = new Map<string, LiveResponse>();
 const profileNameCache = new Map<number, string>();
 
@@ -371,6 +376,13 @@ function applyBanzukeSides(
 }
 
 async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number, 1 | 2>> {
+  const now = Date.now();
+  if (
+    storedBanzukeSideCache?.bashoId === bashoId
+    && storedBanzukeSideCache.expiresAt > now
+  ) {
+    return storedBanzukeSideCache.sides;
+  }
   if (!env.DB) throw new Error("Cloudflare D1 binding `DB` is unavailable");
   const result = await env.DB
     .prepare(
@@ -391,6 +403,11 @@ async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number
         : 0;
     if (nskId && (side === 1 || side === 2)) sides.set(nskId, side);
   }
+  storedBanzukeSideCache = {
+    bashoId,
+    expiresAt: now + 60_000,
+    sides,
+  };
   return sides;
 }
 
@@ -728,6 +745,16 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
   const cacheKey = requestedDivisionId ? `division:${requestedDivisionId}` : "current";
   const cached = responseCache.get(cacheKey);
   if (cached) return cached;
+
+  // The shared official snapshot can outlive a deployment. Reapply East/West from
+  // our central banzuke database when shaping every fresh response so older cached
+  // snapshots cannot drop the actual banzuke side.
+  if (snapshot.bashoId) {
+    const storedSides = await loadBanzukeSidesFromDatabase(snapshot.bashoId).catch(
+      () => new Map<number, 1 | 2>(),
+    );
+    applyBanzukeSides(snapshot.divisions, storedSides);
+  }
 
   const liveSource = findCurrentDivision(snapshot.divisions);
   const selectedSource = requestedDivisionId
