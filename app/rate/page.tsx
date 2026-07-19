@@ -68,7 +68,6 @@ export default async function RatePage() {
           <div>
             <h2 id="ranking-title">{t("力士レート順位", "Wrestler Ratings")}</h2>
           </div>
-          <span className="rate-pending">{t(`1958年以降・${ratings.scope.basho}場所`, `Since 1958 · ${ratings.scope.basho} tournaments`)}</span>
         </div>
 
         <RatingBoard

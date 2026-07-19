@@ -205,7 +205,6 @@ function SearchPicker({ side, selected, onSelect, locale }: { side: "左" | "右
   }, [query]);
   return (
     <div className="compare-picker">
-      <small>{locale === "en" ? `${side === "左" ? "Left" : "Right"} wrestler` : `${side}の力士`}</small>
       <strong>{localizedName(selected, locale)}</strong>
       {locale === "ja" && <span>{selected.shikonaEn}</span>}
       <label>
@@ -235,7 +234,6 @@ function SearchPicker({ side, selected, onSelect, locale }: { side: "左" | "右
 function YokozunaPicker({ side, selected, rows, onSelect, locale }: { side: "左" | "右"; selected: RikishiOption; rows: RikishiOption[]; onSelect: (rikishi: RikishiOption) => void; locale: Locale }) {
   return (
     <label className="compare-picker compare-select-picker">
-      <small>{locale === "en" ? `${side === "左" ? "Left" : "Right"} yokozuna` : `${side}の横綱`}</small>
       <strong>{localizedName(selected, locale)}</strong>
       {locale === "ja" && <span>{selected.shikonaEn}</span>}
       <select value={selected.id} onChange={(event) => { const row = rows.find((item) => item.id === Number(event.target.value)); if (row) onSelect(row); }}>
@@ -339,7 +337,6 @@ export default function ComparisonBoard({
   const probability = payload
     ? forecastMode === "peak" ? payload.prediction.peakLeftProbability : payload.prediction.currentLeftProbability
     : 50;
-  const confidenceLabel = payload?.prediction.confidence === "high" ? (locale === "en" ? "High confidence" : "推定安定") : payload?.prediction.confidence === "medium" ? (locale === "en" ? "Medium confidence" : "推定中") : (locale === "en" ? "Reference" : "参考値");
   const overlap = useMemo(() => {
     if (!payload?.left.career.firstBasho || !payload?.right.career.firstBasho || !payload.left.career.lastBasho || !payload.right.career.lastBasho) return false;
     return Math.max(payload.left.career.firstBasho, payload.right.career.firstBasho) <= Math.min(payload.left.career.lastBasho, payload.right.career.lastBasho);
@@ -402,7 +399,7 @@ export default function ComparisonBoard({
                 <button type="button" className={forecastMode === "peak" ? "is-active" : ""} onClick={() => setForecastMode("peak")}>{locale === "en" ? "Peak" : "全盛期"}</button>
               </div>
             </div>
-            <div className="compare-probability-names"><strong>{localizedName(payload.left, locale)} <b>{probability}%</b></strong><span>{confidenceLabel}</span><strong><b>{100 - probability}%</b> {localizedName(payload.right, locale)}</strong></div>
+            <div className="compare-probability-names"><strong>{localizedName(payload.left, locale)} <b>{probability}%</b></strong><strong><b>{100 - probability}%</b> {localizedName(payload.right, locale)}</strong></div>
             <div className="compare-probability-bar"><i style={{ width: `${probability}%` }} /></div>
             <p className="compare-forecast-note">
               {forecastMode === "peak"

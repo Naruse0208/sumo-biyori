@@ -15,10 +15,11 @@ export const divisionEnglish: Record<number, string> = {
   6: "Jonokuchi",
 };
 
-export function englishBashoLabel(bashoId: number | null | undefined) {
-  if (!bashoId) return "Grand Sumo Tournament";
-  const year = Math.floor(bashoId / 100);
-  const month = bashoId % 100;
+export function englishBashoLabel(bashoId: number | null | undefined, japaneseLabel?: string | null) {
+  const japaneseMatch = japaneseLabel?.match(/令和([元〇零一二三四五六七八九十]+)年\s*([〇零一二三四五六七八九十]+)月場所/);
+  const year = japaneseMatch ? 2018 + parseKanjiNumber(japaneseMatch[1]) : bashoId ? Math.floor(bashoId / 100) : 0;
+  const month = japaneseMatch ? parseKanjiNumber(japaneseMatch[2]) : bashoId ? bashoId % 100 : 0;
+  if (!year || month < 1 || month > 12) return "Grand Sumo Tournament";
   const monthLabel = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "Asia/Tokyo" })
     .format(new Date(Date.UTC(2020, month - 1, 1)));
   return `${monthLabel} ${year} Tournament`;
@@ -93,6 +94,7 @@ export function englishRank(rank: string, divisionName = "") {
 }
 
 function parseKanjiNumber(value: string) {
+  if (value === "元") return 1;
   const digits: Record<string, number> = { 〇: 0, 零: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
   let total = 0;
   let current = 0;

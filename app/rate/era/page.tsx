@@ -60,7 +60,7 @@ export default async function EraPage() {
           <table>
             <thead><tr><th>{t("順位", "Rank")}</th><th>{t("力士", "Wrestler")}</th><th>{t("歴代指数", "Era Index")}</th><th>{t("最高偏差値", "Peak score")}</th><th>{t("上位6場所", "Best six")}</th><th>{t("幕内場所", "Top-division tournaments")}</th><th>{t("頂点", "Peak")}</th></tr></thead>
             <tbody>{era.ranking.map((rikishi) => (
-              <tr key={rikishi.id}><td>{rikishi.position}</td><th><Link href={`/rikishi/${rikishi.id}`}>{rikishiName(rikishi)}</Link><small>{bashoLabel(rikishi.firstBasho, locale)}–{bashoLabel(rikishi.lastBasho, locale)}</small></th><td><strong>{rikishi.eraIndex}</strong></td><td>{rikishi.peakHensachi}</td><td>{rikishi.sustainedHensachi}</td><td>{rikishi.makuuchiBasho}</td><td>{bashoLabel(rikishi.peakBasho, locale)}</td></tr>
+              <tr key={rikishi.id}><td>{rikishi.position}</td><th><Link href={`/rikishi/${rikishi.id}`}>{rikishiName(rikishi)}</Link></th><td><strong>{rikishi.eraIndex}</strong></td><td>{rikishi.peakHensachi}</td><td>{rikishi.sustainedHensachi}</td><td>{rikishi.makuuchiBasho}</td><td>{bashoLabel(rikishi.peakBasho, locale)}</td></tr>
             ))}</tbody>
           </table>
         </div>

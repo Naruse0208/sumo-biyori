@@ -212,17 +212,10 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
   if (compact) {
     return <small className="result-prediction"><span><Bilingual ja="勝機" en="Forecast" /></span><strong><Bilingual ja={`東${prediction.east.probability}%・西${prediction.west.probability}%`} en={`East ${prediction.east.probability}% · West ${prediction.west.probability}%`} /></strong></small>;
   }
-  const confidence = prediction.confidence === "high" ? "信頼度 高" : prediction.confidence === "medium" ? "信頼度 中" : "参考値";
   return (
     <div className="bout-prediction" aria-label={`${prediction.model ?? "相撲日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
-      <div><span className="bout-prediction-east"><Bilingual ja={`東 ${prediction.east.probability}%`} en={`East ${prediction.east.probability}%`} /></span><em><Bilingual ja={prediction.model?.replace("土俵日和", "相撲日和") ?? "相撲日和予想"} en="Sumo Biyori Forecast v2.1" /></em><span><Bilingual ja={`西 ${prediction.west.probability}%`} en={`West ${prediction.west.probability}%`} /></span></div>
+      <div><span className="bout-prediction-east"><Bilingual ja={`東 ${prediction.east.probability}%`} en={`East ${prediction.east.probability}%`} /></span><span><Bilingual ja={`西 ${prediction.west.probability}%`} en={`West ${prediction.west.probability}%`} /></span></div>
       <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
-      <small>
-        Glicko-2 {prediction.east.glickoRating ?? prediction.east.elo} 対 {prediction.west.glickoRating ?? prediction.west.elo}
-        {prediction.models?.elo ? ` ／ Elo予想 ${prediction.models.elo.eastProbability}–${prediction.models.elo.westProbability}%` : ""}
-        {prediction.models?.dohyoV3 ? ` ／ v3実験 東${prediction.models.dohyoV3.eastProbability}%` : ""}
-        {` ／ ${confidence}`}
-      </small>
       <section className="bout-highlights" aria-label="見どころ（デザイン確認用）">
         <div className="bout-highlights-heading">
           <strong><Bilingual ja="この一番の見どころ" en="What to watch" /></strong>
@@ -349,7 +342,7 @@ export function LiveHeaderStatus() {
   const { data, loading } = useLiveSumo();
   if (loading) return <strong><Bilingual ja="本場所情報を確認中" en="Checking tournament data" /></strong>;
   const label = [data?.basho, data?.dayLabel].filter(Boolean).join("　");
-  const englishLabel = [englishBashoLabel(data?.bashoId), englishDayLabel(data?.day)].filter(Boolean).join(" · ");
+  const englishLabel = [englishBashoLabel(data?.bashoId, data?.basho), englishDayLabel(data?.day)].filter(Boolean).join(" · ");
   return <strong><Bilingual ja={label || "本場所情報を更新待ち"} en={englishLabel || "Waiting for tournament data"} /></strong>;
 }
 
@@ -365,7 +358,7 @@ export function LiveHeroBout() {
       <div className="bout-ribbon">
         <Bilingual
           ja={loading ? "公式取組情報を確認中" : division ? `${data?.basho}・${data?.dayLabel}　${division.name}` : "本場所情報"}
-          en={loading ? "Checking official bout data" : division ? `${englishBashoLabel(data?.bashoId)} · ${englishDayLabel(data?.day)} · ${divisionEnglish[division.id] ?? division.name}` : "Tournament data"}
+          en={loading ? "Checking official bout data" : division ? `${englishBashoLabel(data?.bashoId, data?.basho)} · ${englishDayLabel(data?.day)} · ${divisionEnglish[division.id] ?? division.name}` : "Tournament data"}
         />
       </div>
       {bout ? (
@@ -396,9 +389,6 @@ export function LiveResultsBoard() {
   const { data, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults } = useLiveSumo();
   const division = data?.resultDivision ?? data?.currentDivision;
   const progress = division?.total ? Math.round((division.completed / division.total) * 100) : 0;
-  const updated = data?.updatedAt
-    ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(data.updatedAt))
-    : "--:--:--";
   const displayedBouts = [...(division?.recentResults ?? [])].reverse();
 
   return (
@@ -486,10 +476,6 @@ export function LiveResultsBoard() {
       )}
 
       <div className="live-source">
-        <span className="live-timestamp live-timestamp-inline">
-          <span><Bilingual ja={`${data?.displayRefreshSeconds ?? 10}秒ごとに表示を更新`} en={`Refreshes every ${data?.displayRefreshSeconds ?? 10} seconds`} /></span>
-          <small><Bilingual ja={`最終取得 ${updated}`} en={`Last update ${updated} JST`} /></small>
-        </span>
         {data?.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer"><Bilingual ja="出典：日本相撲協会公式サイト ↗" en="Source: Japan Sumo Association ↗" /></a>}
       </div>
     </section>

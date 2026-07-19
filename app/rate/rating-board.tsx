@@ -178,7 +178,6 @@ export default function RatingBoard({
         <div className="rate-basho-current" aria-live="polite">
           <span>{locale === "en" ? "SELECT TOURNAMENT" : "SELECT BASHO"}</span>
           <strong>{bashoLabel(selectedBasho, locale)}</strong>
-          <small>{selectedBasho === initialBasho ? (locale === "en" ? "Latest · through recorded bouts" : "最新・取得済み取組まで") : (locale === "en" ? "Ratings at tournament end" : "場所終了時点のレート")}</small>
         </div>
         <div className="rate-basho-controls">
           <button type="button" disabled={!olderBasho || loading} onClick={() => olderBasho && loadBasho(olderBasho)}>
