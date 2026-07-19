@@ -223,6 +223,26 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
         {prediction.models?.dohyoV3 ? ` ／ v3実験 東${prediction.models.dohyoV3.eastProbability}%` : ""}
         {` ／ ${confidence}`}
       </small>
+      <section className="bout-highlights" aria-label="見どころ（デザイン確認用）">
+        <div className="bout-highlights-heading">
+          <strong><Bilingual ja="この一番の見どころ" en="What to watch" /></strong>
+          <span><Bilingual ja="デザイン確認用" en="Design preview" /></span>
+        </div>
+        <ul>
+          <li>
+            <b><Bilingual ja={`${bout.east}の勝ち筋`} en={`${bout.eastEn || bout.east}: path to victory`} /></b>
+            <span><Bilingual ja="低い立ち合いから先に自分の形を作り、相手に十分な体勢を与えたくない。" en="Win the first contact, establish the preferred position, and deny the opponent a settled stance." /></span>
+          </li>
+          <li>
+            <b><Bilingual ja={`${bout.west}の勝ち筋`} en={`${bout.westEn || bout.west}: path to victory`} /></b>
+            <span><Bilingual ja="受けに回らず、得意の間合いへ運べるか。土俵際まで攻めを切らさないことが鍵。" en="Avoid fighting on the back foot, find the preferred distance, and keep the attack alive to the tawara." /></span>
+          </li>
+          <li>
+            <b><Bilingual ja="勝負の焦点" en="Matchup key" /></b>
+            <span><Bilingual ja="立ち合い直後の主導権争い。最初の一歩と組み手が、勝負の流れを大きく左右する。" en="The initiative after the tachiai: the first step and opening grip could shape the entire bout." /></span>
+          </li>
+        </ul>
+      </section>
     </div>
   );
 }
