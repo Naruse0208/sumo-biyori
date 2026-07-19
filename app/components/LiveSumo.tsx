@@ -187,12 +187,12 @@ const highlightCache = new Map<string, { expiresAt: number; promise: Promise<Hig
 function usePrediction(
   eastNskId: number | null,
   westNskId: number | null,
-  context: { bashoId?: number; day?: number | null; divisionId: number },
+  context: { bashoId?: number; day?: number | null; divisionId: number; storedOnly?: boolean },
 ) {
   const [prediction, setPrediction] = useState<PredictionPayload | null>(null);
   useEffect(() => {
     if (!eastNskId || !westNskId) return;
-    const key = `${context.bashoId ?? 0}-${context.day ?? 0}-${context.divisionId}-${eastNskId}-${westNskId}`;
+    const key = `${context.bashoId ?? 0}-${context.day ?? 0}-${context.divisionId}-${eastNskId}-${westNskId}-${context.storedOnly ? "stored" : "live"}`;
     const now = Date.now();
     let cached = predictionCache.get(key);
     if (!cached || cached.expiresAt < now) {
@@ -203,6 +203,7 @@ function usePrediction(
         day: String(context.day ?? 0),
         division: String(context.divisionId),
       });
+      if (context.storedOnly) query.set("storedOnly", "1");
       const promise = fetch(`/api/prediction?${query}`)
         .then(async (response) => response.ok ? response.json() as Promise<PredictionPayload> : { available: false })
         .catch(() => ({ available: false }));
@@ -212,7 +213,7 @@ function usePrediction(
     let cancelled = false;
     cached.promise.then((value) => { if (!cancelled) setPrediction(value); });
     return () => { cancelled = true; };
-  }, [context.bashoId, context.day, context.divisionId, eastNskId, westNskId]);
+  }, [context.bashoId, context.day, context.divisionId, context.storedOnly, eastNskId, westNskId]);
   return prediction?.available ? prediction : null;
 }
 
@@ -254,6 +255,7 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
     bashoId: data?.bashoId,
     day: data?.day,
     divisionId,
+    storedOnly: bout.status === "past",
   });
   const highlights = useBoutHighlights(compact ? null : bout.eastNskId, compact ? null : bout.westNskId, {
     bashoId: data?.bashoId,

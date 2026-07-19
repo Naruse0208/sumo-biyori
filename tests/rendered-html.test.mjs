@@ -153,6 +153,8 @@ test("keeps finished forecasts and highlights while browsing adjacent bouts", as
   assert.match(liveSumo, /<WinProbability bout=\{bout\} divisionId=\{division\?\.id \?\? 1\} \/>/);
   assert.doesNotMatch(liveSumo, /bout\.status !== "past" && <WinProbability/);
   assert.match(predictionRoute, /loadStoredPrediction/);
+  assert.match(predictionRoute, /if \(storedOnly\)/);
+  assert.match(liveSumo, /storedOnly: bout\.status === "past"/);
   assert.match(predictionService, /export async function loadStoredPrediction/);
   assert.match(styles, /\.bout-ribbon-nav/);
 });

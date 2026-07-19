@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const eastNskId = Number(url.searchParams.get("east"));
   const westNskId = Number(url.searchParams.get("west"));
+  const storedOnly = url.searchParams.get("storedOnly") === "1";
   if (![eastNskId, westNskId].every((id) => Number.isInteger(id) && id > 0)) {
     return Response.json({ error: "east and west NSK IDs are required" }, { status: 400 });
   }
@@ -26,6 +27,11 @@ export async function GET(request: Request) {
           headers: { "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=600" },
         });
       }
+    }
+    if (storedOnly) {
+      return Response.json({ available: false }, {
+        headers: { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=120" },
+      });
     }
     const prediction = await calculateLivePrediction(request, eastNskId, westNskId);
     if (!prediction) return Response.json({ available: false });
