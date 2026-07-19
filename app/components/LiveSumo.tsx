@@ -101,6 +101,15 @@ type PredictionPayload = {
   west?: { elo: number; glickoRating?: number; probability: number };
 };
 
+type HighlightPayload = {
+  available: boolean;
+  copy?: {
+    east: { ja: string; en: string };
+    west: { ja: string; en: string };
+    key: { ja: string; en: string };
+  };
+};
+
 type BanzukeSide = "east" | "west";
 type RatingSideRow = { nskId?: number | null; banzukeRank?: string | null };
 
@@ -168,6 +177,7 @@ async function enrichPayloadBanzukeSides(payload: LivePayload): Promise<LivePayl
 }
 
 const predictionCache = new Map<string, { expiresAt: number; promise: Promise<PredictionPayload> }>();
+const highlightCache = new Map<string, { expiresAt: number; promise: Promise<HighlightPayload> }>();
 
 function usePrediction(
   eastNskId: number | null,
@@ -201,9 +211,46 @@ function usePrediction(
   return prediction?.available ? prediction : null;
 }
 
+function useBoutHighlights(
+  eastNskId: number | null,
+  westNskId: number | null,
+  context: { bashoId?: number; day?: number | null; divisionId: number },
+) {
+  const [highlights, setHighlights] = useState<HighlightPayload | null>(null);
+  useEffect(() => {
+    if (!eastNskId || !westNskId || !context.bashoId || !context.day) return;
+    const key = `${context.bashoId}-${context.day}-${context.divisionId}-${eastNskId}-${westNskId}`;
+    const now = Date.now();
+    let cached = highlightCache.get(key);
+    if (!cached || cached.expiresAt < now) {
+      const query = new URLSearchParams({
+        east: String(eastNskId),
+        west: String(westNskId),
+        basho: String(context.bashoId),
+        day: String(context.day),
+        division: String(context.divisionId),
+      });
+      const promise = fetch(`/api/highlights?${query}`)
+        .then(async (response) => response.ok ? response.json() as Promise<HighlightPayload> : { available: false })
+        .catch(() => ({ available: false }));
+      cached = { expiresAt: now + 300_000, promise };
+      highlightCache.set(key, cached);
+    }
+    let cancelled = false;
+    cached.promise.then((value) => { if (!cancelled) setHighlights(value); });
+    return () => { cancelled = true; };
+  }, [context.bashoId, context.day, context.divisionId, eastNskId, westNskId]);
+  return highlights?.available ? highlights.copy ?? null : null;
+}
+
 function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout; divisionId: number; compact?: boolean }) {
   const { data } = useLiveSumo();
   const prediction = usePrediction(bout.eastNskId, bout.westNskId, {
+    bashoId: data?.bashoId,
+    day: data?.day,
+    divisionId,
+  });
+  const highlights = useBoutHighlights(bout.eastNskId, bout.westNskId, {
     bashoId: data?.bashoId,
     day: data?.day,
     divisionId,
@@ -216,26 +263,27 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
     <div className="bout-prediction" aria-label={`${prediction.model ?? "相撲日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
       <div><span className="bout-prediction-east"><Bilingual ja={`東 ${prediction.east.probability}%`} en={`East ${prediction.east.probability}%`} /></span><span><Bilingual ja={`西 ${prediction.west.probability}%`} en={`West ${prediction.west.probability}%`} /></span></div>
       <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
-      <section className="bout-highlights" aria-label="見どころ（デザイン確認用）">
-        <div className="bout-highlights-heading">
-          <strong><Bilingual ja="この一番の見どころ" en="What to watch" /></strong>
-          <span><Bilingual ja="デザイン確認用" en="Design preview" /></span>
-        </div>
-        <ul>
-          <li>
-            <b><Bilingual ja={`${bout.east}の勝ち筋`} en={`${bout.eastEn || bout.east}: path to victory`} /></b>
-            <span><Bilingual ja="低い立ち合いから先に自分の形を作り、相手に十分な体勢を与えたくない。" en="Win the first contact, establish the preferred position, and deny the opponent a settled stance." /></span>
-          </li>
-          <li>
-            <b><Bilingual ja={`${bout.west}の勝ち筋`} en={`${bout.westEn || bout.west}: path to victory`} /></b>
-            <span><Bilingual ja="受けに回らず、得意の間合いへ運べるか。土俵際まで攻めを切らさないことが鍵。" en="Avoid fighting on the back foot, find the preferred distance, and keep the attack alive to the tawara." /></span>
-          </li>
-          <li>
-            <b><Bilingual ja="勝負の焦点" en="Matchup key" /></b>
-            <span><Bilingual ja="立ち合い直後の主導権争い。最初の一歩と組み手が、勝負の流れを大きく左右する。" en="The initiative after the tachiai: the first step and opening grip could shape the entire bout." /></span>
-          </li>
-        </ul>
-      </section>
+      {highlights ? (
+        <section className="bout-highlights" aria-label="この一番の見どころ">
+          <div className="bout-highlights-heading">
+            <strong><Bilingual ja="この一番の見どころ" en="What to watch" /></strong>
+          </div>
+          <ul>
+            <li>
+              <b><Bilingual ja={`${bout.east}の視点`} en={`${bout.eastEn || bout.east}'s view`} /></b>
+              <span><Bilingual ja={highlights.east.ja} en={highlights.east.en} /></span>
+            </li>
+            <li>
+              <b><Bilingual ja={`${bout.west}の視点`} en={`${bout.westEn || bout.west}'s view`} /></b>
+              <span><Bilingual ja={highlights.west.ja} en={highlights.west.en} /></span>
+            </li>
+            <li>
+              <b><Bilingual ja="勝負の焦点" en="Matchup key" /></b>
+              <span><Bilingual ja={highlights.key.ja} en={highlights.key.en} /></span>
+            </li>
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -46,11 +46,41 @@ test("keeps prediction writes server-only and official-result driven", async () 
   assert.match(liveRoute, /syncOfficialPredictionRecords/);
   assert.match(liveRoute, /claimSharedLiveSumoRefresh/);
   assert.match(liveRoute, /loadBanzukeSidesFromDatabase/);
-  assert.match(liveRoute, /FROM banzuke_entries b/);
+  assert.match(liveRoute, /banzukeEntries/);
   assert.doesNotMatch(liveClient, /prediction\/resolve|表示確認まで/);
   assert.match(schema, /prediction_records/);
   assert.match(schema, /live_sumo_cache/);
   assert.match(migration, /CREATE TABLE `live_sumo_cache`/);
+});
+
+test("supports Gemini-first and switchable GPT bout highlights", async () => {
+  const [provider, publicRoute, adminRoute, client, schema, migration, worker] = await Promise.all([
+    readFile(new URL("app/lib/ai-highlights.ts", root), "utf8"),
+    readFile(new URL("app/api/highlights/route.ts", root), "utf8"),
+    readFile(new URL("app/api/admin/generate-highlights/route.ts", root), "utf8"),
+    readFile(new URL("app/components/LiveSumo.tsx", root), "utf8"),
+    readFile(new URL("db/schema.ts", root), "utf8"),
+    readFile(new URL("drizzle/0005_youthful_loners.sql", root), "utf8"),
+    readFile(new URL("worker/index.ts", root), "utf8"),
+  ]);
+
+  assert.match(provider, /provider = runtime\(\)\.AI_PROVIDER === "openai" \? "openai" : "gemini"/);
+  assert.match(provider, /gemini-3\.1-flash-lite/);
+  assert.match(provider, /gpt-5\.6-luna/);
+  assert.match(provider, /responseJsonSchema: outputSchema/);
+  assert.match(provider, /type: "json_schema"/);
+  assert.doesNotMatch(publicRoute, /export async function POST|\.insert\(|\.update\(/);
+  assert.match(adminRoute, /AI_HIGHLIGHT_ADMIN_TOKEN/);
+  assert.match(adminRoute, /readSharedLiveSumoCache/);
+  assert.match(adminRoute, /bouts\.slice\(0, 5\)/);
+  assert.match(adminRoute, /batchSize/);
+  assert.match(adminRoute, /remaining/);
+  assert.match(worker, /ai-highlight-sweep-v1/);
+  assert.match(worker, /ctx\.waitUntil\(generateDailyHighlights/);
+  assert.match(client, /\/api\/highlights/);
+  assert.doesNotMatch(client, /デザイン確認用/);
+  assert.match(schema, /bout_highlights/);
+  assert.match(migration, /CREATE TABLE `bout_highlights`/);
 });
 
 test("loads full-basho rating deltas without exceeding D1 bind limits", async () => {
@@ -69,9 +99,9 @@ test("shows five current Glicko-2 risers across the top three divisions", async 
   const data = JSON.parse(featured);
 
   assert.match(home, /<FeaturedRisers \/>/);
-  assert.match(risers, /GLICKO-2/);
+  assert.match(risers, /Glicko-2/);
   assert.doesNotMatch(risers, /GLICKO-2 RISE|riser-position|previousRating/);
-  assert.match(risers, /前場所よりレート\(GLICKO-2\)を伸ばした五人/);
+  assert.match(risers, /前場所よりレート（Glicko-2）を伸ばした五人/);
   assert.equal(data.rows.length, 5);
   assert.ok(data.rows.every((row) => row.division >= 1 && row.division <= 3));
   assert.ok(data.rows.every((row) => row.delta > 0));
@@ -95,7 +125,7 @@ test("keeps the home result rows simple, clickable, and profile-safe", async () 
   assert.match(header, /力士レート/);
   assert.doesNotMatch(layout, /MobileQuickNav/);
   assert.doesNotMatch(styles, /mobile-quick-nav|padding-bottom: 68px/);
-  assert.match(liveSumo, /<h2>番付<\/h2>/);
+  assert.match(liveSumo, /<h2><Bilingual ja="番付" en="Banzuke" \/><\/h2>/);
   assert.doesNotMatch(liveSumo, /幕内番付|BANZUKE/);
   assert.match(liveSumo, /leftNsk=.*rightNsk=/);
   assert.match(liveSumo, /closest\("a, button"\)/);

@@ -161,3 +161,33 @@ export const predictionRecords = sqliteTable(
     index("prediction_records_unresolved_idx").on(table.winnerNskId, table.bashoId),
   ],
 );
+
+export const boutHighlights = sqliteTable(
+  "bout_highlights",
+  {
+    id: text("id").primaryKey(),
+    bashoId: integer("basho_id").notNull(),
+    day: integer("day").notNull(),
+    division: integer("division").notNull(),
+    eastNskId: integer("east_nsk_id").notNull(),
+    westNskId: integer("west_nsk_id").notNull(),
+    factsHash: text("facts_hash").notNull(),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    schemaVersion: text("schema_version").notNull(),
+    payload: text("payload").notNull(),
+    generatedAt: text("generated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("bout_highlights_match_uq").on(
+      table.bashoId,
+      table.day,
+      table.division,
+      table.eastNskId,
+      table.westNskId,
+    ),
+    index("bout_highlights_day_idx").on(table.bashoId, table.day, table.division),
+  ],
+);

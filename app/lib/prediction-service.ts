@@ -36,8 +36,32 @@ export type LivePrediction = {
     dohyoV3: { eastProbability: number; westProbability: number };
   };
   explanation: Record<string, unknown>;
-  east: Record<string, unknown>;
-  west: Record<string, unknown>;
+  east: {
+    id: number;
+    name: string;
+    nameEn: string;
+    elo: number;
+    glickoRating: number;
+    glickoRd: number;
+    dohyoScore: number;
+    probability: number;
+    heightMm: number | null;
+    weightKg: number | null;
+    profileUrl: string;
+  };
+  west: {
+    id: number;
+    name: string;
+    nameEn: string;
+    elo: number;
+    glickoRating: number;
+    glickoRd: number;
+    dohyoScore: number;
+    probability: number;
+    heightMm: number | null;
+    weightKg: number | null;
+    profileUrl: string;
+  };
   record: {
     modelVersion: string;
     eloEastBp: number;
@@ -181,21 +205,27 @@ export async function calculateLivePrediction(
     east: {
       id: east.id,
       name: japaneseRikishiName(east.id, east.shikonaJp) ?? east.shikonaEn,
+      nameEn: east.shikonaEn,
       elo: east.elo,
       glickoRating: eastGlicko.rating,
       glickoRd: eastGlicko.rd,
       dohyoScore: east.dohyoScoreTenths / 10,
       probability: eastProbability,
+      heightMm: east.heightMm,
+      weightKg: east.weightKg,
       profileUrl: rikishiProfilePath(east.id),
     },
     west: {
       id: west.id,
       name: japaneseRikishiName(west.id, west.shikonaJp) ?? west.shikonaEn,
+      nameEn: west.shikonaEn,
       elo: west.elo,
       glickoRating: westGlicko.rating,
       glickoRd: westGlicko.rd,
       dohyoScore: west.dohyoScoreTenths / 10,
       probability: 100 - eastProbability,
+      heightMm: west.heightMm,
+      weightKg: west.weightKg,
       profileUrl: rikishiProfilePath(west.id),
     },
     record: {
