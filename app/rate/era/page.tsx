@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { inArray } from "drizzle-orm";
 import era from "../../../data/era-rankings.json";
+import { getDb } from "../../../db";
+import { wrestlers } from "../../../db/schema";
 import SiteHeader from "../../components/SiteHeader";
 import RateLabNav from "../rate-lab-nav";
 import { getRequestLocale } from "../../lib/i18n-server";
@@ -21,6 +24,19 @@ function bashoLabel(bashoId: number, locale: Locale) {
 export default async function EraPage() {
   const locale = await getRequestLocale();
   const t = (ja: string, en: string) => locale === "en" ? en : ja;
+  const englishNames = new Map<number, string>();
+  if (locale === "en") {
+    try {
+      const rows = await getDb()
+        .select({ id: wrestlers.id, shikonaEn: wrestlers.shikonaEn })
+        .from(wrestlers)
+        .where(inArray(wrestlers.id, era.ranking.map((rikishi) => rikishi.id)));
+      for (const row of rows) englishNames.set(row.id, row.shikonaEn);
+    } catch {
+      // Keep the historical Japanese name if the read-only lookup is unavailable.
+    }
+  }
+  const rikishiName = (rikishi: (typeof era.ranking)[number]) => locale === "en" ? englishNames.get(rikishi.id) ?? rikishi.name : rikishi.name;
   const leaders = era.ranking.slice(0, 3);
   return (
     <main className="rate-page lab-subpage era-page">
@@ -34,7 +50,7 @@ export default async function EraPage() {
         <div className="rate-section-heading"><div><p>ERA DOMINANCE INDEX</p><h2 id="era-title">{t("歴代指数・実験ランキング", "Era Index · Experimental Ranking")}</h2></div></div>
         <div className="era-podium">
           {leaders.map((rikishi) => (
-            <article key={rikishi.id}><span>{locale === "en" ? `No. ${rikishi.position}` : `第${rikishi.position}位`}</span><Link href={`/rikishi/${rikishi.id}`}>{rikishi.name}</Link><strong>{rikishi.eraIndex}</strong><dl><div><dt>{t("最高偏差値", "Peak score")}</dt><dd>{rikishi.peakHensachi}</dd></div><div><dt>{t("上位6場所", "Best six")}</dt><dd>{rikishi.sustainedHensachi}</dd></div></dl><small>{t("頂点", "Peak")} {bashoLabel(rikishi.peakBasho, locale)}</small></article>
+            <article key={rikishi.id}><span>{locale === "en" ? `No. ${rikishi.position}` : `第${rikishi.position}位`}</span><Link href={`/rikishi/${rikishi.id}`}>{rikishiName(rikishi)}</Link><strong>{rikishi.eraIndex}</strong><dl><div><dt>{t("最高偏差値", "Peak score")}</dt><dd>{rikishi.peakHensachi}</dd></div><div><dt>{t("上位6場所", "Best six")}</dt><dd>{rikishi.sustainedHensachi}</dd></div></dl><small>{t("頂点", "Peak")} {bashoLabel(rikishi.peakBasho, locale)}</small></article>
           ))}
         </div>
 
@@ -44,7 +60,7 @@ export default async function EraPage() {
           <table>
             <thead><tr><th>{t("順位", "Rank")}</th><th>{t("力士", "Wrestler")}</th><th>{t("歴代指数", "Era Index")}</th><th>{t("最高偏差値", "Peak score")}</th><th>{t("上位6場所", "Best six")}</th><th>{t("幕内場所", "Top-division tournaments")}</th><th>{t("頂点", "Peak")}</th></tr></thead>
             <tbody>{era.ranking.map((rikishi) => (
-              <tr key={rikishi.id}><td>{rikishi.position}</td><th><Link href={`/rikishi/${rikishi.id}`}>{rikishi.name}</Link><small>{bashoLabel(rikishi.firstBasho, locale)}–{bashoLabel(rikishi.lastBasho, locale)}</small></th><td><strong>{rikishi.eraIndex}</strong></td><td>{rikishi.peakHensachi}</td><td>{rikishi.sustainedHensachi}</td><td>{rikishi.makuuchiBasho}</td><td>{bashoLabel(rikishi.peakBasho, locale)}</td></tr>
+              <tr key={rikishi.id}><td>{rikishi.position}</td><th><Link href={`/rikishi/${rikishi.id}`}>{rikishiName(rikishi)}</Link><small>{bashoLabel(rikishi.firstBasho, locale)}–{bashoLabel(rikishi.lastBasho, locale)}</small></th><td><strong>{rikishi.eraIndex}</strong></td><td>{rikishi.peakHensachi}</td><td>{rikishi.sustainedHensachi}</td><td>{rikishi.makuuchiBasho}</td><td>{bashoLabel(rikishi.peakBasho, locale)}</td></tr>
             ))}</tbody>
           </table>
         </div>

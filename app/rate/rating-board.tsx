@@ -235,10 +235,10 @@ export default function RatingBoard({
             <span className="rate-ranking-rikishi">
               {rikishi.profileUrl ? (
                 <a href={rikishi.profileUrl}>
-                  <b>{rikishi.shikonaJp ?? rikishi.shikonaEn}</b>
+                  <b>{locale === "en" ? rikishi.shikonaEn : rikishi.shikonaJp ?? rikishi.shikonaEn}</b>
                 </a>
-              ) : <b>{rikishi.shikonaJp ?? rikishi.shikonaEn}</b>}
-              <small>{displayRank(rikishi.banzukeRank, locale)}／{rikishi.shikonaEn}</small>
+              ) : <b>{locale === "en" ? rikishi.shikonaEn : rikishi.shikonaJp ?? rikishi.shikonaEn}</b>}
+              <small>{locale === "en" ? displayRank(rikishi.banzukeRank, locale) : `${displayRank(rikishi.banzukeRank, locale)}／${rikishi.shikonaEn}`}</small>
             </span>
             <span data-label="Elo"><b>{rikishi.elo}{formatDelta(rikishi.eloDelta)}</b><small>{locale === "en" ? `Peak ${rikishi.peakElo}` : `最高 ${rikishi.peakElo}`}</small></span>
             <span data-label="Glicko-2"><b>{rikishi.glickoRating}{formatDelta(rikishi.glickoDelta)}</b><small>{confidenceLabel(rikishi.glickoRdTenths, locale)}</small></span>

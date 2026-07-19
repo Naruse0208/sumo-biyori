@@ -228,7 +228,7 @@ export default function RikishiProfile({ rikishiRef, locale }: { rikishiRef: str
       <section className="rikishi-profile-hero">
         <div>
           <p className="rate-kicker">RIKISHI PROFILE / {wrestler.shikonaEn}</p>
-          <h1>{wrestler.displayName}</h1>
+          <h1>{locale === "en" ? wrestler.shikonaEn : wrestler.displayName}</h1>
           <p className="rikishi-rankline">{latest ? (locale === "en" ? `${divisionNamesEn[latest.division - 1]} · ${englishRank(latest.rank)}` : `${divisionNames[latest.division - 1]}・${latest.rank}`) : t("番付記録を確認中", "Checking ranking history")}</p>
           <div className="rikishi-profile-links">
             <Link href="/rate">← レート順位へ</Link>

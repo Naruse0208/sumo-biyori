@@ -93,6 +93,10 @@ const popularPairs: { label: string; left: RikishiOption; right: RikishiOption }
   },
 ];
 
+function localizedName(rikishi: Pick<RikishiOption, "name" | "shikonaEn">, locale: Locale) {
+  return locale === "en" ? rikishi.shikonaEn || rikishi.name : rikishi.name || rikishi.shikonaEn;
+}
+
 function bashoLabel(bashoId: number | null, locale: Locale) {
   if (!bashoId) return "—";
   return locale === "en" ? englishBashoLabel(bashoId).replace(" Tournament", "") : `${Math.floor(bashoId / 100)}年${bashoId % 100}月`;
@@ -181,7 +185,7 @@ function ComparisonChart({ left, right, metric, locale }: { left: ComparedRikish
     return () => observer.disconnect();
   }, [left, metric, right]);
 
-  return <canvas ref={canvasRef} className="compare-chart" aria-label={locale === "en" ? `${left.name} and ${right.name}: ${metricLabels[metric]} history` : `${left.name}と${right.name}の${metricLabels[metric]}推移`} />;
+  return <canvas ref={canvasRef} className="compare-chart" aria-label={locale === "en" ? `${localizedName(left, locale)} and ${localizedName(right, locale)}: ${metricLabels[metric]} history` : `${localizedName(left, locale)}と${localizedName(right, locale)}の${metricLabels[metric]}推移`} />;
 }
 
 function SearchPicker({ side, selected, onSelect, locale }: { side: "左" | "右"; selected: RikishiOption; onSelect: (rikishi: RikishiOption) => void; locale: Locale }) {
@@ -202,8 +206,8 @@ function SearchPicker({ side, selected, onSelect, locale }: { side: "左" | "右
   return (
     <div className="compare-picker">
       <small>{locale === "en" ? `${side === "左" ? "Left" : "Right"} wrestler` : `${side}の力士`}</small>
-      <strong>{selected.name}</strong>
-      <span>{selected.shikonaEn}</span>
+      <strong>{localizedName(selected, locale)}</strong>
+      {locale === "ja" && <span>{selected.shikonaEn}</span>}
       <label>
         <span className="sr-only">{locale === "en" ? `Search ${side === "左" ? "left" : "right"} wrestler` : `${side}の力士を検索`}</span>
         <input value={query} onChange={(event) => { setQuery(event.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder={locale === "en" ? "Search by shikona" : "四股名で入れ替える"} />
@@ -215,7 +219,7 @@ function SearchPicker({ side, selected, onSelect, locale }: { side: "左" | "右
             const firstYear = row.firstBasho ? Math.floor(row.firstBasho / 100) : null;
             const lastYear = row.lastBasho ? Math.floor(row.lastBasho / 100) : null;
             return <button key={row.id} type="button" onClick={() => { onSelect(row); setQuery(""); setOpen(false); }}>
-              <span className="compare-search-name"><strong>{row.name}</strong><small>{row.shikonaEn}</small></span>
+              <span className="compare-search-name"><strong>{localizedName(row, locale)}</strong>{locale === "ja" && <small>{row.shikonaEn}</small>}</span>
               <span className="compare-search-identity">
                 <strong>{row.highestRank ?? (locale === "en" ? "Rank unknown" : "番付不明")}</strong>
                 <small>{birthYear ? (locale === "en" ? `Born ${birthYear}` : `${birthYear}年生`) : (locale === "en" ? "Birth year unknown" : "生年不明")} · {firstYear ? `${firstYear}—${lastYear ?? (locale === "en" ? "active" : "現役")}` : row.intaiDate ? (locale === "en" ? "Retired" : "引退") : (locale === "en" ? "Active" : "現役")}</small>
@@ -232,10 +236,10 @@ function YokozunaPicker({ side, selected, rows, onSelect, locale }: { side: "左
   return (
     <label className="compare-picker compare-select-picker">
       <small>{locale === "en" ? `${side === "左" ? "Left" : "Right"} yokozuna` : `${side}の横綱`}</small>
-      <strong>{selected.name}</strong>
-      <span>{selected.shikonaEn}</span>
+      <strong>{localizedName(selected, locale)}</strong>
+      {locale === "ja" && <span>{selected.shikonaEn}</span>}
       <select value={selected.id} onChange={(event) => { const row = rows.find((item) => item.id === Number(event.target.value)); if (row) onSelect(row); }}>
-        {rows.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+        {rows.map((row) => <option key={row.id} value={row.id}>{localizedName(row, locale)}</option>)}
       </select>
     </label>
   );
@@ -246,7 +250,7 @@ function RikishiSummary({ rikishi, side, locale }: { rikishi: ComparedRikishi; s
   return (
     <article className={`compare-rikishi-card is-${side}`}>
       <p>{locale === "en" ? (side === "left" ? "EAST" : "WEST") : (side === "left" ? "東方" : "西方")} / {rikishi.shikonaEn}</p>
-      <h2><Link href={rikishi.profileUrl}>{rikishi.name}</Link></h2>
+      <h2><Link href={rikishi.profileUrl}>{localizedName(rikishi, locale)}</Link></h2>
       <span>{rikishi.intaiDate ? (locale === "en" ? `Last recorded ${bashoLabel(rikishi.career.lastBasho, locale)}` : `最終収録 ${bashoLabel(rikishi.career.lastBasho, locale)}`) : (locale === "en" ? `Latest ${bashoLabel(rikishi.career.lastBasho, locale)}` : `最新 ${bashoLabel(rikishi.career.lastBasho, locale)}`)}</span>
       <dl>
         <div><dt>Glicko-2</dt><dd>{latest?.glickoRating ?? "—"}</dd></div>
@@ -364,7 +368,7 @@ export default function ComparisonBoard({
             <span>{locale === "en" ? "Popular matchups" : "人気の組合せ"}</span>
             {popularPairs.map((pair) => (
               <button key={pair.label} type="button" onClick={() => { setLeft(pair.left); setRight(pair.right); }}>
-                {pair.label}
+                {locale === "en" ? `${pair.left.shikonaEn} × ${pair.right.shikonaEn}` : pair.label}
               </button>
             ))}
           </div>
@@ -398,7 +402,7 @@ export default function ComparisonBoard({
                 <button type="button" className={forecastMode === "peak" ? "is-active" : ""} onClick={() => setForecastMode("peak")}>{locale === "en" ? "Peak" : "全盛期"}</button>
               </div>
             </div>
-            <div className="compare-probability-names"><strong>{payload.left.name} <b>{probability}%</b></strong><span>{confidenceLabel}</span><strong><b>{100 - probability}%</b> {payload.right.name}</strong></div>
+            <div className="compare-probability-names"><strong>{localizedName(payload.left, locale)} <b>{probability}%</b></strong><span>{confidenceLabel}</span><strong><b>{100 - probability}%</b> {localizedName(payload.right, locale)}</strong></div>
             <div className="compare-probability-bar"><i style={{ width: `${probability}%` }} /></div>
             <p className="compare-forecast-note">
               {forecastMode === "peak"
@@ -414,9 +418,9 @@ export default function ComparisonBoard({
 
           <section className="rate-shell compare-history" aria-labelledby="compare-history-title">
             <div className="rate-section-heading"><div><p>CAREER CURVES</p><h2 id="compare-history-title">{locale === "en" ? "Career rating curves" : "二人のレート推移"}</h2></div><div className="compare-metric-switch" role="group" aria-label={locale === "en" ? "Chart metric" : "グラフの指標"}>{(["glicko", "elo", "hensachi"] as Metric[]).map((value) => <button key={value} type="button" className={metric === value ? "is-active" : ""} onClick={() => setMetric(value)}>{metricLabels[value]}</button>)}</div></div>
-            <div className="compare-chart-legend"><span className="is-left">{payload.left.name}</span><span className="is-right">{payload.right.name}</span></div>
+            <div className="compare-chart-legend"><span className="is-left">{localizedName(payload.left, locale)}</span><span className="is-right">{localizedName(payload.right, locale)}</span></div>
             <ComparisonChart left={payload.left} right={payload.right} metric={metric} locale={locale} />
-            <div className="compare-career-range"><span>{payload.left.name}: {bashoLabel(payload.left.career.firstBasho, locale)}–{bashoLabel(payload.left.career.lastBasho, locale)}</span><span>{payload.right.name}: {bashoLabel(payload.right.career.firstBasho, locale)}–{bashoLabel(payload.right.career.lastBasho, locale)}</span></div>
+            <div className="compare-career-range"><span>{localizedName(payload.left, locale)}: {bashoLabel(payload.left.career.firstBasho, locale)}–{bashoLabel(payload.left.career.lastBasho, locale)}</span><span>{localizedName(payload.right, locale)}: {bashoLabel(payload.right.career.firstBasho, locale)}–{bashoLabel(payload.right.career.lastBasho, locale)}</span></div>
           </section>
 
           <section className="rate-shell compare-evidence" aria-labelledby="compare-evidence-title">
@@ -429,13 +433,13 @@ export default function ComparisonBoard({
           </section>
 
           <section className="rate-shell compare-form-style">
-            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{locale === "en" ? `${payload.left.name}'s winning style` : `${payload.left.name}の勝ち筋`}</h2></div><span>{locale === "en" ? "Recent data" : "直近収録"}</span></div><div className="compare-style-list">{payload.left.style.length ? payload.left.style.map((item) => <div key={item.kimarite}><strong>{locale === "en" ? englishTechnique(item.kimarite) : item.kimarite}</strong><span>{item.count}{locale === "en" ? " bouts" : "番"}</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>{locale === "en" ? "No technique data" : "決まり手データなし"}</p>}</div><div className="compare-form" aria-label={locale === "en" ? `${payload.left.name}'s recent record` : `${payload.left.name}の直近成績`}>{payload.left.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? (locale === "en" ? "W" : "勝") : (locale === "en" ? "L" : "敗")}</span>)}</div></div>
-            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{locale === "en" ? `${payload.right.name}'s winning style` : `${payload.right.name}の勝ち筋`}</h2></div><span>{locale === "en" ? "Recent data" : "直近収録"}</span></div><div className="compare-style-list">{payload.right.style.length ? payload.right.style.map((item) => <div key={item.kimarite}><strong>{locale === "en" ? englishTechnique(item.kimarite) : item.kimarite}</strong><span>{item.count}{locale === "en" ? " bouts" : "番"}</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>{locale === "en" ? "No technique data" : "決まり手データなし"}</p>}</div><div className="compare-form" aria-label={locale === "en" ? `${payload.right.name}'s recent record` : `${payload.right.name}の直近成績`}>{payload.right.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? (locale === "en" ? "W" : "勝") : (locale === "en" ? "L" : "敗")}</span>)}</div></div>
+            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{locale === "en" ? `${localizedName(payload.left, locale)}'s winning style` : `${localizedName(payload.left, locale)}の勝ち筋`}</h2></div><span>{locale === "en" ? "Recent data" : "直近収録"}</span></div><div className="compare-style-list">{payload.left.style.length ? payload.left.style.map((item) => <div key={item.kimarite}><strong>{locale === "en" ? englishTechnique(item.kimarite) : item.kimarite}</strong><span>{item.count}{locale === "en" ? " bouts" : "番"}</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>{locale === "en" ? "No technique data" : "決まり手データなし"}</p>}</div><div className="compare-form" aria-label={locale === "en" ? `${localizedName(payload.left, locale)}'s recent record` : `${localizedName(payload.left, locale)}の直近成績`}>{payload.left.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? (locale === "en" ? "W" : "勝") : (locale === "en" ? "L" : "敗")}</span>)}</div></div>
+            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{locale === "en" ? `${localizedName(payload.right, locale)}'s winning style` : `${localizedName(payload.right, locale)}の勝ち筋`}</h2></div><span>{locale === "en" ? "Recent data" : "直近収録"}</span></div><div className="compare-style-list">{payload.right.style.length ? payload.right.style.map((item) => <div key={item.kimarite}><strong>{locale === "en" ? englishTechnique(item.kimarite) : item.kimarite}</strong><span>{item.count}{locale === "en" ? " bouts" : "番"}</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>{locale === "en" ? "No technique data" : "決まり手データなし"}</p>}</div><div className="compare-form" aria-label={locale === "en" ? `${localizedName(payload.right, locale)}'s recent record` : `${localizedName(payload.right, locale)}の直近成績`}>{payload.right.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? (locale === "en" ? "W" : "勝") : (locale === "en" ? "L" : "敗")}</span>)}</div></div>
           </section>
 
           <section className="rate-shell compare-head-to-head" aria-labelledby="head-to-head-title">
             <div className="rate-section-heading"><div><p>HEAD TO HEAD</p><h2 id="head-to-head-title">{locale === "en" ? "Head-to-head record" : "直接対戦の記録"}</h2></div><span>{payload.headToHead.bouts}{locale === "en" ? " bouts" : "番"}</span></div>
-            {payload.headToHead.rows.length ? <div className="compare-bout-list">{payload.headToHead.rows.map((bout) => <div key={bout.id}><span>{bashoLabel(bout.bashoId, locale)} · {locale === "en" ? `Day ${bout.day}` : `${bout.day}日目`}</span><strong>{bout.winnerId === payload.left.id ? payload.left.name : payload.right.name}</strong><em>{bout.kimarite ? (locale === "en" ? englishTechnique(bout.kimarite) : bout.kimarite) : (locale === "en" ? "Technique unknown" : "決まり手不明")}</em></div>)}</div> : <p className="compare-empty">{locale === "en" ? "No head-to-head meetings. Treat the peak comparison as an experiment that places ratings recorded in different eras on one scale." : "直接対戦はありません。全盛期比較は、各時代で記録したレートを同じ目盛りに置いた実験値としてご覧ください。"}</p>}
+            {payload.headToHead.rows.length ? <div className="compare-bout-list">{payload.headToHead.rows.map((bout) => <div key={bout.id}><span>{bashoLabel(bout.bashoId, locale)} · {locale === "en" ? `Day ${bout.day}` : `${bout.day}日目`}</span><strong>{bout.winnerId === payload.left.id ? localizedName(payload.left, locale) : localizedName(payload.right, locale)}</strong><em>{bout.kimarite ? (locale === "en" ? englishTechnique(bout.kimarite) : bout.kimarite) : (locale === "en" ? "Technique unknown" : "決まり手不明")}</em></div>)}</div> : <p className="compare-empty">{locale === "en" ? "No head-to-head meetings. Treat the peak comparison as an experiment that places ratings recorded in different eras on one scale." : "直接対戦はありません。全盛期比較は、各時代で記録したレートを同じ目盛りに置いた実験値としてご覧ください。"}</p>}
           </section>
         </>
       )}

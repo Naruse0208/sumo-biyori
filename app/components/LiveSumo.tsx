@@ -22,6 +22,8 @@ import {
 type LiveBout = {
   east: string;
   west: string;
+  eastEn: string;
+  westEn: string;
   eastNskId: number | null;
   westNskId: number | null;
   eastProfileUrl: string | null;
@@ -41,6 +43,8 @@ type LiveBanzukeRow = {
   rank: string;
   east: string | null;
   west: string | null;
+  eastEn: string | null;
+  westEn: string | null;
   eastProfileUrl: string | null;
   westProfileUrl: string | null;
 };
@@ -349,13 +353,13 @@ export function LiveHeroBout() {
           <div className="bout-main">
             <div className={`wrestler wrestler-east ${bout.winner === "east" ? "is-winner" : ""}`}>
               <span><Bilingual ja={`東・${bout.eastRank}`} en={englishRank(`東・${bout.eastRank}`)} /></span>
-              <ProfileLink className="wrestler-name-link" href={bout.eastProfileUrl}><strong>{bout.east}</strong></ProfileLink>
+              <ProfileLink className="wrestler-name-link" href={bout.eastProfileUrl}><strong><Bilingual ja={bout.east} en={bout.eastEn || bout.east} /></strong></ProfileLink>
               <small><Bilingual ja={bout.eastScore} en={englishScore(bout.eastScore)} /></small>
             </div>
             <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}><Bilingual ja={isNext ? "対" : "終了"} en={isNext ? "VS" : "Final"} /></div>
             <div className={`wrestler wrestler-west ${bout.winner === "west" ? "is-winner" : ""}`}>
               <span><Bilingual ja={`西・${bout.westRank}`} en={englishRank(`西・${bout.westRank}`)} /></span>
-              <ProfileLink className="wrestler-name-link" href={bout.westProfileUrl}><strong>{bout.west}</strong></ProfileLink>
+              <ProfileLink className="wrestler-name-link" href={bout.westProfileUrl}><strong><Bilingual ja={bout.west} en={bout.westEn || bout.west} /></strong></ProfileLink>
               <small><Bilingual ja={bout.westScore} en={englishScore(bout.westScore)} /></small>
             </div>
           </div>
@@ -439,7 +443,7 @@ export function LiveResultsBoard() {
                 >
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
                     <small className="result-rank"><Bilingual ja={formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)} en={englishRank(formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide), division.name)} /></small>
-                    <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
+                    <ProfileLink className="result-name" href={bout.eastProfileUrl}><Bilingual ja={bout.east} en={bout.eastEn || bout.east} /></ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
                   <span className="result-technique">
@@ -448,7 +452,7 @@ export function LiveResultsBoard() {
                   </span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
-                    <ProfileLink className="result-name" href={bout.westProfileUrl}>{bout.west}</ProfileLink>
+                    <ProfileLink className="result-name" href={bout.westProfileUrl}><Bilingual ja={bout.west} en={bout.westEn || bout.west} /></ProfileLink>
                     <small className="result-rank"><Bilingual ja={formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)} en={englishRank(formatResultRank(bout.westRank, division.name, bout.westBanzukeSide), division.name)} /></small>
                   </span>
                 </div>
@@ -486,9 +490,9 @@ export function LiveBanzukeCard() {
           <p className="banzuke-loading"><Bilingual ja="公式番付を確認中" en="Checking the official banzuke" /></p>
         ) : rows.length ? rows.map((row, index) => (
           <div className="rank-row" key={`${row.rank}-${index}`}>
-            <ProfileLink className="rank-rikishi" href={row.eastProfileUrl}>{row.east ?? "—"}</ProfileLink>
+            <ProfileLink className="rank-rikishi" href={row.eastProfileUrl}><Bilingual ja={row.east ?? "—"} en={row.eastEn ?? row.east ?? "—"} /></ProfileLink>
             <em><Bilingual ja={row.rank} en={englishRank(row.rank)} /></em>
-            <ProfileLink className="rank-rikishi" href={row.westProfileUrl}>{row.west ?? "—"}</ProfileLink>
+            <ProfileLink className="rank-rikishi" href={row.westProfileUrl}><Bilingual ja={row.west ?? "—"} en={row.westEn ?? row.west ?? "—"} /></ProfileLink>
           </div>
         )) : (
           <p className="banzuke-loading"><Bilingual ja="公式番付の更新を待っています。" en="Waiting for the official banzuke." /></p>

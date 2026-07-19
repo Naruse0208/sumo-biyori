@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { readOfficialNames, saveOfficialNames } from "../../../db/official-name-cache";
 import { banzukeEntries, wrestlers } from "../../../db/schema";
@@ -57,6 +57,8 @@ type LiveBoutStatus = "past" | "current" | "next";
 type LiveBout = {
   east: string;
   west: string;
+  eastEn: string;
+  westEn: string;
   eastNskId: number | null;
   westNskId: number | null;
   eastProfileUrl: string | null;
@@ -106,6 +108,10 @@ type LiveBanzukeRow = {
   rank: string;
   east: string | null;
   west: string | null;
+  eastEn: string | null;
+  westEn: string | null;
+  eastNskId: number | null;
+  westNskId: number | null;
   eastProfileUrl: string | null;
   westProfileUrl: string | null;
 };
@@ -150,6 +156,7 @@ let storedBanzukeSideCache: {
 } | null = null;
 const responseCache = new Map<string, LiveResponse>();
 const profileNameCache = new Map<number, string>();
+const englishNameCache = new Map<number, string>();
 
 function sleep(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -268,6 +275,8 @@ function mapBout(bout: UpstreamBout, status: LiveBoutStatus): LiveBout {
   return {
     east: cleanShikona(bout.east),
     west: cleanShikona(bout.west),
+    eastEn: bout.east?.shikona_eng?.trim() || cleanShikona(bout.east),
+    westEn: bout.west?.shikona_eng?.trim() || cleanShikona(bout.west),
     eastNskId: bout.east?.rikishi_id ?? null,
     westNskId: bout.west?.rikishi_id ?? null,
     eastProfileUrl: profileUrl(bout.east?.rikishi_id),
@@ -321,15 +330,21 @@ function mapMakuuchiBanzuke(wrestlers: UpstreamBanzukeRikishi[]): LiveBanzukeRow
       rank,
       east: null,
       west: null,
+      eastEn: null,
+      westEn: null,
+      eastNskId: null,
+      westNskId: null,
       eastProfileUrl: null,
       westProfileUrl: null,
     };
     const shikona = wrestler.shikona?.trim().split(/\s+/)[0] ?? null;
     if (Number(wrestler.ew) === 1) {
       row.east = shikona;
+      row.eastNskId = wrestler.rikishi_id ?? null;
       row.eastProfileUrl = profileUrl(wrestler.rikishi_id);
     } else {
       row.west = shikona;
+      row.westNskId = wrestler.rikishi_id ?? null;
       row.westProfileUrl = profileUrl(wrestler.rikishi_id);
     }
     rows.set(key, row);
@@ -479,6 +494,9 @@ async function mapBoutSourcesWithKanjiNames(
   sources: Array<{ bout: UpstreamBout; status: LiveBoutStatus }>,
 ): Promise<LiveBout[]> {
   const resolvedNames = await resolveKanjiNames(sources);
+  const resolvedEnglishNames = await loadEnglishNames(
+    sources.flatMap(({ bout }) => [bout.east?.rikishi_id, bout.west?.rikishi_id]),
+  );
   return sources.map(({ bout, status }) => {
     const mapped = mapBout(bout, status);
     const eastId = Number(bout.east?.rikishi_id ?? 0);
@@ -487,8 +505,38 @@ async function mapBoutSourcesWithKanjiNames(
       ...mapped,
       east: resolvedNames.get(eastId) ?? mapped.east,
       west: resolvedNames.get(westId) ?? mapped.west,
+      eastEn: resolvedEnglishNames.get(eastId) ?? mapped.eastEn,
+      westEn: resolvedEnglishNames.get(westId) ?? mapped.westEn,
     };
   });
+}
+
+async function loadEnglishNames(ids: Array<number | null | undefined>): Promise<Map<number, string>> {
+  const uniqueIds = [...new Set(ids.map((id) => Number(id ?? 0)).filter(Boolean))];
+  const result = new Map<number, string>();
+  const missing: number[] = [];
+  for (const id of uniqueIds) {
+    const cached = englishNameCache.get(id);
+    if (cached) result.set(id, cached);
+    else missing.push(id);
+  }
+  if (!missing.length) return result;
+  try {
+    const rows = await getDb()
+      .select({ nskId: wrestlers.nskId, shikonaEn: wrestlers.shikonaEn })
+      .from(wrestlers)
+      .where(inArray(wrestlers.nskId, missing));
+    for (const row of rows) {
+      const id = Number(row.nskId ?? 0);
+      const name = row.shikonaEn?.trim();
+      if (!id || !name) continue;
+      englishNameCache.set(id, name);
+      result.set(id, name);
+    }
+  } catch {
+    // The official payload's English name remains the no-write fallback.
+  }
+  return result;
 }
 
 async function applyKanjiNamesToSources(divisions: LiveDivisionSource[]): Promise<void> {
@@ -765,6 +813,14 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
   const resultDivision = requestedDivisionId
     ? await mapDivision(selectedSource, true)
     : currentDivision;
+  const banzukeEnglishNames = await loadEnglishNames(
+    snapshot.banzuke.flatMap((row) => [row.eastNskId, row.westNskId]),
+  );
+  const localizedBanzuke = snapshot.banzuke.map((row) => ({
+    ...row,
+    eastEn: row.eastNskId ? banzukeEnglishNames.get(row.eastNskId) ?? row.eastEn ?? row.east : row.eastEn ?? row.east,
+    westEn: row.westNskId ? banzukeEnglishNames.get(row.westNskId) ?? row.westEn ?? row.west : row.westEn ?? row.west,
+  }));
   const value: LiveResponse = {
     live: Boolean(currentDivision?.total),
     basho: `${getEraYear(snapshot.dayHead)} ${snapshot.bashoName}`.trim(),
@@ -774,7 +830,7 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
     currentDivision,
     resultDivision,
     divisions: snapshot.divisions.map(({ id, name, completed, total }) => ({ id, name, completed, total })),
-    banzuke: snapshot.banzuke,
+    banzuke: localizedBanzuke,
     updatedAt: snapshot.updatedAt,
     sourceUrl: `https://www.sumo.or.jp/ResultData/torikumi/${selectedSource?.id ?? 1}/${snapshot.day}/`,
     displayRefreshSeconds: 10,

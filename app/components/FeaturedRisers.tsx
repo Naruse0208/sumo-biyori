@@ -49,7 +49,7 @@ export default function FeaturedRisers() {
         {featured.rows.map((rikishi) => (
           <li key={rikishi.id}>
             <small className="riser-rank"><Bilingual ja={displayRank(rikishi.rank, rikishi.division)} en={englishDisplayRank(rikishi.rank, rikishi.division)} /></small>
-            <a className="riser-name" href={rikishi.profileUrl}>{rikishi.name}</a>
+            <a className="riser-name" href={rikishi.profileUrl}><Bilingual ja={rikishi.name} en={rikishi.shikonaEn} /></a>
             <strong className="riser-current">{rikishi.rating}<span>(+{rikishi.delta})</span></strong>
           </li>
         ))}
