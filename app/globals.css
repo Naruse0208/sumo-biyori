@@ -1175,6 +1175,13 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
   font-size: 12px;
 }
 
+.rate-basho-message,
+.rate-ranking-row > span small,
+.compare-chart-legend,
+.compare-chart-legend span {
+  font-size: 12px !important;
+}
+
 @media (max-width: 700px) {
   .brand-roman,
   .language-toggle,
