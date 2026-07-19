@@ -123,6 +123,7 @@ type LiveResponse = {
   day: number | null;
   dayLabel: string;
   currentDivision: LiveDivision | null;
+  heroDivision: LiveDivision | null;
   resultDivision: LiveDivision | null;
   divisions: Array<Pick<LiveDivision, "id" | "name" | "completed" | "total">>;
   banzuke: LiveBanzukeRow[];
@@ -818,6 +819,9 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
   const resultDivision = requestedDivisionId
     ? await mapDivision(selectedSource, true)
     : currentDivision;
+  const heroDivision = requestedDivisionId && selectedSource?.id === liveSource?.id
+    ? resultDivision
+    : await mapDivision(liveSource, true);
   const banzukeEnglishNames = await loadEnglishNames(
     snapshot.banzuke.flatMap((row) => [
       row.eastNskId ?? nskIdFromProfileUrl(row.eastProfileUrl),
@@ -842,6 +846,7 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
     day: snapshot.day,
     dayLabel: getDayLabel(snapshot.dayHead, snapshot.day),
     currentDivision,
+    heroDivision,
     resultDivision,
     divisions: snapshot.divisions.map(({ id, name, completed, total }) => ({ id, name, completed, total })),
     banzuke: localizedBanzuke,

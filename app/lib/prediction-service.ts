@@ -71,6 +71,66 @@ export type LivePrediction = {
   };
 };
 
+export type StoredPrediction = {
+  stored: true;
+  model: string;
+  models: LivePrediction["models"];
+  east: { probability: number };
+  west: { probability: number };
+};
+
+export async function loadStoredPrediction(
+  context: PredictionContext,
+): Promise<StoredPrediction | null> {
+  if (!validPredictionContext([
+    context.bashoId,
+    context.day,
+    context.division,
+    context.eastNskId,
+    context.westNskId,
+  ])) return null;
+
+  const id = predictionRecordId(
+    context.bashoId,
+    context.day,
+    context.division,
+    context.eastNskId,
+    context.westNskId,
+  );
+  const record = await getDb()
+    .select({
+      modelVersion: predictionRecords.modelVersion,
+      eloEastBp: predictionRecords.eloEastBp,
+      glickoEastBp: predictionRecords.glickoEastBp,
+      dohyoV2EastBp: predictionRecords.dohyoV2EastBp,
+      dohyoV3EastBp: predictionRecords.dohyoV3EastBp,
+    })
+    .from(predictionRecords)
+    .where(eq(predictionRecords.id, id))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+  if (!record) return null;
+
+  const percent = (basisPoints: number | null) => Math.max(0, Math.min(100, Math.round((basisPoints ?? 0) / 100)));
+  const pair = (basisPoints: number | null) => {
+    const eastProbability = percent(basisPoints);
+    return { eastProbability, westProbability: 100 - eastProbability };
+  };
+  const dohyoV2 = pair(record.dohyoV2EastBp);
+  return {
+    stored: true,
+    model: record.modelVersion,
+    models: {
+      elo: pair(record.eloEastBp),
+      glicko2: pair(record.glickoEastBp),
+      dohyoV2,
+      dohyoV3: pair(record.dohyoV3EastBp ?? record.dohyoV2EastBp),
+    },
+    east: { probability: dohyoV2.eastProbability },
+    west: { probability: dohyoV2.westProbability },
+  };
+}
+
 async function latestByNskId(nskId: number) {
   return getDb()
     .select({

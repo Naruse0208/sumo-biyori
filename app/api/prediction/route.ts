@@ -1,4 +1,5 @@
-import { calculateLivePrediction } from "../../lib/prediction-service";
+import { calculateLivePrediction, loadStoredPrediction } from "../../lib/prediction-service";
+import { validPredictionContext } from "../../lib/prediction-record";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,25 @@ export async function GET(request: Request) {
   }
 
   try {
+    const context = {
+      bashoId: Number(url.searchParams.get("basho")),
+      day: Number(url.searchParams.get("day")),
+      division: Number(url.searchParams.get("division")),
+      eastNskId,
+      westNskId,
+    };
+    if (validPredictionContext(Object.values(context))) {
+      const stored = await loadStoredPrediction(context);
+      if (stored) {
+        return Response.json({ available: true, ...stored }, {
+          headers: { "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=600" },
+        });
+      }
+    }
     const prediction = await calculateLivePrediction(request, eastNskId, westNskId);
     if (!prediction) return Response.json({ available: false });
-    const { record: _record, ...publicPrediction } = prediction;
+    const { record, ...publicPrediction } = prediction;
+    void record;
     return Response.json({ available: true, ...publicPrediction }, {
       headers: { "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=60" },
     });

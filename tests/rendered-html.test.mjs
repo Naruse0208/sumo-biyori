@@ -138,6 +138,25 @@ test("keeps the home result rows simple, clickable, and profile-safe", async () 
   assert.match(styles, /grid-template-columns: \.95fr 2\.23fr/);
 });
 
+test("keeps finished forecasts and highlights while browsing adjacent bouts", async () => {
+  const [liveSumo, liveRoute, predictionRoute, predictionService, styles] = await Promise.all([
+    readFile(new URL("app/components/LiveSumo.tsx", root), "utf8"),
+    readFile(new URL("app/api/live-sumo/route.ts", root), "utf8"),
+    readFile(new URL("app/api/prediction/route.ts", root), "utf8"),
+    readFile(new URL("app/lib/prediction-service.ts", root), "utf8"),
+    readFile(new URL("app/globals.css", root), "utf8"),
+  ]);
+
+  assert.match(liveRoute, /heroDivision/);
+  assert.match(liveSumo, /ja="← 戻る"/);
+  assert.match(liveSumo, /ja="進む →"/);
+  assert.match(liveSumo, /<WinProbability bout=\{bout\} divisionId=\{division\?\.id \?\? 1\} \/>/);
+  assert.doesNotMatch(liveSumo, /bout\.status !== "past" && <WinProbability/);
+  assert.match(predictionRoute, /loadStoredPrediction/);
+  assert.match(predictionService, /export async function loadStoredPrediction/);
+  assert.match(styles, /\.bout-ribbon-nav/);
+});
+
 test("production bundle and social card exist", async () => {
   await Promise.all([
     access(new URL("dist/server/index.js", root)),

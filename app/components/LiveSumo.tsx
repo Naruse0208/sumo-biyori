@@ -65,6 +65,7 @@ type LivePayload = {
   day?: number | null;
   dayLabel?: string;
   currentDivision?: LiveDivision | null;
+  heroDivision?: LiveDivision | null;
   resultDivision?: LiveDivision | null;
   divisions?: Array<Pick<LiveDivision, "id" | "name" | "completed" | "total">>;
   banzuke?: LiveBanzukeRow[];
@@ -89,6 +90,7 @@ const LiveContext = createContext<LiveContextValue | null>(null);
 
 type PredictionPayload = {
   available: boolean;
+  stored?: boolean;
   model?: string;
   confidence?: "high" | "medium" | "low";
   models?: {
@@ -97,8 +99,8 @@ type PredictionPayload = {
     dohyoV2?: { eastProbability: number; westProbability: number };
     dohyoV3?: { eastProbability: number; westProbability: number };
   };
-  east?: { elo: number; glickoRating?: number; probability: number };
-  west?: { elo: number; glickoRating?: number; probability: number };
+  east?: { elo?: number; glickoRating?: number; probability: number };
+  west?: { elo?: number; glickoRating?: number; probability: number };
 };
 
 type HighlightPayload = {
@@ -167,6 +169,9 @@ async function enrichPayloadBanzukeSides(payload: LivePayload): Promise<LivePayl
   const sides = await loadStoredBanzukeSides(payload.bashoId, division.id);
   return {
     ...payload,
+    heroDivision: payload.heroDivision?.id === division.id
+      ? applyStoredBanzukeSides(payload.heroDivision, sides)
+      : payload.heroDivision,
     resultDivision: payload.resultDivision?.id === division.id
       ? applyStoredBanzukeSides(payload.resultDivision, sides)
       : payload.resultDivision,
@@ -250,19 +255,24 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
     day: data?.day,
     divisionId,
   });
-  const highlights = useBoutHighlights(bout.eastNskId, bout.westNskId, {
+  const highlights = useBoutHighlights(compact ? null : bout.eastNskId, compact ? null : bout.westNskId, {
     bashoId: data?.bashoId,
     day: data?.day,
     divisionId,
   });
-  if (!prediction?.east || !prediction.west) return null;
   if (compact) {
+    if (!prediction?.east || !prediction.west) return null;
     return <small className="result-prediction"><span><Bilingual ja="勝機" en="Forecast" /></span><strong><Bilingual ja={`東${prediction.east.probability}%・西${prediction.west.probability}%`} en={`East ${prediction.east.probability}% · West ${prediction.west.probability}%`} /></strong></small>;
   }
+  if ((!prediction?.east || !prediction.west) && !highlights) return null;
   return (
-    <div className="bout-prediction" aria-label={`${prediction.model ?? "相撲日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
-      <div><span className="bout-prediction-east"><Bilingual ja={`東 ${prediction.east.probability}%`} en={`East ${prediction.east.probability}%`} /></span><span><Bilingual ja={`西 ${prediction.west.probability}%`} en={`West ${prediction.west.probability}%`} /></span></div>
-      <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
+    <div className="bout-prediction" aria-label={prediction?.east && prediction.west ? `${prediction.model ?? "相撲日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%` : "この一番の見どころ"}>
+      {prediction?.east && prediction.west ? (
+        <>
+          <div><span className="bout-prediction-east"><Bilingual ja={`東 ${prediction.east.probability}%`} en={`East ${prediction.east.probability}%`} /></span><span><Bilingual ja={`西 ${prediction.west.probability}%`} en={`West ${prediction.west.probability}%`} /></span></div>
+          <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
+        </>
+      ) : null}
       {highlights ? (
         <section className="bout-highlights" aria-label="この一番の見どころ">
           <div className="bout-highlights-heading">
@@ -397,17 +407,33 @@ export function LiveHeaderStatus() {
 export function LiveHeroBout() {
   const { data, loading } = useLiveSumo();
   const division = data?.currentDivision;
+  const heroBouts = data?.heroDivision?.recentResults ?? [];
   const recentResults = division?.recentResults ?? [];
-  const bout = division?.nextBout ?? recentResults[recentResults.length - 1] ?? null;
-  const isNext = Boolean(division?.nextBout);
+  const liveBout = division?.nextBout ?? recentResults[recentResults.length - 1] ?? null;
+  const [selectedBout, setSelectedBout] = useState<{ contextKey: string; boutKey: string } | null>(null);
+  const contextKey = `${data?.bashoId ?? 0}-${data?.day ?? 0}-${division?.id ?? 0}`;
+  const boutKey = useCallback((item: LiveBout) => `${item.eastNskId ?? item.east}-${item.westNskId ?? item.west}`, []);
+  const selectedBoutKey = selectedBout?.contextKey === contextKey ? selectedBout.boutKey : null;
+  const liveBoutKey = liveBout ? boutKey(liveBout) : null;
+  const selectedIndex = heroBouts.findIndex((item) => boutKey(item) === (selectedBoutKey ?? liveBoutKey));
+  const bout = selectedIndex >= 0 ? heroBouts[selectedIndex] : liveBout;
+  const isNext = bout?.status !== "past";
+  const showPrevious = selectedIndex > 0;
+  const showNext = selectedIndex >= 0 && selectedIndex < heroBouts.length - 1;
+  const moveBout = (offset: -1 | 1) => {
+    const next = heroBouts[selectedIndex + offset];
+    if (next) setSelectedBout({ contextKey, boutKey: boutKey(next) });
+  };
 
   return (
     <article className="bout-card" id="torikumi" aria-live="polite">
       <div className="bout-ribbon">
-        <Bilingual
+        <button type="button" className="bout-ribbon-nav" onClick={() => moveBout(-1)} disabled={!showPrevious} aria-label="前の取組を見る"><Bilingual ja="← 戻る" en="← Previous" /></button>
+        <span className="bout-ribbon-title"><Bilingual
           ja={loading ? "公式取組情報を確認中" : division ? `${data?.basho}・${data?.dayLabel}　${division.name}` : "本場所情報"}
           en={loading ? "Checking official bout data" : division ? `${englishBashoLabel(data?.bashoId, data?.basho)} · ${englishDayLabel(data?.day)} · ${divisionEnglish[division.id] ?? division.name}` : "Tournament data"}
-        />
+        /></span>
+        <button type="button" className="bout-ribbon-nav" onClick={() => moveBout(1)} disabled={!showNext} aria-label="次の取組を見る"><Bilingual ja="進む →" en="Next →" /></button>
       </div>
       {bout ? (
         <>
@@ -424,7 +450,7 @@ export function LiveHeroBout() {
               <small><Bilingual ja={bout.westScore} en={englishScore(bout.westScore)} /></small>
             </div>
           </div>
-          {isNext && <WinProbability bout={bout} divisionId={division?.id ?? 1} />}
+          <WinProbability bout={bout} divisionId={division?.id ?? 1} />
         </>
       ) : (
         <div className="live-empty"><Bilingual ja={data?.message ?? "取組情報の更新を待っています。"} en="Waiting for bout data." /></div>
@@ -506,7 +532,7 @@ export function LiveResultsBoard() {
                   </span>
                   <span className="result-technique">
                     <span><Bilingual ja={bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"} en={bout.status === "past" ? englishTechnique(bout.technique) : bout.status === "current" ? "Now" : "Up next"} /></span>
-                    {bout.status !== "past" && <WinProbability bout={bout} divisionId={division.id} compact />}
+                    <WinProbability bout={bout} divisionId={division.id} compact />
                   </span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
