@@ -40,3 +40,9 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+/.openai/package-stage*/
+/.openai/*.tar.gz
+/.sites-package/
+/.codex-tools/
+/*.tsbuildinfo
+/.wrangler-*.log

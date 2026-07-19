@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import SiteHeader from "../../components/SiteHeader";
 import { englishRank, type Locale } from "../../lib/i18n";
 
 type RatingPoint = {
@@ -208,8 +207,8 @@ export default function RikishiProfile({ rikishiRef, locale }: { rikishiRef: str
     return history.slice(-count);
   }, [payload, range]);
 
-  if (error) return <main className="rikishi-page"><div className="rikishi-error"><strong>{t("力士情報を表示できません", "Wrestler profile unavailable")}</strong><p>{error}</p><Link href="/rate">{t("レート順位へ戻る →", "Back to ratings →")}</Link></div></main>;
-  if (!payload) return <main className="rikishi-page"><div className="rikishi-loading">{t("力士プロフィールを読み込み中…", "Loading wrestler profile…")}</div></main>;
+  if (error) return <div className="rikishi-error"><strong>{t("力士情報を表示できません", "Wrestler profile unavailable")}</strong><p>{error}</p><Link href="/rate">{t("レート順位へ戻る →", "Back to ratings →")}</Link></div>;
+  if (!payload) return <div className="rikishi-loading">{t("力士プロフィールを読み込み中…", "Loading wrestler profile…")}</div>;
 
   const { wrestler, latest, history } = payload;
   const peakElo = history.reduce((maximum, point) => Math.max(maximum, point.peakElo), latest?.peakElo ?? 1500);
@@ -220,11 +219,7 @@ export default function RikishiProfile({ rikishiRef, locale }: { rikishiRef: str
     return (point.sumoHensachiTenths / 10).toFixed(1);
   };
   return (
-    <main className="rikishi-page">
-      <div className="rate-frame" aria-hidden="true" />
-      <div className="notice-bar rate-notice"><strong>{t("力士レート名鑑", "Wrestler Rating Profile")}</strong><span>ELO HISTORY</span></div>
-      <SiteHeader active="rate" />
-
+    <>
       <section className="rikishi-profile-hero">
         <div>
           <p className="rate-kicker">RIKISHI PROFILE / {wrestler.shikonaEn}</p>
@@ -288,6 +283,6 @@ export default function RikishiProfile({ rikishiRef, locale }: { rikishiRef: str
       </section>
 
       <footer><div className="footer-brand"><div><strong>{t("相撲日和", "SUMO BIYORI")}</strong><small>{t("相撲を、もっと近くに。", "Bring sumo closer.")}</small></div></div><p>{t("非公式ファンサイト", "Unofficial fan site")}</p><Link href="/rate">{t("レート順位へ戻る →", "Back to ratings →")}</Link></footer>
-    </main>
+    </>
   );
 }

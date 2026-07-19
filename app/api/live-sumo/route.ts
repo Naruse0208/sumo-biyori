@@ -819,9 +819,7 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
   const resultDivision = requestedDivisionId
     ? await mapDivision(selectedSource, true)
     : currentDivision;
-  const heroDivision = requestedDivisionId && selectedSource?.id === liveSource?.id
-    ? resultDivision
-    : await mapDivision(liveSource, true);
+  const heroDivision = await mapDivision(selectedSource, true);
   const banzukeEnglishNames = await loadEnglishNames(
     snapshot.banzuke.flatMap((row) => [
       row.eastNskId ?? nskIdFromProfileUrl(row.eastProfileUrl),

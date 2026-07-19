@@ -81,12 +81,25 @@ type LiveContextValue = {
   loading: boolean;
   expanded: boolean;
   selectedDivisionId: number | null;
+  heroSelection: HeroSelection | null;
   resultLoading: boolean;
-  selectDivision: (divisionId: number) => void;
+  selectDivision: (divisionId: number, anchor?: HeroAnchor) => void;
+  selectHeroBout: (divisionId: number, bout: LiveBout) => void;
   collapseResults: () => void;
 };
 
+type HeroAnchor = "live" | "first" | "last";
+type HeroSelection = {
+  divisionId: number;
+  boutKey: string | null;
+  anchor: HeroAnchor;
+};
+
 const LiveContext = createContext<LiveContextValue | null>(null);
+
+function liveBoutKey(item: LiveBout) {
+  return `${item.eastNskId ?? item.east}-${item.westNskId ?? item.west}`;
+}
 
 type PredictionPayload = {
   available: boolean;
@@ -305,6 +318,7 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(null);
+  const [heroSelection, setHeroSelection] = useState<HeroSelection | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
 
   const refresh = useCallback(async (divisionId: number | null = selectedDivisionId) => {
@@ -322,16 +336,22 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedDivisionId]);
 
-  const selectDivision = useCallback((divisionId: number) => {
+  const selectDivision = useCallback((divisionId: number, anchor: HeroAnchor = "live") => {
     setExpanded(true);
     setSelectedDivisionId(divisionId);
+    setHeroSelection({ divisionId, boutKey: null, anchor });
     setResultLoading(true);
     void refresh(divisionId);
   }, [refresh]);
 
+  const selectHeroBout = useCallback((divisionId: number, bout: LiveBout) => {
+    setHeroSelection({ divisionId, boutKey: liveBoutKey(bout), anchor: "live" });
+  }, []);
+
   const collapseResults = useCallback(() => {
     setExpanded(false);
     setSelectedDivisionId(null);
+    setHeroSelection(null);
     setResultLoading(false);
     void refresh(null);
   }, [refresh]);
@@ -351,8 +371,8 @@ export function LiveSumoProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const value = useMemo(
-    () => ({ data, loading, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults }),
-    [data, loading, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults],
+    () => ({ data, loading, expanded, selectedDivisionId, heroSelection, resultLoading, selectDivision, selectHeroBout, collapseResults }),
+    [data, loading, expanded, selectedDivisionId, heroSelection, resultLoading, selectDivision, selectHeroBout, collapseResults],
   );
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
 }
@@ -407,35 +427,48 @@ export function LiveHeaderStatus() {
 }
 
 export function LiveHeroBout() {
-  const { data, loading } = useLiveSumo();
-  const division = data?.currentDivision;
+  const { data, loading, heroSelection, selectDivision, selectHeroBout } = useLiveSumo();
+  const division = data?.heroDivision ?? data?.currentDivision;
   const heroBouts = data?.heroDivision?.recentResults ?? [];
   const recentResults = division?.recentResults ?? [];
   const liveBout = division?.nextBout ?? recentResults[recentResults.length - 1] ?? null;
-  const [selectedBout, setSelectedBout] = useState<{ contextKey: string; boutKey: string } | null>(null);
-  const contextKey = `${data?.bashoId ?? 0}-${data?.day ?? 0}-${division?.id ?? 0}`;
-  const boutKey = useCallback((item: LiveBout) => `${item.eastNskId ?? item.east}-${item.westNskId ?? item.west}`, []);
-  const selectedBoutKey = selectedBout?.contextKey === contextKey ? selectedBout.boutKey : null;
-  const liveBoutKey = liveBout ? boutKey(liveBout) : null;
-  const selectedIndex = heroBouts.findIndex((item) => boutKey(item) === (selectedBoutKey ?? liveBoutKey));
+  const selection = heroSelection?.divisionId === division?.id ? heroSelection : null;
+  const requestedIndex = selection?.boutKey
+    ? heroBouts.findIndex((item) => liveBoutKey(item) === selection.boutKey)
+    : selection?.anchor === "first"
+      ? 0
+      : selection?.anchor === "last"
+        ? heroBouts.length - 1
+        : -1;
+  const defaultBoutKey = liveBout ? liveBoutKey(liveBout) : null;
+  const defaultIndex = heroBouts.findIndex((item) => liveBoutKey(item) === defaultBoutKey);
+  const selectedIndex = requestedIndex >= 0 ? requestedIndex : defaultIndex >= 0 ? defaultIndex : heroBouts.length - 1;
   const bout = selectedIndex >= 0 ? heroBouts[selectedIndex] : liveBout;
   const isNext = bout?.status !== "past";
-  const showPrevious = selectedIndex > 0;
-  const showNext = selectedIndex >= 0 && selectedIndex < heroBouts.length - 1;
   const moveBout = (offset: -1 | 1) => {
     const next = heroBouts[selectedIndex + offset];
-    if (next) setSelectedBout({ contextKey, boutKey: boutKey(next) });
+    if (next && division) {
+      selectHeroBout(division.id, next);
+      return;
+    }
+    if (!division) return;
+    const availableDivisions = (data?.divisions ?? []).filter((item) => item.total > 0);
+    const divisionIndex = availableDivisions.findIndex((item) => item.id === division.id);
+    if (divisionIndex < 0 || availableDivisions.length < 2) return;
+    const targetIndex = (divisionIndex + offset + availableDivisions.length) % availableDivisions.length;
+    selectDivision(availableDivisions[targetIndex].id, offset > 0 ? "first" : "last");
   };
+  const compareUrl = bout ? comparisonHref(bout) : null;
 
   return (
     <article className="bout-card" id="torikumi" aria-live="polite">
       <div className="bout-ribbon">
-        <button type="button" className="bout-ribbon-nav" onClick={() => moveBout(-1)} disabled={!showPrevious} aria-label="前の取組を見る"><Bilingual ja="← 戻る" en="← Previous" /></button>
+        <button type="button" className="bout-ribbon-nav" onClick={() => moveBout(-1)} disabled={!bout} aria-label="前の取組を見る"><Bilingual ja="← 戻る" en="← Previous" /></button>
         <span className="bout-ribbon-title"><Bilingual
           ja={loading ? "公式取組情報を確認中" : division ? `${data?.basho}・${data?.dayLabel}　${division.name}` : "本場所情報"}
           en={loading ? "Checking official bout data" : division ? `${englishBashoLabel(data?.bashoId, data?.basho)} · ${englishDayLabel(data?.day)} · ${divisionEnglish[division.id] ?? division.name}` : "Tournament data"}
         /></span>
-        <button type="button" className="bout-ribbon-nav" onClick={() => moveBout(1)} disabled={!showNext} aria-label="次の取組を見る"><Bilingual ja="進む →" en="Next →" /></button>
+        <button type="button" className="bout-ribbon-nav" onClick={() => moveBout(1)} disabled={!bout} aria-label="次の取組を見る"><Bilingual ja="進む →" en="Next →" /></button>
       </div>
       {bout ? (
         <>
@@ -453,6 +486,11 @@ export function LiveHeroBout() {
             </div>
           </div>
           <WinProbability bout={bout} divisionId={division?.id ?? 1} />
+          {compareUrl && (
+            <div className="bout-compare-action">
+              <a href={compareUrl}><Bilingual ja="対戦力士を比較する →" en="Compare these wrestlers →" /></a>
+            </div>
+          )}
         </>
       ) : (
         <div className="live-empty"><Bilingual ja={data?.message ?? "取組情報の更新を待っています。"} en="Waiting for bout data." /></div>
@@ -462,7 +500,7 @@ export function LiveHeroBout() {
 }
 
 export function LiveResultsBoard() {
-  const { data, expanded, selectedDivisionId, resultLoading, selectDivision, collapseResults } = useLiveSumo();
+  const { data, expanded, selectedDivisionId, heroSelection, resultLoading, selectDivision, selectHeroBout, collapseResults } = useLiveSumo();
   const division = data?.resultDivision ?? data?.currentDivision;
   const progress = division?.total ? Math.round((division.completed / division.total) * 100) : 0;
   const displayedBouts = [...(division?.recentResults ?? [])].reverse();
@@ -507,24 +545,28 @@ export function LiveResultsBoard() {
             </div>
             <div className="result-list">
               {resultLoading ? <p className="live-empty"><Bilingual ja="全取組を読み込み中" en="Loading all bouts" /></p> : displayedBouts.length ? displayedBouts.map((bout, index) => {
-                const compareUrl = comparisonHref(bout);
-                const openComparison = () => { if (compareUrl) window.location.href = compareUrl; };
+                const isSelected = heroSelection?.divisionId === division.id && heroSelection.boutKey === liveBoutKey(bout);
+                const showInHero = () => {
+                  selectHeroBout(division.id, bout);
+                  window.requestAnimationFrame(() => document.getElementById("torikumi")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                };
                 return (
                 <div
-                  className={`result-row is-${bout.status} ${compareUrl ? "is-clickable" : ""}`}
+                  className={`result-row is-${bout.status} is-clickable ${isSelected ? "is-selected" : ""}`}
                   key={`${bout.east}-${bout.west}-${index}`}
-                  role={compareUrl ? "link" : undefined}
-                  tabIndex={compareUrl ? 0 : undefined}
-                  aria-label={compareUrl ? `${bout.east}と${bout.west}を対戦比較` : undefined}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`${bout.east}と${bout.west}をトップカードに表示`}
                   onClick={(event) => {
                     if ((event.target as HTMLElement).closest("a, button")) return;
-                    openComparison();
+                    showInHero();
                   }}
                   onKeyDown={(event) => {
                     if ((event.target as HTMLElement).closest("a, button")) return;
-                    if (!compareUrl || (event.key !== "Enter" && event.key !== " ")) return;
+                    if (event.key !== "Enter" && event.key !== " ") return;
                     event.preventDefault();
-                    openComparison();
+                    showInHero();
                   }}
                 >
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
