@@ -1178,7 +1178,12 @@ footer { min-height: 150px; padding: 38px max(48px, calc((100% - 1290px)/2)); di
 .rate-basho-message,
 .rate-ranking-row > span small,
 .compare-chart-legend,
-.compare-chart-legend span {
+.compare-chart-legend span,
+.rate-card-topline em,
+.rate-method-role-grid article > div em,
+.rate-method-role-grid article > small,
+.rate-method-toc > strong,
+.rate-method-number {
   font-size: 12px !important;
 }
 
