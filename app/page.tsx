@@ -7,6 +7,7 @@ import {
 } from "./components/LiveSumo";
 import SiteHeader from "./components/SiteHeader";
 import FeaturedRisers from "./components/FeaturedRisers";
+import Bilingual from "./components/Bilingual";
 
 export default function Home() {
   return (
@@ -37,10 +38,10 @@ export default function Home() {
 
       <footer>
         <div className="footer-brand">
-          <div><strong>土俵日和</strong><small>相撲を、もっと近くに。</small></div>
+          <div><strong>相撲日和</strong><small><Bilingual ja="相撲を、もっと近くに。" en="Grand sumo, closer." /></small></div>
         </div>
-        <p>相撲を愛する人のための非公式ファンサイト</p>
-        <a href="#top">上へ戻る ↑</a>
+        <p><Bilingual ja="相撲を愛する人のための非公式ファンサイト" en="An independent fan site for sumo lovers" /></p>
+        <a href="#top"><Bilingual ja="上へ戻る ↑" en="Back to top ↑" /></a>
       </footer>
     </main>
     </LiveSumoProvider>

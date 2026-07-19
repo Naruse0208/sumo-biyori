@@ -1,5 +1,7 @@
-import { env } from "cloudflare:workers";
+import { eq } from "drizzle-orm";
+import { getDb } from "../../../db";
 import { readOfficialNames, saveOfficialNames } from "../../../db/official-name-cache";
+import { banzukeEntries, wrestlers } from "../../../db/schema";
 import {
   claimSharedLiveSumoRefresh,
   readSharedLiveSumoCache,
@@ -383,18 +385,17 @@ async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number
   ) {
     return storedBanzukeSideCache.sides;
   }
-  if (!env.DB) throw new Error("Cloudflare D1 binding `DB` is unavailable");
-  const result = await env.DB
-    .prepare(
-      `SELECT w.nsk_id AS nskId, b.rank AS rank
-       FROM banzuke_entries b
-       INNER JOIN wrestlers w ON w.id = b.wrestler_id
-       WHERE b.basho_id = ?`,
-    )
-    .bind(bashoId)
-    .all<{ nskId: number | null; rank: string | null }>();
+  const db = getDb();
+  const rows = await db
+    .select({
+      nskId: wrestlers.nskId,
+      rank: banzukeEntries.rank,
+    })
+    .from(banzukeEntries)
+    .innerJoin(wrestlers, eq(banzukeEntries.wrestlerId, wrestlers.id))
+    .where(eq(banzukeEntries.bashoId, bashoId));
   const sides = new Map<number, 1 | 2>();
-  for (const row of result.results ?? []) {
+  for (const row of rows) {
     const nskId = Number(row.nskId ?? 0);
     const side = /\bEast$/i.test(row.rank ?? "")
       ? 1

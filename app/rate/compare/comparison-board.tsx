@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { englishBashoLabel, englishTechnique, type Locale } from "../../lib/i18n";
 
 type HistoryPoint = {
   bashoId: number;
@@ -92,9 +93,9 @@ const popularPairs: { label: string; left: RikishiOption; right: RikishiOption }
   },
 ];
 
-function bashoLabel(bashoId: number | null) {
+function bashoLabel(bashoId: number | null, locale: Locale) {
   if (!bashoId) return "—";
-  return `${Math.floor(bashoId / 100)}年${bashoId % 100}月`;
+  return locale === "en" ? englishBashoLabel(bashoId).replace(" Tournament", "") : `${Math.floor(bashoId / 100)}年${bashoId % 100}月`;
 }
 
 function bashoShort(bashoId: number) {
@@ -111,7 +112,7 @@ function metricValue(point: HistoryPoint, metric: Metric) {
   return point.sumoHensachiTenths / 10;
 }
 
-function ComparisonChart({ left, right, metric }: { left: ComparedRikishi; right: ComparedRikishi; metric: Metric }) {
+function ComparisonChart({ left, right, metric, locale }: { left: ComparedRikishi; right: ComparedRikishi; metric: Metric; locale: Locale }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -180,10 +181,10 @@ function ComparisonChart({ left, right, metric }: { left: ComparedRikishi; right
     return () => observer.disconnect();
   }, [left, metric, right]);
 
-  return <canvas ref={canvasRef} className="compare-chart" aria-label={`${left.name}と${right.name}の${metricLabels[metric]}推移`} />;
+  return <canvas ref={canvasRef} className="compare-chart" aria-label={locale === "en" ? `${left.name} and ${right.name}: ${metricLabels[metric]} history` : `${left.name}と${right.name}の${metricLabels[metric]}推移`} />;
 }
 
-function SearchPicker({ side, selected, onSelect }: { side: "左" | "右"; selected: RikishiOption; onSelect: (rikishi: RikishiOption) => void }) {
+function SearchPicker({ side, selected, onSelect, locale }: { side: "左" | "右"; selected: RikishiOption; onSelect: (rikishi: RikishiOption) => void; locale: Locale }) {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<RikishiOption[]>([]);
   const [open, setOpen] = useState(false);
@@ -200,12 +201,12 @@ function SearchPicker({ side, selected, onSelect }: { side: "左" | "右"; selec
   }, [query]);
   return (
     <div className="compare-picker">
-      <small>{side}の力士</small>
+      <small>{locale === "en" ? `${side === "左" ? "Left" : "Right"} wrestler` : `${side}の力士`}</small>
       <strong>{selected.name}</strong>
       <span>{selected.shikonaEn}</span>
       <label>
-        <span className="sr-only">{side}の力士を検索</span>
-        <input value={query} onChange={(event) => { setQuery(event.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="四股名で入れ替える" />
+        <span className="sr-only">{locale === "en" ? `Search ${side === "左" ? "left" : "right"} wrestler` : `${side}の力士を検索`}</span>
+        <input value={query} onChange={(event) => { setQuery(event.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder={locale === "en" ? "Search by shikona" : "四股名で入れ替える"} />
       </label>
       {open && rows.length > 0 && (
         <div className="compare-search-results">
@@ -216,8 +217,8 @@ function SearchPicker({ side, selected, onSelect }: { side: "左" | "右"; selec
             return <button key={row.id} type="button" onClick={() => { onSelect(row); setQuery(""); setOpen(false); }}>
               <span className="compare-search-name"><strong>{row.name}</strong><small>{row.shikonaEn}</small></span>
               <span className="compare-search-identity">
-                <strong>{row.highestRank ?? "番付不明"}</strong>
-                <small>{birthYear ? `${birthYear}年生` : "生年不明"}・{firstYear ? `${firstYear}—${lastYear ?? "現役"}` : row.intaiDate ? "引退" : "現役"}</small>
+                <strong>{row.highestRank ?? (locale === "en" ? "Rank unknown" : "番付不明")}</strong>
+                <small>{birthYear ? (locale === "en" ? `Born ${birthYear}` : `${birthYear}年生`) : (locale === "en" ? "Birth year unknown" : "生年不明")} · {firstYear ? `${firstYear}—${lastYear ?? (locale === "en" ? "active" : "現役")}` : row.intaiDate ? (locale === "en" ? "Retired" : "引退") : (locale === "en" ? "Active" : "現役")}</small>
               </span>
             </button>;
           })}
@@ -227,10 +228,10 @@ function SearchPicker({ side, selected, onSelect }: { side: "左" | "右"; selec
   );
 }
 
-function YokozunaPicker({ side, selected, rows, onSelect }: { side: "左" | "右"; selected: RikishiOption; rows: RikishiOption[]; onSelect: (rikishi: RikishiOption) => void }) {
+function YokozunaPicker({ side, selected, rows, onSelect, locale }: { side: "左" | "右"; selected: RikishiOption; rows: RikishiOption[]; onSelect: (rikishi: RikishiOption) => void; locale: Locale }) {
   return (
     <label className="compare-picker compare-select-picker">
-      <small>{side}の横綱</small>
+      <small>{locale === "en" ? `${side === "左" ? "Left" : "Right"} yokozuna` : `${side}の横綱`}</small>
       <strong>{selected.name}</strong>
       <span>{selected.shikonaEn}</span>
       <select value={selected.id} onChange={(event) => { const row = rows.find((item) => item.id === Number(event.target.value)); if (row) onSelect(row); }}>
@@ -240,23 +241,23 @@ function YokozunaPicker({ side, selected, rows, onSelect }: { side: "左" | "右
   );
 }
 
-function RikishiSummary({ rikishi, side }: { rikishi: ComparedRikishi; side: "left" | "right" }) {
+function RikishiSummary({ rikishi, side, locale }: { rikishi: ComparedRikishi; side: "left" | "right"; locale: Locale }) {
   const latest = rikishi.career.latest;
   return (
     <article className={`compare-rikishi-card is-${side}`}>
-      <p>{side === "left" ? "東方" : "西方"} / {rikishi.shikonaEn}</p>
+      <p>{locale === "en" ? (side === "left" ? "EAST" : "WEST") : (side === "left" ? "東方" : "西方")} / {rikishi.shikonaEn}</p>
       <h2><Link href={rikishi.profileUrl}>{rikishi.name}</Link></h2>
-      <span>{rikishi.intaiDate ? `最終収録 ${bashoLabel(rikishi.career.lastBasho)}` : `最新 ${bashoLabel(rikishi.career.lastBasho)}`}</span>
+      <span>{rikishi.intaiDate ? (locale === "en" ? `Last recorded ${bashoLabel(rikishi.career.lastBasho, locale)}` : `最終収録 ${bashoLabel(rikishi.career.lastBasho, locale)}`) : (locale === "en" ? `Latest ${bashoLabel(rikishi.career.lastBasho, locale)}` : `最新 ${bashoLabel(rikishi.career.lastBasho, locale)}`)}</span>
       <dl>
         <div><dt>Glicko-2</dt><dd>{latest?.glickoRating ?? "—"}</dd></div>
         <div><dt>Elo</dt><dd>{latest?.elo ?? "—"}</dd></div>
-        <div><dt>相撲偏差値</dt><dd>{latest ? (latest.sumoHensachiTenths / 10).toFixed(1) : "—"}</dd></div>
-        <div><dt>最高Glicko-2</dt><dd>{rikishi.career.peakGlicko?.value ?? "—"}</dd></div>
-        <div><dt>最高偏差値</dt><dd>{rikishi.career.peakHensachi?.value.toFixed(1) ?? "—"}</dd></div>
-        <div><dt>上位6場所</dt><dd>{rikishi.career.sustainedHensachi?.toFixed(1) ?? "—"}</dd></div>
+        <div><dt>{locale === "en" ? "Sumo Score" : "相撲偏差値"}</dt><dd>{latest ? (latest.sumoHensachiTenths / 10).toFixed(1) : "—"}</dd></div>
+        <div><dt>{locale === "en" ? "Peak Glicko-2" : "最高Glicko-2"}</dt><dd>{rikishi.career.peakGlicko?.value ?? "—"}</dd></div>
+        <div><dt>{locale === "en" ? "Peak score" : "最高偏差値"}</dt><dd>{rikishi.career.peakHensachi?.value.toFixed(1) ?? "—"}</dd></div>
+        <div><dt>{locale === "en" ? "Best 6" : "上位6場所"}</dt><dd>{rikishi.career.sustainedHensachi?.toFixed(1) ?? "—"}</dd></div>
       </dl>
-      <div className="compare-body-data"><span>{rikishi.heightCm ? `${rikishi.heightCm}cm` : "身長—"}</span><span>{rikishi.weightKg ? `${rikishi.weightKg}kg` : "体重—"}</span><span>{rikishi.heya ?? "部屋—"}</span></div>
-      <Link className="compare-profile-link" href={rikishi.profileUrl}>プロフィールと全推移を見る →</Link>
+      <div className="compare-body-data"><span>{rikishi.heightCm ? `${rikishi.heightCm}cm` : (locale === "en" ? "Height—" : "身長—")}</span><span>{rikishi.weightKg ? `${rikishi.weightKg}kg` : (locale === "en" ? "Weight—" : "体重—")}</span><span>{rikishi.heya ?? (locale === "en" ? "Stable—" : "部屋—")}</span></div>
+      <Link className="compare-profile-link" href={rikishi.profileUrl}>{locale === "en" ? "Profile and full history →" : "プロフィールと全推移を見る →"}</Link>
     </article>
   );
 }
@@ -265,10 +266,12 @@ export default function ComparisonBoard({
   variant,
   initialLeft,
   initialRight,
+  locale,
 }: {
   variant: "rikishi" | "yokozuna";
   initialLeft: RikishiOption;
   initialRight: RikishiOption;
+  locale: Locale;
 }) {
   const [left, setLeft] = useState(initialLeft);
   const [right, setRight] = useState(initialRight);
@@ -278,7 +281,8 @@ export default function ComparisonBoard({
   const [error, setError] = useState<string | null>(null);
   const [metric, setMetric] = useState<Metric>("glicko");
   const [forecastMode, setForecastMode] = useState<"current" | "peak">(variant === "yokozuna" ? "peak" : "current");
-  const [copyLabel, setCopyLabel] = useState("比較URLをコピー");
+  const copyDefault = locale === "en" ? "Copy comparison URL" : "比較URLをコピー";
+  const [copyLabel, setCopyLabel] = useState(copyDefault);
 
   useEffect(() => {
     if (variant !== "yokozuna") return;
@@ -303,13 +307,13 @@ export default function ComparisonBoard({
   }, []);
 
   const load = useCallback(async () => {
-    if (left.id === right.id) { setError("異なる2力士を選んでください"); return; }
+    if (left.id === right.id) { setError(locale === "en" ? "Choose two different wrestlers" : "異なる2力士を選んでください"); return; }
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`/api/compare?left=${left.id}&right=${right.id}`);
       const body = await response.json() as ComparePayload;
-      if (!response.ok || !body.left || !body.right) throw new Error(body.error ?? "比較データを読み込めませんでした");
+      if (!response.ok || !body.left || !body.right) throw new Error(body.error ?? (locale === "en" ? "Could not load comparison data" : "比較データを読み込めませんでした"));
       setPayload(body);
       setLeft((current) => ({ ...current, id: body.left.id, name: body.left.name, shikonaEn: body.left.shikonaEn }));
       setRight((current) => ({ ...current, id: body.right.id, name: body.right.name, shikonaEn: body.right.shikonaEn }));
@@ -320,18 +324,18 @@ export default function ComparisonBoard({
       url.searchParams.delete("rightNsk");
       window.history.replaceState({}, "", url);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "比較データを読み込めませんでした");
+      setError(caught instanceof Error ? caught.message : (locale === "en" ? "Could not load comparison data" : "比較データを読み込めませんでした"));
     } finally {
       setLoading(false);
     }
-  }, [left.id, right.id]);
+  }, [left.id, right.id, locale]);
 
   useEffect(() => { load(); }, [load]);
 
   const probability = payload
     ? forecastMode === "peak" ? payload.prediction.peakLeftProbability : payload.prediction.currentLeftProbability
     : 50;
-  const confidenceLabel = payload?.prediction.confidence === "high" ? "推定安定" : payload?.prediction.confidence === "medium" ? "推定中" : "参考値";
+  const confidenceLabel = payload?.prediction.confidence === "high" ? (locale === "en" ? "High confidence" : "推定安定") : payload?.prediction.confidence === "medium" ? (locale === "en" ? "Medium confidence" : "推定中") : (locale === "en" ? "Reference" : "参考値");
   const overlap = useMemo(() => {
     if (!payload?.left.career.firstBasho || !payload?.right.career.firstBasho || !payload.left.career.lastBasho || !payload.right.career.lastBasho) return false;
     return Math.max(payload.left.career.firstBasho, payload.right.career.firstBasho) <= Math.min(payload.left.career.lastBasho, payload.right.career.lastBasho);
@@ -345,19 +349,19 @@ export default function ComparisonBoard({
   const copyComparisonUrl = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      setCopyLabel("コピーしました");
+      setCopyLabel(locale === "en" ? "Copied" : "コピーしました");
     } catch {
-      setCopyLabel("コピーできませんでした");
+      setCopyLabel(locale === "en" ? "Could not copy" : "コピーできませんでした");
     }
-    window.setTimeout(() => setCopyLabel("比較URLをコピー"), 1800);
+    window.setTimeout(() => setCopyLabel(copyDefault), 1800);
   };
 
   return (
     <>
-      <section className={`compare-toolbox${variant === "yokozuna" ? " is-yokozuna" : ""}`} aria-label="比較のショートカット">
+      <section className={`compare-toolbox${variant === "yokozuna" ? " is-yokozuna" : ""}`} aria-label={locale === "en" ? "Comparison shortcuts" : "比較のショートカット"}>
         {variant === "rikishi" ? (
           <div className="compare-popular-pairs">
-            <span>人気の組合せ</span>
+            <span>{locale === "en" ? "Popular matchups" : "人気の組合せ"}</span>
             {popularPairs.map((pair) => (
               <button key={pair.label} type="button" onClick={() => { setLeft(pair.left); setRight(pair.right); }}>
                 {pair.label}
@@ -366,72 +370,72 @@ export default function ComparisonBoard({
           </div>
         ) : null}
         <div className="compare-tool-actions">
-          <button type="button" onClick={swapRikishi}>左右を入れ替える ⇄</button>
+          <button type="button" onClick={swapRikishi}>{locale === "en" ? "Swap sides ⇄" : "左右を入れ替える ⇄"}</button>
           <button type="button" onClick={copyComparisonUrl} aria-live="polite">{copyLabel}</button>
         </div>
       </section>
 
-      <section className="compare-selectors" aria-label="比較する力士を選ぶ">
+      <section className="compare-selectors" aria-label={locale === "en" ? "Choose wrestlers to compare" : "比較する力士を選ぶ"}>
         {variant === "yokozuna"
-          ? <YokozunaPicker side="左" selected={left} rows={candidates} onSelect={setLeft} />
-          : <SearchPicker side="左" selected={left} onSelect={setLeft} />}
-        <div className="compare-versus" aria-hidden="true"><span>対</span><small>COMPARE</small></div>
+          ? <YokozunaPicker side="左" selected={left} rows={candidates} onSelect={setLeft} locale={locale} />
+          : <SearchPicker side="左" selected={left} onSelect={setLeft} locale={locale} />}
+        <div className="compare-versus" aria-hidden="true"><span>{locale === "en" ? "VS" : "対"}</span><small>COMPARE</small></div>
         {variant === "yokozuna"
-          ? <YokozunaPicker side="右" selected={right} rows={candidates} onSelect={setRight} />
-          : <SearchPicker side="右" selected={right} onSelect={setRight} />}
+          ? <YokozunaPicker side="右" selected={right} rows={candidates} onSelect={setRight} locale={locale} />
+          : <SearchPicker side="右" selected={right} onSelect={setRight} locale={locale} />}
       </section>
 
-      {error && <div className="compare-message is-error"><strong>比較できませんでした</strong><span>{error}</span></div>}
-      {loading && <div className="compare-message"><strong>二人の取組史を照合中…</strong><span>集計済みデータから読み込んでいます</span></div>}
+      {error && <div className="compare-message is-error"><strong>{locale === "en" ? "Comparison unavailable" : "比較できませんでした"}</strong><span>{error}</span></div>}
+      {loading && <div className="compare-message"><strong>{locale === "en" ? "Checking both careers…" : "二人の取組史を照合中…"}</strong><span>{locale === "en" ? "Loading the precomputed dataset" : "集計済みデータから読み込んでいます"}</span></div>}
 
       {payload && !loading && (
         <>
           <section className="compare-forecast" aria-labelledby="compare-forecast-title">
             <div className="compare-forecast-heading">
-              <div><p>MATCHUP FORECAST</p><h2 id="compare-forecast-title">{forecastMode === "peak" ? "全盛期を同じ土俵に置く" : "いま対戦した場合"}</h2></div>
-              <div className="compare-mode-switch" role="group" aria-label="予測時点">
-                <button type="button" className={forecastMode === "current" ? "is-active" : ""} onClick={() => setForecastMode("current")}>現在／最終値</button>
-                <button type="button" className={forecastMode === "peak" ? "is-active" : ""} onClick={() => setForecastMode("peak")}>全盛期</button>
+              <div><p>MATCHUP FORECAST</p><h2 id="compare-forecast-title">{forecastMode === "peak" ? (locale === "en" ? "Meet at their peaks" : "全盛期を同じ土俵に置く") : (locale === "en" ? "If they met now" : "いま対戦した場合")}</h2></div>
+              <div className="compare-mode-switch" role="group" aria-label={locale === "en" ? "Forecast point" : "予測時点"}>
+                <button type="button" className={forecastMode === "current" ? "is-active" : ""} onClick={() => setForecastMode("current")}>{locale === "en" ? "Current / final" : "現在／最終値"}</button>
+                <button type="button" className={forecastMode === "peak" ? "is-active" : ""} onClick={() => setForecastMode("peak")}>{locale === "en" ? "Peak" : "全盛期"}</button>
               </div>
             </div>
             <div className="compare-probability-names"><strong>{payload.left.name} <b>{probability}%</b></strong><span>{confidenceLabel}</span><strong><b>{100 - probability}%</b> {payload.right.name}</strong></div>
             <div className="compare-probability-bar"><i style={{ width: `${probability}%` }} /></div>
             <p className="compare-forecast-note">
               {forecastMode === "peak"
-                ? "両力士の最高Glicko-2を使った仮想比較です。時代の体格・技術差を断定するものではありません。"
-                : `Glicko-2のレート差に、直接対戦${payload.headToHead.bouts ? ` ${payload.headToHead.bouts}番` : "なし"}を小さく補正。直接対戦補正 ${payload.prediction.headToHeadAdjustmentPoints >= 0 ? "+" : ""}${payload.prediction.headToHeadAdjustmentPoints}pt。`}
+                ? (locale === "en" ? "A hypothetical comparison using each wrestler's peak Glicko-2. It does not claim to fully adjust for changes in physique or technique across eras." : "両力士の最高Glicko-2を使った仮想比較です。時代の体格・技術差を断定するものではありません。")
+                : (locale === "en" ? `Glicko-2 difference with a small head-to-head adjustment from ${payload.headToHead.bouts || 0} bouts: ${payload.prediction.headToHeadAdjustmentPoints >= 0 ? "+" : ""}${payload.prediction.headToHeadAdjustmentPoints} pt.` : `Glicko-2のレート差に、直接対戦${payload.headToHead.bouts ? ` ${payload.headToHead.bouts}番` : "なし"}を小さく補正。直接対戦補正 ${payload.prediction.headToHeadAdjustmentPoints >= 0 ? "+" : ""}${payload.prediction.headToHeadAdjustmentPoints}pt。`)}
             </p>
           </section>
 
           <section className="compare-cards">
-            <RikishiSummary rikishi={payload.left} side="left" />
-            <RikishiSummary rikishi={payload.right} side="right" />
+            <RikishiSummary rikishi={payload.left} side="left" locale={locale} />
+            <RikishiSummary rikishi={payload.right} side="right" locale={locale} />
           </section>
 
           <section className="rate-shell compare-history" aria-labelledby="compare-history-title">
-            <div className="rate-section-heading"><div><p>CAREER CURVES</p><h2 id="compare-history-title">二人のレート推移</h2></div><div className="compare-metric-switch" role="group" aria-label="グラフの指標">{(["glicko", "elo", "hensachi"] as Metric[]).map((value) => <button key={value} type="button" className={metric === value ? "is-active" : ""} onClick={() => setMetric(value)}>{metricLabels[value]}</button>)}</div></div>
+            <div className="rate-section-heading"><div><p>CAREER CURVES</p><h2 id="compare-history-title">{locale === "en" ? "Career rating curves" : "二人のレート推移"}</h2></div><div className="compare-metric-switch" role="group" aria-label={locale === "en" ? "Chart metric" : "グラフの指標"}>{(["glicko", "elo", "hensachi"] as Metric[]).map((value) => <button key={value} type="button" className={metric === value ? "is-active" : ""} onClick={() => setMetric(value)}>{metricLabels[value]}</button>)}</div></div>
             <div className="compare-chart-legend"><span className="is-left">{payload.left.name}</span><span className="is-right">{payload.right.name}</span></div>
-            <ComparisonChart left={payload.left} right={payload.right} metric={metric} />
-            <div className="compare-career-range"><span>{payload.left.name}：{bashoLabel(payload.left.career.firstBasho)}〜{bashoLabel(payload.left.career.lastBasho)}</span><span>{payload.right.name}：{bashoLabel(payload.right.career.firstBasho)}〜{bashoLabel(payload.right.career.lastBasho)}</span></div>
+            <ComparisonChart left={payload.left} right={payload.right} metric={metric} locale={locale} />
+            <div className="compare-career-range"><span>{payload.left.name}: {bashoLabel(payload.left.career.firstBasho, locale)}–{bashoLabel(payload.left.career.lastBasho, locale)}</span><span>{payload.right.name}: {bashoLabel(payload.right.career.firstBasho, locale)}–{bashoLabel(payload.right.career.lastBasho, locale)}</span></div>
           </section>
 
           <section className="rate-shell compare-evidence" aria-labelledby="compare-evidence-title">
-            <div className="rate-section-heading"><div><p>WHY THIS NUMBER</p><h2 id="compare-evidence-title">強さの内訳</h2></div><span>根拠</span></div>
+            <div className="rate-section-heading"><div><p>WHY THIS NUMBER</p><h2 id="compare-evidence-title">{locale === "en" ? "What drives the numbers" : "強さの内訳"}</h2></div><span>{locale === "en" ? "Evidence" : "根拠"}</span></div>
             <div className="compare-evidence-grid">
-              <article><span>直接対戦</span><strong>{payload.headToHead.bouts ? `${payload.headToHead.leftWins} — ${payload.headToHead.rightWins}` : "対戦なし"}</strong><p>{overlap ? "同時代の実戦結果。少数の対戦は強く効かせすぎないよう縮小しています。" : "現役期間が重ならないため、直接対戦ではなく各時代のレートを比較します。"}</p></article>
-              <article><span>幕内での持続</span><strong>{payload.left.career.makuuchiBasho} — {payload.right.career.makuuchiBasho}</strong><p>幕内に在位した収録場所数。ピークだけでなく、頂点を維持した長さを見る材料です。</p></article>
-              <article><span>上位6場所偏差値</span><strong>{payload.left.career.sustainedHensachi?.toFixed(1) ?? "—"} — {payload.right.career.sustainedHensachi?.toFixed(1) ?? "—"}</strong><p>最高の6場所を平均し、一場所だけの突出ではない強さを表します。</p></article>
+              <article><span>{locale === "en" ? "Head to head" : "直接対戦"}</span><strong>{payload.headToHead.bouts ? `${payload.headToHead.leftWins} — ${payload.headToHead.rightWins}` : (locale === "en" ? "No meetings" : "対戦なし")}</strong><p>{overlap ? (locale === "en" ? "Actual meetings from the same era, shrunk so a small sample does not dominate the estimate." : "同時代の実戦結果。少数の対戦は強く効かせすぎないよう縮小しています。") : (locale === "en" ? "Their careers do not overlap, so we compare ratings from their own eras rather than head-to-head results." : "現役期間が重ならないため、直接対戦ではなく各時代のレートを比較します。")}</p></article>
+              <article><span>{locale === "en" ? "Top-division longevity" : "幕内での持続"}</span><strong>{payload.left.career.makuuchiBasho} — {payload.right.career.makuuchiBasho}</strong><p>{locale === "en" ? "Recorded top-division tournaments, showing how long each wrestler sustained elite form beyond a single peak." : "幕内に在位した収録場所数。ピークだけでなく、頂点を維持した長さを見る材料です。"}</p></article>
+              <article><span>{locale === "en" ? "Best-six Sumo Score" : "上位6場所偏差値"}</span><strong>{payload.left.career.sustainedHensachi?.toFixed(1) ?? "—"} — {payload.right.career.sustainedHensachi?.toFixed(1) ?? "—"}</strong><p>{locale === "en" ? "The average of each wrestler's six best tournaments, reducing the effect of a one-off spike." : "最高の6場所を平均し、一場所だけの突出ではない強さを表します。"}</p></article>
             </div>
           </section>
 
           <section className="rate-shell compare-form-style">
-            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{payload.left.name}の勝ち筋</h2></div><span>直近収録</span></div><div className="compare-style-list">{payload.left.style.length ? payload.left.style.map((item) => <div key={item.kimarite}><strong>{item.kimarite}</strong><span>{item.count}番</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>決まり手データなし</p>}</div><div className="compare-form" aria-label={`${payload.left.name}の直近成績`}>{payload.left.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? "勝" : "敗"}</span>)}</div></div>
-            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{payload.right.name}の勝ち筋</h2></div><span>直近収録</span></div><div className="compare-style-list">{payload.right.style.length ? payload.right.style.map((item) => <div key={item.kimarite}><strong>{item.kimarite}</strong><span>{item.count}番</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>決まり手データなし</p>}</div><div className="compare-form" aria-label={`${payload.right.name}の直近成績`}>{payload.right.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? "勝" : "敗"}</span>)}</div></div>
+            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{locale === "en" ? `${payload.left.name}'s winning style` : `${payload.left.name}の勝ち筋`}</h2></div><span>{locale === "en" ? "Recent data" : "直近収録"}</span></div><div className="compare-style-list">{payload.left.style.length ? payload.left.style.map((item) => <div key={item.kimarite}><strong>{locale === "en" ? englishTechnique(item.kimarite) : item.kimarite}</strong><span>{item.count}{locale === "en" ? " bouts" : "番"}</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>{locale === "en" ? "No technique data" : "決まり手データなし"}</p>}</div><div className="compare-form" aria-label={locale === "en" ? `${payload.left.name}'s recent record` : `${payload.left.name}の直近成績`}>{payload.left.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? (locale === "en" ? "W" : "勝") : (locale === "en" ? "L" : "敗")}</span>)}</div></div>
+            <div className="compare-style-column"><div className="rate-section-heading"><div><p>WINNING TECHNIQUES</p><h2>{locale === "en" ? `${payload.right.name}'s winning style` : `${payload.right.name}の勝ち筋`}</h2></div><span>{locale === "en" ? "Recent data" : "直近収録"}</span></div><div className="compare-style-list">{payload.right.style.length ? payload.right.style.map((item) => <div key={item.kimarite}><strong>{locale === "en" ? englishTechnique(item.kimarite) : item.kimarite}</strong><span>{item.count}{locale === "en" ? " bouts" : "番"}</span><i style={{ width: `${Math.max(5, item.share)}%` }} /></div>) : <p>{locale === "en" ? "No technique data" : "決まり手データなし"}</p>}</div><div className="compare-form" aria-label={locale === "en" ? `${payload.right.name}'s recent record` : `${payload.right.name}の直近成績`}>{payload.right.recentForm.map((item, index) => <span key={`${item.bashoId}-${item.day}-${index}`} className={item.won ? "is-win" : "is-loss"}>{item.won ? (locale === "en" ? "W" : "勝") : (locale === "en" ? "L" : "敗")}</span>)}</div></div>
           </section>
 
           <section className="rate-shell compare-head-to-head" aria-labelledby="head-to-head-title">
-            <div className="rate-section-heading"><div><p>HEAD TO HEAD</p><h2 id="head-to-head-title">直接対戦の記録</h2></div><span>{payload.headToHead.bouts}番</span></div>
-            {payload.headToHead.rows.length ? <div className="compare-bout-list">{payload.headToHead.rows.map((bout) => <div key={bout.id}><span>{bashoLabel(bout.bashoId)}・{bout.day}日目</span><strong>{bout.winnerId === payload.left.id ? payload.left.name : payload.right.name}</strong><em>{bout.kimarite ?? "決まり手不明"}</em></div>)}</div> : <p className="compare-empty">直接対戦はありません。全盛期比較は、各時代で記録したレートを同じ目盛りに置いた実験値としてご覧ください。</p>}
+            <div className="rate-section-heading"><div><p>HEAD TO HEAD</p><h2 id="head-to-head-title">{locale === "en" ? "Head-to-head record" : "直接対戦の記録"}</h2></div><span>{payload.headToHead.bouts}{locale === "en" ? " bouts" : "番"}</span></div>
+            {payload.headToHead.rows.length ? <div className="compare-bout-list">{payload.headToHead.rows.map((bout) => <div key={bout.id}><span>{bashoLabel(bout.bashoId, locale)} · {locale === "en" ? `Day ${bout.day}` : `${bout.day}日目`}</span><strong>{bout.winnerId === payload.left.id ? payload.left.name : payload.right.name}</strong><em>{bout.kimarite ? (locale === "en" ? englishTechnique(bout.kimarite) : bout.kimarite) : (locale === "en" ? "Technique unknown" : "決まり手不明")}</em></div>)}</div> : <p className="compare-empty">{locale === "en" ? "No head-to-head meetings. Treat the peak comparison as an experiment that places ratings recorded in different eras on one scale." : "直接対戦はありません。全盛期比較は、各時代で記録したレートを同じ目盛りに置いた実験値としてご覧ください。"}</p>}
           </section>
         </>
       )}

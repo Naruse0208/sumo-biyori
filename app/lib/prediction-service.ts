@@ -152,7 +152,7 @@ export async function calculateLivePrediction(
   const glickoEastProbability = Math.round(glickoCalibrated * 100);
 
   return {
-    model: "土俵日和予測 v2.1",
+    model: "相撲日和予測 v2.1",
     confidence: predictionConfidence(eastGlicko.rd, westGlicko.rd),
     models: {
       elo: { eastProbability: eloEastProbability, westProbability: 100 - eloEastProbability },

@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
+import { getRequestLocale } from "./lib/i18n-server";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const english = locale === "en";
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
@@ -10,30 +13,31 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase,
-    title: "土俵日和｜相撲を、もっと近くに。",
-    description: "注目取組、番付、力士、相撲文化を重厚な和の世界観で楽しむ非公式相撲ファンサイト。",
+    title: english ? "Sumo Biyori | Grand Sumo, Closer" : "相撲日和｜相撲を、もっと近くに。",
+    description: english ? "Live grand sumo bouts, ratings, wrestler profiles and historical comparisons." : "今日の取組・番付・力士レート・歴代比較を楽しむ非公式相撲ファンサイト。",
     openGraph: {
-      title: "土俵日和",
-      description: "土俵に、夏が鳴る。相撲をもっと深く楽しむファンサイト。",
+      title: english ? "Sumo Biyori" : "相撲日和",
+      description: english ? "Follow grand sumo live and explore ratings across eras." : "今日の取組から歴代比較まで、相撲をもっと深く楽しむファンサイト。",
       type: "website",
-      locale: "ja_JP",
+      locale: english ? "en_US" : "ja_JP",
       url: metadataBase?.toString(),
       images: [
-        { url: "/og.png", width: 1731, height: 909, alt: "土俵日和 — 土俵に、夏が鳴る。" },
+        { url: "/og.png", width: 1731, height: 909, alt: english ? "Sumo Biyori" : "相撲日和" },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "土俵日和",
-      description: "土俵に、夏が鳴る。相撲をもっと深く楽しむファンサイト。",
+      title: english ? "Sumo Biyori" : "相撲日和",
+      description: english ? "Follow grand sumo live and explore ratings across eras." : "今日の取組から歴代比較まで、相撲をもっと深く楽しむファンサイト。",
       images: ["/og.png"],
     },
   };
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getRequestLocale();
   return (
-    <html lang="ja">
+    <html lang={locale} data-locale={locale}>
       <body>{children}</body>
     </html>
   );

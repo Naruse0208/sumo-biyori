@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import SiteHeader from "../../components/SiteHeader";
+import { englishRank, type Locale } from "../../lib/i18n";
 
 type RatingPoint = {
   bashoId: number;
@@ -179,7 +180,9 @@ function RatingChart({ points, metric }: { points: RatingPoint[]; metric: Profil
   );
 }
 
-export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
+export default function RikishiProfile({ rikishiRef, locale }: { rikishiRef: string; locale: Locale }) {
+  const t = (ja: string, en: string) => locale === "en" ? en : ja;
+  const divisionNamesEn = ["Makuuchi", "Juryo", "Makushita", "Sandanme", "Jonidan", "Jonokuchi"];
   const [payload, setPayload] = useState<RikishiPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState<"all" | "5y" | "1y">("all");
@@ -190,14 +193,14 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
     fetch(`/api/rikishi?ref=${encodeURIComponent(rikishiRef)}`)
       .then(async (response) => {
         const body = await response.json() as RikishiPayload;
-        if (!response.ok) throw new Error(body.error ?? "力士データを読み込めませんでした");
+        if (!response.ok) throw new Error(body.error ?? t("力士データを読み込めませんでした", "Could not load wrestler data"));
         if (!cancelled) setPayload(body);
       })
       .catch((caught) => {
-        if (!cancelled) setError(caught instanceof Error ? caught.message : "力士データを読み込めませんでした");
+        if (!cancelled) setError(caught instanceof Error ? caught.message : t("力士データを読み込めませんでした", "Could not load wrestler data"));
       });
     return () => { cancelled = true; };
-  }, [rikishiRef]);
+  }, [rikishiRef, locale]);
 
   const chartPoints = useMemo(() => {
     const history = payload?.history ?? [];
@@ -205,8 +208,8 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
     return history.slice(-count);
   }, [payload, range]);
 
-  if (error) return <main className="rikishi-page"><div className="rikishi-error"><strong>力士情報を表示できません</strong><p>{error}</p><Link href="/rate">レート順位へ戻る →</Link></div></main>;
-  if (!payload) return <main className="rikishi-page"><div className="rikishi-loading">力士プロフィールを読み込み中…</div></main>;
+  if (error) return <main className="rikishi-page"><div className="rikishi-error"><strong>{t("力士情報を表示できません", "Wrestler profile unavailable")}</strong><p>{error}</p><Link href="/rate">{t("レート順位へ戻る →", "Back to ratings →")}</Link></div></main>;
+  if (!payload) return <main className="rikishi-page"><div className="rikishi-loading">{t("力士プロフィールを読み込み中…", "Loading wrestler profile…")}</div></main>;
 
   const { wrestler, latest, history } = payload;
   const peakElo = history.reduce((maximum, point) => Math.max(maximum, point.peakElo), latest?.peakElo ?? 1500);
@@ -219,38 +222,38 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
   return (
     <main className="rikishi-page">
       <div className="rate-frame" aria-hidden="true" />
-      <div className="notice-bar rate-notice"><strong>力士レート名鑑</strong><span>Elo HISTORY</span></div>
+      <div className="notice-bar rate-notice"><strong>{t("力士レート名鑑", "Wrestler Rating Profile")}</strong><span>ELO HISTORY</span></div>
       <SiteHeader active="rate" />
 
       <section className="rikishi-profile-hero">
         <div>
           <p className="rate-kicker">RIKISHI PROFILE / {wrestler.shikonaEn}</p>
           <h1>{wrestler.displayName}</h1>
-          <p className="rikishi-rankline">{latest ? `${divisionNames[latest.division - 1]}・${latest.rank}` : "番付記録を確認中"}</p>
+          <p className="rikishi-rankline">{latest ? (locale === "en" ? `${divisionNamesEn[latest.division - 1]} · ${englishRank(latest.rank)}` : `${divisionNames[latest.division - 1]}・${latest.rank}`) : t("番付記録を確認中", "Checking ranking history")}</p>
           <div className="rikishi-profile-links">
             <Link href="/rate">← レート順位へ</Link>
-            <Link href={`/rate/compare?left=${wrestler.id}`}>この力士を比較する →</Link>
-            {wrestler.officialProfileUrl && <a href={wrestler.officialProfileUrl} target="_blank" rel="noreferrer">日本相撲協会プロフィール ↗</a>}
+            <Link href={`/rate/compare?left=${wrestler.id}`}>{t("この力士を比較する →", "Compare this wrestler →")}</Link>
+            {wrestler.officialProfileUrl && <a href={wrestler.officialProfileUrl} target="_blank" rel="noreferrer">{t("日本相撲協会プロフィール ↗", "Japan Sumo Association profile ↗")}</a>}
           </div>
         </div>
         <div className="rikishi-rating-seal">
-          <span>現在{profileMetricLabels[metric]}</span><strong>{valueForPoint(latest ?? undefined)}</strong>
-          <small>{metric === "elo" ? `最高 ${peakElo}` : metric === "glicko" && latest?.glickoRdTenths ? `推定幅 ±${Math.round((latest.glickoRdTenths / 10) * 2)}` : "同場所・同段"}</small>
+          <span>{t("現在", "Current ")}{profileMetricLabels[metric]}</span><strong>{valueForPoint(latest ?? undefined)}</strong>
+          <small>{metric === "elo" ? `${t("最高", "Peak")} ${peakElo}` : metric === "glicko" && latest?.glickoRdTenths ? `${t("推定幅", "Range")} ±${Math.round((latest.glickoRdTenths / 10) * 2)}` : t("同場所・同段", "Same tournament and division")}</small>
         </div>
       </section>
 
       <section className="rate-shell rikishi-summary" aria-label="力士概要">
-        <div><span>相撲偏差値</span><strong>{latest ? (latest.sumoHensachiTenths / 10).toFixed(1) : "—"}</strong></div>
-        <div><span>現在のGlicko-2</span><strong>{latest?.glickoRating ?? "—"}</strong></div>
-        <div><span>現在Elo</span><strong>{latest?.elo ?? "—"}</strong></div>
-        <div><span>通算成績</span><strong>{latest ? `${latest.wins}勝 ${latest.losses}敗` : "—"}</strong></div>
-        <div><span>所属部屋</span><strong>{wrestler.heya ?? "—"}</strong></div>
-        <div><span>体格</span><strong>{wrestler.heightCm ? `${wrestler.heightCm}cm` : "—"} / {wrestler.weightKg ? `${wrestler.weightKg}kg` : "—"}</strong></div>
+        <div><span>{t("相撲偏差値", "Sumo Score")}</span><strong>{latest ? (latest.sumoHensachiTenths / 10).toFixed(1) : "—"}</strong></div>
+        <div><span>{t("現在のGlicko-2", "Current Glicko-2")}</span><strong>{latest?.glickoRating ?? "—"}</strong></div>
+        <div><span>{t("現在Elo", "Current Elo")}</span><strong>{latest?.elo ?? "—"}</strong></div>
+        <div><span>{t("通算成績", "Career record")}</span><strong>{latest ? (locale === "en" ? `${latest.wins}W ${latest.losses}L` : `${latest.wins}勝 ${latest.losses}敗`) : "—"}</strong></div>
+        <div><span>{t("所属部屋", "Stable")}</span><strong>{wrestler.heya ?? "—"}</strong></div>
+        <div><span>{t("体格", "Physique")}</span><strong>{wrestler.heightCm ? `${wrestler.heightCm}cm` : "—"} / {wrestler.weightKg ? `${wrestler.weightKg}kg` : "—"}</strong></div>
       </section>
 
       <section className="rate-shell rikishi-history" aria-labelledby="elo-history-title">
         <div className="rate-section-heading">
-          <div><p>RATING HISTORY</p><h2 id="elo-history-title">{profileMetricLabels[metric]}推移</h2></div>
+          <div><p>RATING HISTORY</p><h2 id="elo-history-title">{locale === "en" ? `${profileMetricLabels[metric]} history` : `${profileMetricLabels[metric]}推移`}</h2></div>
           <div className="rikishi-history-controls">
             <div className="rikishi-range" role="group" aria-label="表示するレート">
               {([['elo', 'Elo'], ['glicko', 'Glicko-2'], ['hensachi', '偏差値']] as const).map(([value, label]) => (
@@ -264,27 +267,27 @@ export default function RikishiProfile({ rikishiRef }: { rikishiRef: string }) {
             </div>
           </div>
         </div>
-        {chartPoints.length > 1 ? <RatingChart points={chartPoints} metric={metric} /> : <p className="rikishi-no-chart">推移を描くための場所数がまだ足りません。</p>}
+        {chartPoints.length > 1 ? <RatingChart points={chartPoints} metric={metric} /> : <p className="rikishi-no-chart">{t("推移を描くための場所数がまだ足りません。", "Not enough tournaments to draw a rating curve yet.")}</p>}
         <div className="rikishi-chart-stats">
-          <span>初回 <b>{valueForPoint(chartPoints[0])}</b></span>
-          <span>現在 <b>{valueForPoint(chartPoints.at(-1))}</b></span>
-          <span>記録場所 <b>{history.length}</b></span>
+          <span>{t("初回", "First")} <b>{valueForPoint(chartPoints[0])}</b></span>
+          <span>{t("現在", "Current")} <b>{valueForPoint(chartPoints.at(-1))}</b></span>
+          <span>{t("記録場所", "Tournaments")} <b>{history.length}</b></span>
         </div>
       </section>
 
       <section className="rate-shell rikishi-details" aria-labelledby="rikishi-details-title">
-        <div className="rate-section-heading"><div><p>PROFILE DATA</p><h2 id="rikishi-details-title">基本情報</h2></div><span>DATA</span></div>
+        <div className="rate-section-heading"><div><p>PROFILE DATA</p><h2 id="rikishi-details-title">{t("基本情報", "Profile data")}</h2></div><span>DATA</span></div>
         <dl>
-          <div><dt>四股名（英字）</dt><dd>{wrestler.shikonaEn}</dd></div>
-          <div><dt>出身</dt><dd>{wrestler.shusshin ?? "—"}</dd></div>
-          <div><dt>生年月日</dt><dd>{formatDate(wrestler.birthDate)}</dd></div>
-          <div><dt>初土俵</dt><dd>{wrestler.debutBashoId ? `${bashoShortLabel(wrestler.debutBashoId)} 場所` : "—"}</dd></div>
-          <div><dt>引退</dt><dd>{wrestler.intaiDate ? formatDate(wrestler.intaiDate) : "現役"}</dd></div>
-          <div><dt>収録取組</dt><dd>{latest?.bouts ?? 0}番</dd></div>
+          <div><dt>{t("四股名（英字）", "Shikona (Romanized)")}</dt><dd>{wrestler.shikonaEn}</dd></div>
+          <div><dt>{t("出身", "Birthplace")}</dt><dd>{wrestler.shusshin ?? "—"}</dd></div>
+          <div><dt>{t("生年月日", "Date of birth")}</dt><dd>{formatDate(wrestler.birthDate)}</dd></div>
+          <div><dt>{t("初土俵", "Debut")}</dt><dd>{wrestler.debutBashoId ? `${bashoShortLabel(wrestler.debutBashoId)} ${t("場所", "Tournament")}` : "—"}</dd></div>
+          <div><dt>{t("引退", "Status")}</dt><dd>{wrestler.intaiDate ? formatDate(wrestler.intaiDate) : t("現役", "Active")}</dd></div>
+          <div><dt>{t("収録取組", "Recorded bouts")}</dt><dd>{latest?.bouts ?? 0}{t("番", "")}</dd></div>
         </dl>
       </section>
 
-      <footer><div className="footer-brand"><div><strong>土俵日和</strong><small>相撲を、もっと近くに。</small></div></div><p>非公式ファンサイト</p><Link href="/rate">レート順位へ戻る →</Link></footer>
+      <footer><div className="footer-brand"><div><strong>{t("相撲日和", "SUMO BIYORI")}</strong><small>{t("相撲を、もっと近くに。", "Bring sumo closer.")}</small></div></div><p>{t("非公式ファンサイト", "Unofficial fan site")}</p><Link href="/rate">{t("レート順位へ戻る →", "Back to ratings →")}</Link></footer>
     </main>
   );
 }

@@ -9,6 +9,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import Bilingual from "./Bilingual";
+import {
+  divisionEnglish,
+  englishBashoLabel,
+  englishDayLabel,
+  englishRank,
+  englishScore,
+  englishTechnique,
+} from "../lib/i18n";
 
 type LiveBout = {
   east: string;
@@ -197,12 +206,12 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
   });
   if (!prediction?.east || !prediction.west) return null;
   if (compact) {
-    return <small className="result-prediction"><span>勝機</span><strong>東{prediction.east.probability}%・西{prediction.west.probability}%</strong></small>;
+    return <small className="result-prediction"><span><Bilingual ja="勝機" en="Forecast" /></span><strong><Bilingual ja={`東${prediction.east.probability}%・西${prediction.west.probability}%`} en={`East ${prediction.east.probability}% · West ${prediction.west.probability}%`} /></strong></small>;
   }
   const confidence = prediction.confidence === "high" ? "信頼度 高" : prediction.confidence === "medium" ? "信頼度 中" : "参考値";
   return (
-    <div className="bout-prediction" aria-label={`${prediction.model ?? "土俵日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
-      <div><span className="bout-prediction-east">東 {prediction.east.probability}%</span><em>{prediction.model ?? "土俵日和予想"}</em><span>西 {prediction.west.probability}%</span></div>
+    <div className="bout-prediction" aria-label={`${prediction.model ?? "相撲日和予想"} 東${prediction.east.probability}% 西${prediction.west.probability}%`}>
+      <div><span className="bout-prediction-east"><Bilingual ja={`東 ${prediction.east.probability}%`} en={`East ${prediction.east.probability}%`} /></span><em><Bilingual ja={prediction.model?.replace("土俵日和", "相撲日和") ?? "相撲日和予想"} en="Sumo Biyori Forecast v2.1" /></em><span><Bilingual ja={`西 ${prediction.west.probability}%`} en={`West ${prediction.west.probability}%`} /></span></div>
       <div className="bout-prediction-bar"><span style={{ width: `${prediction.east.probability}%` }} /></div>
       <small>
         Glicko-2 {prediction.east.glickoRating ?? prediction.east.elo} 対 {prediction.west.glickoRating ?? prediction.west.elo}
@@ -314,9 +323,10 @@ function comparisonHref(bout: LiveBout): string | null {
 
 export function LiveHeaderStatus() {
   const { data, loading } = useLiveSumo();
-  if (loading) return <strong>本場所情報を確認中</strong>;
+  if (loading) return <strong><Bilingual ja="本場所情報を確認中" en="Checking tournament data" /></strong>;
   const label = [data?.basho, data?.dayLabel].filter(Boolean).join("　");
-  return <strong>{label || "本場所情報を更新待ち"}</strong>;
+  const englishLabel = [englishBashoLabel(data?.bashoId), englishDayLabel(data?.day)].filter(Boolean).join(" · ");
+  return <strong><Bilingual ja={label || "本場所情報を更新待ち"} en={englishLabel || "Waiting for tournament data"} /></strong>;
 }
 
 export function LiveHeroBout() {
@@ -329,27 +339,30 @@ export function LiveHeroBout() {
   return (
     <article className="bout-card" id="torikumi" aria-live="polite">
       <div className="bout-ribbon">
-        {loading ? "公式取組情報を確認中" : division ? `${data?.basho}・${data?.dayLabel}　${division.name}` : "本場所情報"}
+        <Bilingual
+          ja={loading ? "公式取組情報を確認中" : division ? `${data?.basho}・${data?.dayLabel}　${division.name}` : "本場所情報"}
+          en={loading ? "Checking official bout data" : division ? `${englishBashoLabel(data?.bashoId)} · ${englishDayLabel(data?.day)} · ${divisionEnglish[division.id] ?? division.name}` : "Tournament data"}
+        />
       </div>
       {bout ? (
         <>
           <div className="bout-main">
             <div className={`wrestler wrestler-east ${bout.winner === "east" ? "is-winner" : ""}`}>
-              <span>東・{bout.eastRank}</span>
+              <span><Bilingual ja={`東・${bout.eastRank}`} en={englishRank(`東・${bout.eastRank}`)} /></span>
               <ProfileLink className="wrestler-name-link" href={bout.eastProfileUrl}><strong>{bout.east}</strong></ProfileLink>
-              <small>{bout.eastScore}</small>
+              <small><Bilingual ja={bout.eastScore} en={englishScore(bout.eastScore)} /></small>
             </div>
-            <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}>{isNext ? "対" : "終了"}</div>
+            <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}><Bilingual ja={isNext ? "対" : "終了"} en={isNext ? "VS" : "Final"} /></div>
             <div className={`wrestler wrestler-west ${bout.winner === "west" ? "is-winner" : ""}`}>
-              <span>西・{bout.westRank}</span>
+              <span><Bilingual ja={`西・${bout.westRank}`} en={englishRank(`西・${bout.westRank}`)} /></span>
               <ProfileLink className="wrestler-name-link" href={bout.westProfileUrl}><strong>{bout.west}</strong></ProfileLink>
-              <small>{bout.westScore}</small>
+              <small><Bilingual ja={bout.westScore} en={englishScore(bout.westScore)} /></small>
             </div>
           </div>
           {isNext && <WinProbability bout={bout} divisionId={division?.id ?? 1} />}
         </>
       ) : (
-        <div className="live-empty">{data?.message ?? "取組情報の更新を待っています。"}</div>
+        <div className="live-empty"><Bilingual ja={data?.message ?? "取組情報の更新を待っています。"} en="Waiting for bout data." /></div>
       )}
     </article>
   );
@@ -369,11 +382,11 @@ export function LiveResultsBoard() {
       {division ? (
         <>
           <div className="live-progress-row">
-            <span>{division.completed}番終了</span>
+            <span><Bilingual ja={`${division.completed}番終了`} en={`${division.completed} complete`} /></span>
             <div className="live-progress" role="progressbar" aria-label={`${division.name}の進行`} aria-valuemin={0} aria-valuemax={division.total} aria-valuenow={division.completed}>
               <span style={{ width: `${progress}%` }} />
             </div>
-            <span>全{division.total}番</span>
+            <span><Bilingual ja={`全${division.total}番`} en={`${division.total} bouts`} /></span>
           </div>
 
           <div className="division-track" aria-label="各段の進行状況">
@@ -390,8 +403,8 @@ export function LiveResultsBoard() {
                   aria-controls="division-results"
                   title={`${item.name}の全取組を表示`}
                 >
-                  <span>{item.name}</span>
-                  <small>{item.total ? `${item.completed}/${item.total}` : "待機"}</small>
+                  <span><Bilingual ja={item.name} en={divisionEnglish[item.id] ?? item.name} /></span>
+                  <small>{item.total ? `${item.completed}/${item.total}` : <Bilingual ja="待機" en="Waiting" />}</small>
                 </button>
               );
             })}
@@ -399,11 +412,11 @@ export function LiveResultsBoard() {
 
           <div className={`recent-results ${expanded ? "is-expanded" : ""}`} id="division-results">
             <div className="section-heading">
-              <h3>{expanded ? `${division.name} 取組結果` : "取組結果"}</h3>
-              {expanded && <button className="results-collapse" type="button" onClick={collapseResults}>折りたたむ ↑</button>}
+              <h3><Bilingual ja={expanded ? `${division.name} 取組結果` : "取組結果"} en={expanded ? `${divisionEnglish[division.id] ?? division.name} Results` : "Bout Results"} /></h3>
+              {expanded && <button className="results-collapse" type="button" onClick={collapseResults}><Bilingual ja="折りたたむ ↑" en="Collapse ↑" /></button>}
             </div>
             <div className="result-list">
-              {resultLoading ? <p className="live-empty">全取組を読み込み中</p> : displayedBouts.length ? displayedBouts.map((bout, index) => {
+              {resultLoading ? <p className="live-empty"><Bilingual ja="全取組を読み込み中" en="Loading all bouts" /></p> : displayedBouts.length ? displayedBouts.map((bout, index) => {
                 const compareUrl = comparisonHref(bout);
                 const openComparison = () => { if (compareUrl) window.location.href = compareUrl; };
                 return (
@@ -425,35 +438,35 @@ export function LiveResultsBoard() {
                   }}
                 >
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
-                    <small className="result-rank">{formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)}</small>
+                    <small className="result-rank"><Bilingual ja={formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)} en={englishRank(formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide), division.name)} /></small>
                     <ProfileLink className="result-name" href={bout.eastProfileUrl}>{bout.east}</ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
                   <span className="result-technique">
-                    <span>{bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"}</span>
+                    <span><Bilingual ja={bout.status === "past" ? bout.technique : bout.status === "current" ? "現在" : "このあと"} en={bout.status === "past" ? englishTechnique(bout.technique) : bout.status === "current" ? "Now" : "Up next"} /></span>
                     {bout.status !== "past" && <WinProbability bout={bout} divisionId={division.id} compact />}
                   </span>
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
                     <ProfileLink className="result-name" href={bout.westProfileUrl}>{bout.west}</ProfileLink>
-                    <small className="result-rank">{formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)}</small>
+                    <small className="result-rank"><Bilingual ja={formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)} en={englishRank(formatResultRank(bout.westRank, division.name, bout.westBanzukeSide), division.name)} /></small>
                   </span>
                 </div>
               );
-              }) : <p className="live-empty">取組順の更新を待っています。</p>}
+              }) : <p className="live-empty"><Bilingual ja="取組順の更新を待っています。" en="Waiting for the bout order." /></p>}
             </div>
           </div>
         </>
       ) : (
-        <p className="live-empty">{data?.message ?? "取組データを取得しています。"}</p>
+        <p className="live-empty"><Bilingual ja={data?.message ?? "取組データを取得しています。"} en="Loading bout data." /></p>
       )}
 
       <div className="live-source">
         <span className="live-timestamp live-timestamp-inline">
-          <span>{data?.displayRefreshSeconds ?? 10}秒ごとに表示を更新</span>
-          <small>最終取得 {updated}</small>
+          <span><Bilingual ja={`${data?.displayRefreshSeconds ?? 10}秒ごとに表示を更新`} en={`Refreshes every ${data?.displayRefreshSeconds ?? 10} seconds`} /></span>
+          <small><Bilingual ja={`最終取得 ${updated}`} en={`Last update ${updated} JST`} /></small>
         </span>
-        {data?.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer">出典：日本相撲協会公式サイト ↗</a>}
+        {data?.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer"><Bilingual ja="出典：日本相撲協会公式サイト ↗" en="Source: Japan Sumo Association ↗" /></a>}
       </div>
     </section>
   );
@@ -466,23 +479,23 @@ export function LiveBanzukeCard() {
   return (
     <article className="feature-card banzuke-card" id="banzuke">
       <div className="section-heading">
-        <h2>番付</h2>
+        <h2><Bilingual ja="番付" en="Banzuke" /></h2>
       </div>
       <div className="rank-list">
         {loading ? (
-          <p className="banzuke-loading">公式番付を確認中</p>
+          <p className="banzuke-loading"><Bilingual ja="公式番付を確認中" en="Checking the official banzuke" /></p>
         ) : rows.length ? rows.map((row, index) => (
           <div className="rank-row" key={`${row.rank}-${index}`}>
             <ProfileLink className="rank-rikishi" href={row.eastProfileUrl}>{row.east ?? "—"}</ProfileLink>
-            <em>{row.rank}</em>
+            <em><Bilingual ja={row.rank} en={englishRank(row.rank)} /></em>
             <ProfileLink className="rank-rikishi" href={row.westProfileUrl}>{row.west ?? "—"}</ProfileLink>
           </div>
         )) : (
-          <p className="banzuke-loading">公式番付の更新を待っています。</p>
+          <p className="banzuke-loading"><Bilingual ja="公式番付の更新を待っています。" en="Waiting for the official banzuke." /></p>
         )}
       </div>
       <a className="text-link" href="https://www.sumo.or.jp/ResultBanzuke/table/" target="_blank" rel="noreferrer">
-        日本相撲協会公式番付表 ↗
+        <Bilingual ja="日本相撲協会公式番付表 ↗" en="Official JSA banzuke ↗" />
       </a>
     </article>
   );

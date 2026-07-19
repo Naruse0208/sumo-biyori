@@ -5,11 +5,12 @@ import { getDb } from "../../../db";
 import { wrestlers } from "../../../db/schema";
 import SiteHeader from "../../components/SiteHeader";
 import { japaneseRikishiName } from "../../lib/rikishi-names";
+import { getRequestLocale } from "../../lib/i18n-server";
 import RateLabNav from "../rate-lab-nav";
 import ComparisonBoard from "./comparison-board";
 
 export const metadata: Metadata = {
-  title: "推し力士・対戦比較｜土俵日和",
+  title: "推し力士・対戦比較｜相撲日和",
   description: "二人の力士を選び、Elo・Glicko-2・相撲偏差値・直接対戦・決まり手・全盛期を比較します。",
 };
 
@@ -44,6 +45,8 @@ async function optionFromNskId(nskId: number | null): Promise<CompareOption | nu
 }
 
 export default async function ComparePage({ searchParams }: { searchParams: Promise<CompareQuery> }) {
+  const locale = await getRequestLocale();
+  const t = (ja: string, en: string) => locale === "en" ? en : ja;
   const query = await searchParams;
   let initialLeft = defaultLeft;
   let initialRight = defaultRight;
@@ -61,7 +64,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   return (
     <main className="rate-page lab-subpage compare-page">
       <div className="rate-frame" aria-hidden="true" />
-      <div className="notice-bar rate-notice"><strong>土俵日和 対戦比較室</strong><span>二人を選んで、強さの理由まで比べる</span></div>
+      <div className="notice-bar rate-notice"><strong>{t("相撲日和 対戦比較室", "Sumo Biyori Matchup Lab")}</strong><span>{t("二人を選んで、強さの理由まで比べる", "Compare two wrestlers—and why the numbers differ")}</span></div>
       <SiteHeader active="rate" />
 
       <RateLabNav active="compare" />
@@ -71,10 +74,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           variant="rikishi"
           initialLeft={initialLeft}
           initialRight={initialRight}
+          locale={locale}
         />
       </div>
 
-      <footer><div className="footer-brand"><div><strong>土俵日和</strong><small>推しを、数字でも深く知る。</small></div></div><p>相撲を愛する人のための非公式ファンサイト</p><Link href="/rate">レート研究室へ戻る →</Link></footer>
+      <footer><div className="footer-brand"><div><strong>{t("相撲日和", "SUMO BIYORI")}</strong><small>{t("推しを、数字でも深く知る。", "Know your favorites through the numbers.")}</small></div></div><p>{t("相撲を愛する人のための非公式ファンサイト", "An unofficial fan site for sumo lovers")}</p><Link href="/rate">{t("レート研究室へ戻る →", "Back to Rating Lab →")}</Link></footer>
     </main>
   );
 }
