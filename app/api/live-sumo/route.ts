@@ -234,6 +234,11 @@ function profileUrl(rikishiId?: number): string | null {
     : null;
 }
 
+function nskIdFromProfileUrl(url?: string | null): number | null {
+  const id = Number(url?.match(/\/nsk-(\d+)/)?.[1] ?? 0);
+  return id || null;
+}
+
 async function getKanjiShikona(rikishi?: UpstreamRikishi): Promise<string> {
   const id = Number(rikishi?.rikishi_id ?? 0);
   const upstreamName = cleanShikona(rikishi);
@@ -814,13 +819,22 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
     ? await mapDivision(selectedSource, true)
     : currentDivision;
   const banzukeEnglishNames = await loadEnglishNames(
-    snapshot.banzuke.flatMap((row) => [row.eastNskId, row.westNskId]),
+    snapshot.banzuke.flatMap((row) => [
+      row.eastNskId ?? nskIdFromProfileUrl(row.eastProfileUrl),
+      row.westNskId ?? nskIdFromProfileUrl(row.westProfileUrl),
+    ]),
   );
-  const localizedBanzuke = snapshot.banzuke.map((row) => ({
-    ...row,
-    eastEn: row.eastNskId ? banzukeEnglishNames.get(row.eastNskId) ?? row.eastEn ?? row.east : row.eastEn ?? row.east,
-    westEn: row.westNskId ? banzukeEnglishNames.get(row.westNskId) ?? row.westEn ?? row.west : row.westEn ?? row.west,
-  }));
+  const localizedBanzuke = snapshot.banzuke.map((row) => {
+    const eastNskId = row.eastNskId ?? nskIdFromProfileUrl(row.eastProfileUrl);
+    const westNskId = row.westNskId ?? nskIdFromProfileUrl(row.westProfileUrl);
+    return {
+      ...row,
+      eastNskId,
+      westNskId,
+      eastEn: eastNskId ? banzukeEnglishNames.get(eastNskId) ?? row.eastEn ?? row.east : row.eastEn ?? row.east,
+      westEn: westNskId ? banzukeEnglishNames.get(westNskId) ?? row.westEn ?? row.west : row.westEn ?? row.west,
+    };
+  });
   const value: LiveResponse = {
     live: Boolean(currentDivision?.total),
     basho: `${getEraYear(snapshot.dayHead)} ${snapshot.bashoName}`.trim(),
