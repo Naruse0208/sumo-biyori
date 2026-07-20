@@ -159,7 +159,7 @@ async function sha256(value: string): Promise<string> {
 }
 
 function isCurrent(row: StoredHighlight | undefined, item: PreparedCandidate, provider: string, model: string) {
-  return Boolean(row && row.facts_hash === item.factsHash && row.provider === provider && row.model === model
+  return Boolean(row && row.id === item.id && row.provider === provider && row.model === model
     && row.prompt_version === HIGHLIGHT_PROMPT_VERSION && row.schema_version === HIGHLIGHT_SCHEMA_VERSION
     && (row.status === "generated" || row.status === "fallback_final"));
 }
