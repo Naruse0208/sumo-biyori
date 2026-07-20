@@ -158,8 +158,8 @@ async function sha256(value: string): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function isCurrent(row: StoredHighlight | undefined, item: PreparedCandidate, provider: string, model: string) {
-  return Boolean(row && row.id === item.id && row.provider === provider && row.model === model
+function isCurrent(row: StoredHighlight | undefined, item: PreparedCandidate) {
+  return Boolean(row && row.id === item.id
     && row.prompt_version === HIGHLIGHT_PROMPT_VERSION && row.schema_version === HIGHLIGHT_SCHEMA_VERSION
     && (row.status === "generated" || row.status === "fallback_final"));
 }
@@ -218,7 +218,7 @@ export async function POST(request: Request) {
       FROM bout_highlights WHERE id IN (${placeholders})`).bind(...prepared.map((item) => item.id)).all<StoredHighlight>();
     for (const row of result.results ?? []) stored.set(row.id, row);
   }
-  const pending = prepared.filter((item) => body.force || !isCurrent(stored.get(item.id), item, settings.provider, settings.model));
+  const pending = prepared.filter((item) => body.force || !isCurrent(stored.get(item.id), item));
 
   const fallbackCopies = new Map(pending.map((item) => [item.id, createFallbackHighlightCopy(item.facts)]));
   await upsertCopies(database, pending, settings.provider, settings.model, "fallback_pending", fallbackCopies);
