@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { inArray } from "drizzle-orm";
 import era from "../../../data/era-rankings.json";
-import { getDb } from "../../../db";
-import { wrestlers } from "../../../db/schema";
+import eraEnglishNames from "../../../data/era-english-names.json";
 import SiteHeader from "../../components/SiteHeader";
 import RateLabNav from "../rate-lab-nav";
 import { getRequestLocale } from "../../lib/i18n-server";
@@ -24,19 +22,8 @@ function bashoLabel(bashoId: number, locale: Locale) {
 export default async function EraPage() {
   const locale = await getRequestLocale();
   const t = (ja: string, en: string) => locale === "en" ? en : ja;
-  const englishNames = new Map<number, string>();
-  if (locale === "en") {
-    try {
-      const rows = await getDb()
-        .select({ id: wrestlers.id, shikonaEn: wrestlers.shikonaEn })
-        .from(wrestlers)
-        .where(inArray(wrestlers.id, era.ranking.map((rikishi) => rikishi.id)));
-      for (const row of rows) englishNames.set(row.id, row.shikonaEn);
-    } catch {
-      // Keep the historical Japanese name if the read-only lookup is unavailable.
-    }
-  }
-  const rikishiName = (rikishi: (typeof era.ranking)[number]) => locale === "en" ? englishNames.get(rikishi.id) ?? rikishi.name : rikishi.name;
+  const englishNames = eraEnglishNames.names as Record<string, string>;
+  const rikishiName = (rikishi: (typeof era.ranking)[number]) => locale === "en" ? englishNames[String(rikishi.id)] ?? rikishi.name : rikishi.name;
   const leaders = era.ranking.slice(0, 3);
   return (
     <main className="rate-page lab-subpage era-page">

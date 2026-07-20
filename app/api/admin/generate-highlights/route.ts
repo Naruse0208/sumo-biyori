@@ -4,7 +4,8 @@ import {
   HIGHLIGHT_PROMPT_VERSION,
   HIGHLIGHT_SCHEMA_VERSION,
   boutHighlightId,
-  generateBoutHighlightCopy,
+  createFallbackHighlightCopy,
+  generateBoutHighlightBatch,
   getAiHighlightSettings,
   type BoutHighlightFacts,
 } from "../../../lib/ai-highlights";
@@ -13,7 +14,15 @@ import { calculateLivePrediction, type LivePrediction } from "../../../lib/predi
 export const dynamic = "force-dynamic";
 
 const SHARED_CACHE_KEY = "official-live-sumo-v1";
-const DIVISION_NAMES: Record<number, string> = { 1: "幕内", 2: "十両", 3: "幕下" };
+const DIVISION_NAMES: Record<number, string> = {
+  1: "幕内",
+  2: "十両",
+  3: "幕下",
+  4: "三段目",
+  5: "序二段",
+  6: "序ノ口",
+};
+const GENERATION_ORDER = [6, 5, 4, 3, 2, 1] as const;
 
 type RuntimeEnv = {
   DB: D1Database;
@@ -29,10 +38,7 @@ type CachedRikishi = {
   lost_number?: number;
 };
 
-type CachedBout = {
-  east?: CachedRikishi;
-  west?: CachedRikishi;
-};
+type CachedBout = { east?: CachedRikishi; west?: CachedRikishi };
 
 type CachedSnapshot = {
   bashoId?: number;
@@ -43,14 +49,17 @@ type CachedSnapshot = {
   }>;
 };
 
-type Candidate = {
-  division: number;
-  bout: CachedBout;
-};
-
-type GenerateRequest = {
-  force?: boolean;
-  batchSize?: number;
+type Candidate = { division: number; bout: CachedBout };
+type GenerateRequest = { force?: boolean; batchSize?: number };
+type PreparedCandidate = Candidate & { id: string; facts: BoutHighlightFacts; factsHash: string };
+type StoredHighlight = {
+  id: string;
+  facts_hash: string;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  schema_version: string;
+  status: string;
 };
 
 function runtime(): RuntimeEnv {
@@ -62,38 +71,18 @@ function authorized(request: Request): boolean {
   return Boolean(token && request.headers.get("authorization") === `Bearer ${token}`);
 }
 
-function kanjiRankNumber(rank: string | undefined): number {
-  if (!rank) return 999;
-  if (rank.includes("筆頭")) return 1;
-  const text = rank.match(/([一二三四五六七八九十]+)枚目/)?.[1];
-  if (!text) return 999;
-  const digits: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
-  if (!text.includes("十")) return digits[text] ?? 999;
-  const [tens, ones] = text.split("十");
-  return (tens ? digits[tens] ?? 0 : 1) * 10 + (ones ? digits[ones] ?? 0 : 0);
-}
-
 function validBout(bout: CachedBout): boolean {
   return Number(bout.east?.rikishi_id ?? 0) > 0 && Number(bout.west?.rikishi_id ?? 0) > 0;
 }
 
 function selectCandidates(snapshot: CachedSnapshot): Candidate[] {
+  const divisions = new Map((snapshot.divisions ?? []).map((division) => [Number(division.id), division]));
   const candidates: Candidate[] = [];
-  for (const division of snapshot.divisions ?? []) {
-    const id = Number(division.id ?? 0);
-    if (id !== 1 && id !== 2 && id !== 3) continue;
-    const bouts = (division.allBoutSources ?? [])
+  for (const divisionId of GENERATION_ORDER) {
+    const bouts = (divisions.get(divisionId)?.allBoutSources ?? [])
       .flatMap(({ bout }) => bout && validBout(bout) ? [bout] : []);
-    if (id === 3) {
-      bouts.sort((left, right) => {
-        const leftRank = Math.min(kanjiRankNumber(left.east?.banzuke_name), kanjiRankNumber(left.west?.banzuke_name));
-        const rightRank = Math.min(kanjiRankNumber(right.east?.banzuke_name), kanjiRankNumber(right.west?.banzuke_name));
-        return leftRank - rightRank;
-      });
-      candidates.push(...bouts.slice(0, 5).map((bout) => ({ division: id, bout })));
-    } else {
-      candidates.push(...bouts.map((bout) => ({ division: id, bout })));
-    }
+    const selected = divisionId >= 3 ? bouts.slice(-5) : bouts;
+    candidates.push(...selected.map((bout) => ({ division: divisionId, bout })));
   }
   return candidates;
 }
@@ -103,26 +92,40 @@ function numberFromRecord(record: Record<string, unknown>, key: string): number 
   return Number.isFinite(value) ? value : 0;
 }
 
-function buildFacts(
-  snapshot: CachedSnapshot,
-  candidate: Candidate,
-  prediction: LivePrediction,
-): BoutHighlightFacts {
-  const eastSource = candidate.bout.east!;
-  const westSource = candidate.bout.west!;
-  const explanation = prediction.explanation;
+function basicFacts(snapshot: CachedSnapshot, candidate: Candidate): BoutHighlightFacts {
+  const east = candidate.bout.east!;
+  const west = candidate.bout.west!;
   return {
     schemaVersion: "1",
     bashoId: Number(snapshot.bashoId),
     day: Number(snapshot.day),
     division: { id: candidate.division, nameJa: DIVISION_NAMES[candidate.division] },
     east: {
-      nskId: Number(eastSource.rikishi_id),
-      nameJa: prediction.east.name || eastSource.shikona || "",
-      nameEn: prediction.east.nameEn || eastSource.shikona_eng || "",
-      rankJa: eastSource.banzuke_name || "",
-      wins: Number(eastSource.won_number ?? 0),
-      losses: Number(eastSource.lost_number ?? 0),
+      nskId: Number(east.rikishi_id), nameJa: east.shikona || "", nameEn: east.shikona_eng || "",
+      rankJa: east.banzuke_name || "", wins: Number(east.won_number ?? 0), losses: Number(east.lost_number ?? 0),
+      elo: 1500, glicko2: 1500, glickoRd: 350, heightCm: null, weightKg: null,
+    },
+    west: {
+      nskId: Number(west.rikishi_id), nameJa: west.shikona || "", nameEn: west.shikona_eng || "",
+      rankJa: west.banzuke_name || "", wins: Number(west.won_number ?? 0), losses: Number(west.lost_number ?? 0),
+      elo: 1500, glicko2: 1500, glickoRd: 350, heightCm: null, weightKg: null,
+    },
+    matchup: {
+      eastWinProbability: 50, westWinProbability: 50, confidence: "low",
+      headToHeadBouts: 0, eastHeadToHeadWins: 0, westHeadToHeadWins: 0,
+    },
+  };
+}
+
+function buildFacts(snapshot: CachedSnapshot, candidate: Candidate, prediction: LivePrediction): BoutHighlightFacts {
+  const facts = basicFacts(snapshot, candidate);
+  const explanation = prediction.explanation;
+  return {
+    ...facts,
+    east: {
+      ...facts.east,
+      nameJa: prediction.east.name || facts.east.nameJa,
+      nameEn: prediction.east.nameEn || facts.east.nameEn,
       elo: prediction.east.elo,
       glicko2: prediction.east.glickoRating,
       glickoRd: prediction.east.glickoRd,
@@ -130,12 +133,9 @@ function buildFacts(
       weightKg: prediction.east.weightKg,
     },
     west: {
-      nskId: Number(westSource.rikishi_id),
-      nameJa: prediction.west.name || westSource.shikona || "",
-      nameEn: prediction.west.nameEn || westSource.shikona_eng || "",
-      rankJa: westSource.banzuke_name || "",
-      wins: Number(westSource.won_number ?? 0),
-      losses: Number(westSource.lost_number ?? 0),
+      ...facts.west,
+      nameJa: prediction.west.name || facts.west.nameJa,
+      nameEn: prediction.west.nameEn || facts.west.nameEn,
       elo: prediction.west.elo,
       glicko2: prediction.west.glickoRating,
       glickoRd: prediction.west.glickoRd,
@@ -154,87 +154,107 @@ function buildFacts(
 }
 
 async function sha256(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function isCurrent(row: StoredHighlight | undefined, item: PreparedCandidate, provider: string, model: string) {
+  return Boolean(row && row.facts_hash === item.factsHash && row.provider === provider && row.model === model
+    && row.prompt_version === HIGHLIGHT_PROMPT_VERSION && row.schema_version === HIGHLIGHT_SCHEMA_VERSION
+    && (row.status === "generated" || row.status === "fallback_final"));
+}
+
+async function upsertCopies(
+  database: D1Database,
+  items: PreparedCandidate[],
+  provider: string,
+  model: string,
+  status: "fallback_pending" | "generated",
+  copies: Map<string, ReturnType<typeof createFallbackHighlightCopy>>,
+) {
+  if (items.length === 0) return;
+  const statements = items.map((item) => database.prepare(`INSERT INTO bout_highlights
+    (id, basho_id, day, division, east_nsk_id, west_nsk_id, facts_hash, provider, model,
+     prompt_version, schema_version, status, fallback_reason, payload, generated_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET facts_hash = excluded.facts_hash, provider = excluded.provider,
+      model = excluded.model, prompt_version = excluded.prompt_version, schema_version = excluded.schema_version,
+      status = excluded.status, fallback_reason = NULL, payload = excluded.payload,
+      generated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP`)
+    .bind(item.id, item.facts.bashoId, item.facts.day, item.division, item.facts.east.nskId,
+      item.facts.west.nskId, item.factsHash, provider, model, HIGHLIGHT_PROMPT_VERSION,
+      HIGHLIGHT_SCHEMA_VERSION, status, JSON.stringify(copies.get(item.id))));
+  await database.batch(statements);
 }
 
 export async function POST(request: Request) {
   if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json().catch(() => ({})) as GenerateRequest;
   const shared = await readSharedLiveSumoCache(SHARED_CACHE_KEY);
-  if (!shared?.payload) return Response.json({ error: "Live sumo cache is empty" }, { status: 409 });
+  if (!shared?.payload) return Response.json({ status: "waiting", reason: "live_cache_empty" }, { status: 409 });
   const snapshot = JSON.parse(shared.payload) as CachedSnapshot;
-  if (!snapshot.bashoId || !snapshot.day || !Array.isArray(snapshot.divisions)) {
-    return Response.json({ error: "Live sumo cache is invalid" }, { status: 409 });
+  const availableDivisions = new Set((snapshot.divisions ?? []).map((division) => Number(division.id)));
+  if (!snapshot.bashoId || !snapshot.day || GENERATION_ORDER.some((id) => !availableDivisions.has(id))) {
+    return Response.json({ status: "waiting", reason: "daily_card_incomplete" }, { status: 409 });
   }
 
   const settings = getAiHighlightSettings();
   const database = runtime().DB;
   const candidates = selectCandidates(snapshot);
-  const batchSize = Math.max(1, Math.min(10, Math.trunc(Number(body.batchSize ?? 5)) || 5));
-  const candidateIds = candidates.map((candidate) => boutHighlightId(
-    snapshot.bashoId!,
-    snapshot.day!,
-    candidate.division,
-    Number(candidate.bout.east?.rikishi_id ?? 0),
-    Number(candidate.bout.west?.rikishi_id ?? 0),
-  ));
-  const cachedIds = new Set<string>();
-  if (!body.force && candidateIds.length > 0) {
-    const placeholders = candidateIds.map(() => "?").join(", ");
-    const cached = await database.prepare(`SELECT id FROM bout_highlights
-      WHERE id IN (${placeholders}) AND provider = ? AND model = ?
-        AND prompt_version = ? AND schema_version = ?`)
-      .bind(...candidateIds, settings.provider, settings.model, HIGHLIGHT_PROMPT_VERSION, HIGHLIGHT_SCHEMA_VERSION)
-      .all<{ id: string }>();
-    for (const row of cached.results ?? []) cachedIds.add(row.id);
-  }
-  const pending = candidates.filter((_, index) => !cachedIds.has(candidateIds[index]));
-  const work = pending.slice(0, batchSize);
-  const summary = {
-    provider: settings.provider,
-    model: settings.model,
-    total: candidates.length,
-    queued: pending.length,
-    batchSize,
-    generated: 0,
-    skipped: candidates.length - pending.length,
-    failed: 0,
-  };
-  const errors: Array<{ id: string; message: string }> = [];
-
-  for (const candidate of work) {
-    const eastNskId = Number(candidate.bout.east?.rikishi_id ?? 0);
-    const westNskId = Number(candidate.bout.west?.rikishi_id ?? 0);
+  const prepared: PreparedCandidate[] = [];
+  for (const candidate of candidates) {
+    const eastNskId = Number(candidate.bout.east?.rikishi_id);
+    const westNskId = Number(candidate.bout.west?.rikishi_id);
     const id = boutHighlightId(snapshot.bashoId, snapshot.day, candidate.division, eastNskId, westNskId);
-    try {
-      const prediction = await calculateLivePrediction(request, eastNskId, westNskId);
-      if (!prediction) throw new Error("Rating facts are unavailable");
-      const facts = buildFacts(snapshot, candidate, prediction);
-      const factsHash = await sha256(JSON.stringify(facts));
-      const copy = await generateBoutHighlightCopy(facts, settings);
-      await database.prepare(`INSERT INTO bout_highlights
-        (id, basho_id, day, division, east_nsk_id, west_nsk_id, facts_hash, provider, model,
-         prompt_version, schema_version, payload, generated_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ON CONFLICT(id) DO UPDATE SET
-          facts_hash = excluded.facts_hash, provider = excluded.provider, model = excluded.model,
-          prompt_version = excluded.prompt_version, schema_version = excluded.schema_version,
-          payload = excluded.payload, generated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP`)
-        .bind(id, snapshot.bashoId, snapshot.day, candidate.division, eastNskId, westNskId,
-          factsHash, settings.provider, settings.model, HIGHLIGHT_PROMPT_VERSION,
-          HIGHLIGHT_SCHEMA_VERSION, JSON.stringify(copy))
-        .run();
-      summary.generated += 1;
-    } catch (error) {
-      summary.failed += 1;
-      errors.push({ id, message: error instanceof Error ? error.message : "Unknown error" });
+    const prediction = await calculateLivePrediction(request, eastNskId, westNskId).catch(() => null);
+    const facts = prediction ? buildFacts(snapshot, candidate, prediction) : basicFacts(snapshot, candidate);
+    prepared.push({ ...candidate, id, facts, factsHash: await sha256(JSON.stringify(facts)) });
+  }
+
+  const stored = new Map<string, StoredHighlight>();
+  if (prepared.length > 0) {
+    const placeholders = prepared.map(() => "?").join(", ");
+    const result = await database.prepare(`SELECT id, facts_hash, provider, model, prompt_version, schema_version, status
+      FROM bout_highlights WHERE id IN (${placeholders})`).bind(...prepared.map((item) => item.id)).all<StoredHighlight>();
+    for (const row of result.results ?? []) stored.set(row.id, row);
+  }
+  const pending = prepared.filter((item) => body.force || !isCurrent(stored.get(item.id), item, settings.provider, settings.model));
+
+  const fallbackCopies = new Map(pending.map((item) => [item.id, createFallbackHighlightCopy(item.facts)]));
+  await upsertCopies(database, pending, settings.provider, settings.model, "fallback_pending", fallbackCopies);
+
+  const batchSize = Math.max(1, Math.min(5, Math.trunc(Number(body.batchSize ?? 5)) || 5));
+  const work = pending.slice(0, batchSize);
+  let generated = 0;
+  let usedFallback = 0;
+  if (work.length > 0) {
+    let generatedCopies: Map<string, ReturnType<typeof createFallbackHighlightCopy>> | null = null;
+    for (let attempt = 0; attempt < 2 && !generatedCopies; attempt += 1) {
+      generatedCopies = await generateBoutHighlightBatch(
+        work.map((item) => ({ id: item.id, facts: item.facts })), settings,
+      ).catch(() => null);
+    }
+    if (generatedCopies) {
+      await upsertCopies(database, work, settings.provider, settings.model, "generated", generatedCopies);
+      generated = work.length;
+    } else {
+      const statements = work.map((item) => database.prepare(`UPDATE bout_highlights
+        SET status = 'fallback_final', fallback_reason = 'provider_unavailable', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`).bind(item.id));
+      await database.batch(statements);
+      usedFallback = work.length;
     }
   }
+
   return Response.json({
-    ...summary,
-    remaining: Math.max(0, pending.length - summary.generated),
-    errors: errors.slice(0, 10),
+    status: "ok",
+    provider: settings.provider,
+    model: settings.model,
+    total: prepared.length,
+    generated,
+    fallback: usedFallback,
+    skipped: prepared.length - pending.length,
+    remaining: Math.max(0, pending.length - work.length),
+    batchSize,
   });
 }

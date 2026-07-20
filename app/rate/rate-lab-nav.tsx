@@ -32,7 +32,7 @@ const destinations = [
     id: "yokozuna" as const,
     href: "/rate/yokozuna",
     title: "歴代横綱比較",
-    english: "Yokozuna",
+    english: "Compare Yokozuna",
   },
 ];
 

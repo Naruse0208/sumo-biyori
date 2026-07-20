@@ -93,6 +93,22 @@ export function englishRank(rank: string, divisionName = "") {
   return `${sideLabel}${translated || "—"}`.trim();
 }
 
+export function englishRankAbbreviated(rank: string, divisionName = "") {
+  return englishRank(rank, divisionName)
+    .replace(/^East\s+/, "E ")
+    .replace(/^West\s+/, "W ")
+    .replace(/\bYokozuna\b/, "Y")
+    .replace(/\bOzeki\b/, "O")
+    .replace(/\bSekiwake\b/, "S")
+    .replace(/\bKomusubi\b/, "K")
+    .replace(/\bMaegashira\b/, "M")
+    .replace(/\bJuryo\b/, "J")
+    .replace(/\bMakushita\b/, "Ms")
+    .replace(/\bSandanme\b/, "Sd")
+    .replace(/\bJonidan\b/, "Jd")
+    .replace(/\bJonokuchi\b/, "Jk");
+}
+
 function parseKanjiNumber(value: string) {
   if (value === "元") return 1;
   const digits: Record<string, number> = { 〇: 0, 零: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };

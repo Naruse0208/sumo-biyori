@@ -72,10 +72,13 @@ test("supports Gemini-first and switchable GPT bout highlights", async () => {
   assert.doesNotMatch(publicRoute, /export async function POST|\.insert\(|\.update\(/);
   assert.match(adminRoute, /AI_HIGHLIGHT_ADMIN_TOKEN/);
   assert.match(adminRoute, /readSharedLiveSumoCache/);
-  assert.match(adminRoute, /bouts\.slice\(0, 5\)/);
+  assert.match(adminRoute, /GENERATION_ORDER = \[6, 5, 4, 3, 2, 1\]/);
+  assert.match(adminRoute, /bouts\.slice\(-5\)/);
+  assert.match(adminRoute, /generateBoutHighlightBatch/);
+  assert.match(adminRoute, /fallback_pending/);
   assert.match(adminRoute, /batchSize/);
   assert.match(adminRoute, /remaining/);
-  assert.match(worker, /ai-highlight-sweep-v1/);
+  assert.match(worker, /ai-highlight-sweep-v2/);
   assert.match(worker, /ctx\.waitUntil\(generateDailyHighlights/);
   assert.match(client, /\/api\/highlights/);
   assert.doesNotMatch(client, /デザイン確認用/);

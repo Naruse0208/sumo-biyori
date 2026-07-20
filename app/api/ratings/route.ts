@@ -41,6 +41,7 @@ export async function GET(request: Request) {
         shikonaJp: wrestlers.shikonaJp,
         shikonaEn: wrestlers.shikonaEn,
         banzukeRank: banzukeEntries.rank,
+        banzukeSide: banzukeEntries.side,
         division: ratingSnapshots.division,
         elo: ratingSnapshots.elo,
         peakElo: ratingSnapshots.peakElo,

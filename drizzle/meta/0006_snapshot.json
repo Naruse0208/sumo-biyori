@@ -1,0 +1,1075 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "be5745cf-6f92-41d3-95f3-0d66c1fa24fe",
+  "prevId": "39d80239-68c0-4894-8ffc-1313efe0198a",
+  "tables": {
+    "banzuke_entries": {
+      "name": "banzuke_entries",
+      "columns": {
+        "basho_id": {
+          "name": "basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "division": {
+          "name": "division",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "wrestler_id": {
+          "name": "wrestler_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "side": {
+          "name": "side",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rank": {
+          "name": "rank",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rank_value": {
+          "name": "rank_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "banzuke_basho_division_idx": {
+          "name": "banzuke_basho_division_idx",
+          "columns": [
+            "basho_id",
+            "division",
+            "rank_value"
+          ],
+          "isUnique": false
+        },
+        "banzuke_wrestler_idx": {
+          "name": "banzuke_wrestler_idx",
+          "columns": [
+            "wrestler_id",
+            "basho_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "banzuke_entries_basho_id_basho_id_fk": {
+          "name": "banzuke_entries_basho_id_basho_id_fk",
+          "tableFrom": "banzuke_entries",
+          "tableTo": "basho",
+          "columnsFrom": [
+            "basho_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "banzuke_entries_wrestler_id_wrestlers_id_fk": {
+          "name": "banzuke_entries_wrestler_id_wrestlers_id_fk",
+          "tableFrom": "banzuke_entries",
+          "tableTo": "wrestlers",
+          "columnsFrom": [
+            "wrestler_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "banzuke_entries_basho_id_division_wrestler_id_pk": {
+          "columns": [
+            "basho_id",
+            "division",
+            "wrestler_id"
+          ],
+          "name": "banzuke_entries_basho_id_division_wrestler_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "basho": {
+      "name": "basho",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "bout_highlights": {
+      "name": "bout_highlights",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "basho_id": {
+          "name": "basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "day": {
+          "name": "day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "division": {
+          "name": "division",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "east_nsk_id": {
+          "name": "east_nsk_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "west_nsk_id": {
+          "name": "west_nsk_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "facts_hash": {
+          "name": "facts_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schema_version": {
+          "name": "schema_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'generated'"
+        },
+        "fallback_reason": {
+          "name": "fallback_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "generated_at": {
+          "name": "generated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "bout_highlights_match_uq": {
+          "name": "bout_highlights_match_uq",
+          "columns": [
+            "basho_id",
+            "day",
+            "division",
+            "east_nsk_id",
+            "west_nsk_id"
+          ],
+          "isUnique": true
+        },
+        "bout_highlights_day_idx": {
+          "name": "bout_highlights_day_idx",
+          "columns": [
+            "basho_id",
+            "day",
+            "division"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "bouts": {
+      "name": "bouts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "basho_id": {
+          "name": "basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "division": {
+          "name": "division",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "day": {
+          "name": "day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "wrestler_a_id": {
+          "name": "wrestler_a_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "wrestler_b_id": {
+          "name": "wrestler_b_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "winner_wrestler_id": {
+          "name": "winner_wrestler_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "kimarite": {
+          "name": "kimarite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "wrestler_a_elo_before": {
+          "name": "wrestler_a_elo_before",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "wrestler_b_elo_before": {
+          "name": "wrestler_b_elo_before",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "wrestler_a_elo_after": {
+          "name": "wrestler_a_elo_after",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "wrestler_b_elo_after": {
+          "name": "wrestler_b_elo_after",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "bouts_order_idx": {
+          "name": "bouts_order_idx",
+          "columns": [
+            "basho_id",
+            "day",
+            "division"
+          ],
+          "isUnique": false
+        },
+        "bouts_wrestler_a_idx": {
+          "name": "bouts_wrestler_a_idx",
+          "columns": [
+            "wrestler_a_id",
+            "basho_id",
+            "day"
+          ],
+          "isUnique": false
+        },
+        "bouts_wrestler_b_idx": {
+          "name": "bouts_wrestler_b_idx",
+          "columns": [
+            "wrestler_b_id",
+            "basho_id",
+            "day"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "bouts_basho_id_basho_id_fk": {
+          "name": "bouts_basho_id_basho_id_fk",
+          "tableFrom": "bouts",
+          "tableTo": "basho",
+          "columnsFrom": [
+            "basho_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bouts_wrestler_a_id_wrestlers_id_fk": {
+          "name": "bouts_wrestler_a_id_wrestlers_id_fk",
+          "tableFrom": "bouts",
+          "tableTo": "wrestlers",
+          "columnsFrom": [
+            "wrestler_a_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bouts_wrestler_b_id_wrestlers_id_fk": {
+          "name": "bouts_wrestler_b_id_wrestlers_id_fk",
+          "tableFrom": "bouts",
+          "tableTo": "wrestlers",
+          "columnsFrom": [
+            "wrestler_b_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bouts_winner_wrestler_id_wrestlers_id_fk": {
+          "name": "bouts_winner_wrestler_id_wrestlers_id_fk",
+          "tableFrom": "bouts",
+          "tableTo": "wrestlers",
+          "columnsFrom": [
+            "winner_wrestler_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_sumo_cache": {
+      "name": "live_sumo_cache",
+      "columns": {
+        "cache_key": {
+          "name": "cache_key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at_ms": {
+          "name": "updated_at_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "lease_until_ms": {
+          "name": "lease_until_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "official_name_cache": {
+      "name": "official_name_cache",
+      "columns": {
+        "nsk_id": {
+          "name": "nsk_id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "shikona_jp": {
+          "name": "shikona_jp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "profile_url": {
+          "name": "profile_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "prediction_records": {
+      "name": "prediction_records",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "basho_id": {
+          "name": "basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "day": {
+          "name": "day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "division": {
+          "name": "division",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "east_nsk_id": {
+          "name": "east_nsk_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "west_nsk_id": {
+          "name": "west_nsk_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model_version": {
+          "name": "model_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "elo_east_bp": {
+          "name": "elo_east_bp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "glicko_east_bp": {
+          "name": "glicko_east_bp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dohyo_v2_east_bp": {
+          "name": "dohyo_v2_east_bp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dohyo_v3_east_bp": {
+          "name": "dohyo_v3_east_bp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "winner_nsk_id": {
+          "name": "winner_nsk_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "predicted_at": {
+          "name": "predicted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "prediction_records_basho_idx": {
+          "name": "prediction_records_basho_idx",
+          "columns": [
+            "basho_id",
+            "day",
+            "division"
+          ],
+          "isUnique": false
+        },
+        "prediction_records_unresolved_idx": {
+          "name": "prediction_records_unresolved_idx",
+          "columns": [
+            "winner_nsk_id",
+            "basho_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "rating_import_batches": {
+      "name": "rating_import_batches",
+      "columns": {
+        "batch_id": {
+          "name": "batch_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "table_name": {
+          "name": "table_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "row_count": {
+          "name": "row_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "rating_snapshots": {
+      "name": "rating_snapshots",
+      "columns": {
+        "wrestler_id": {
+          "name": "wrestler_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "basho_id": {
+          "name": "basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "division": {
+          "name": "division",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "elo": {
+          "name": "elo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "peak_elo": {
+          "name": "peak_elo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dohyo_score_tenths": {
+          "name": "dohyo_score_tenths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bouts": {
+          "name": "bouts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "wins": {
+          "name": "wins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "losses": {
+          "name": "losses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "rating_snapshots_leaderboard_idx": {
+          "name": "rating_snapshots_leaderboard_idx",
+          "columns": [
+            "basho_id",
+            "division",
+            "elo"
+          ],
+          "isUnique": false
+        },
+        "rating_snapshots_wrestler_idx": {
+          "name": "rating_snapshots_wrestler_idx",
+          "columns": [
+            "wrestler_id",
+            "basho_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "rating_snapshots_wrestler_id_wrestlers_id_fk": {
+          "name": "rating_snapshots_wrestler_id_wrestlers_id_fk",
+          "tableFrom": "rating_snapshots",
+          "tableTo": "wrestlers",
+          "columnsFrom": [
+            "wrestler_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "rating_snapshots_basho_id_basho_id_fk": {
+          "name": "rating_snapshots_basho_id_basho_id_fk",
+          "tableFrom": "rating_snapshots",
+          "tableTo": "basho",
+          "columnsFrom": [
+            "basho_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "rating_snapshots_wrestler_id_basho_id_pk": {
+          "columns": [
+            "wrestler_id",
+            "basho_id"
+          ],
+          "name": "rating_snapshots_wrestler_id_basho_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "shikona_history": {
+      "name": "shikona_history",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "wrestler_id": {
+          "name": "wrestler_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "shikona_jp": {
+          "name": "shikona_jp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "shikona_en": {
+          "name": "shikona_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "start_basho_id": {
+          "name": "start_basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "end_basho_id": {
+          "name": "end_basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "shikona_history_wrestler_idx": {
+          "name": "shikona_history_wrestler_idx",
+          "columns": [
+            "wrestler_id",
+            "start_basho_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "shikona_history_wrestler_id_wrestlers_id_fk": {
+          "name": "shikona_history_wrestler_id_wrestlers_id_fk",
+          "tableFrom": "shikona_history",
+          "tableTo": "wrestlers",
+          "columnsFrom": [
+            "wrestler_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "wrestlers": {
+      "name": "wrestlers",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sumodb_id": {
+          "name": "sumodb_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nsk_id": {
+          "name": "nsk_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "shikona_jp": {
+          "name": "shikona_jp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "shikona_en": {
+          "name": "shikona_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "heya": {
+          "name": "heya",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "shusshin": {
+          "name": "shusshin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "height_mm": {
+          "name": "height_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "weight_kg": {
+          "name": "weight_kg",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "debut_basho_id": {
+          "name": "debut_basho_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "intai_date": {
+          "name": "intai_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "wrestlers_sumodb_id_uq": {
+          "name": "wrestlers_sumodb_id_uq",
+          "columns": [
+            "sumodb_id"
+          ],
+          "isUnique": true
+        },
+        "wrestlers_nsk_id_uq": {
+          "name": "wrestlers_nsk_id_uq",
+          "columns": [
+            "nsk_id"
+          ],
+          "isUnique": true
+        },
+        "wrestlers_shikona_jp_idx": {
+          "name": "wrestlers_shikona_jp_idx",
+          "columns": [
+            "shikona_jp"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

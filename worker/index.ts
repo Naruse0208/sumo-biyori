@@ -27,8 +27,8 @@ interface ExecutionContext {
 }
 
 const HIGHLIGHT_BATCH_SIZE = 5;
-const HIGHLIGHT_RETRY_MS = 5 * 60 * 1000;
-const HIGHLIGHT_FAILURE_RETRY_MS = 20 * 60 * 1000;
+const HIGHLIGHT_RETRY_MS = 10 * 60 * 1000;
+const HIGHLIGHT_FAILURE_RETRY_MS = 10 * 60 * 1000;
 const HIGHLIGHT_COMPLETE_SLEEP_MS = 18 * 60 * 60 * 1000;
 
 function tokyoClock(now: Date): { dateKey: string; hour: number } {
@@ -51,7 +51,7 @@ async function generateDailyHighlights(request: Request, env: Env): Promise<void
   const clock = tokyoClock(new Date(now));
   if (clock.hour < 5) return;
 
-  const cacheKey = `ai-highlight-sweep-v1:${clock.dateKey}`;
+  const cacheKey = `ai-highlight-sweep-v2:${clock.dateKey}`;
   await env.DB.prepare(
     "INSERT OR IGNORE INTO live_sumo_cache (cache_key, updated_at_ms, lease_until_ms) VALUES (?, 0, 0)",
   ).bind(cacheKey).run();
@@ -62,7 +62,7 @@ async function generateDailyHighlights(request: Request, env: Env): Promise<void
   if (Number(claim.meta.changes ?? 0) === 0) return;
 
   let nextAttemptAt = now + HIGHLIGHT_FAILURE_RETRY_MS;
-  let payload = JSON.stringify({ status: "failed" });
+  let payload = JSON.stringify({ status: "waiting" });
   try {
     const internalRequest = new Request(new URL("/api/admin/generate-highlights", request.url), {
       method: "POST",
@@ -81,11 +81,8 @@ async function generateDailyHighlights(request: Request, env: Env): Promise<void
     const remaining = Math.max(0, Number(result.remaining ?? 0));
     nextAttemptAt = now + (remaining > 0 ? HIGHLIGHT_RETRY_MS : HIGHLIGHT_COMPLETE_SLEEP_MS);
     payload = JSON.stringify({ status: remaining > 0 ? "partial" : "complete", remaining });
-  } catch (error) {
-    payload = JSON.stringify({
-      status: "failed",
-      message: error instanceof Error ? error.message.slice(0, 240) : "Unknown error",
-    });
+  } catch {
+    payload = JSON.stringify({ status: "waiting" });
   }
 
   await env.DB.prepare(

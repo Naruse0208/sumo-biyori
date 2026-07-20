@@ -411,6 +411,7 @@ async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number
     .select({
       nskId: wrestlers.nskId,
       rank: banzukeEntries.rank,
+      side: banzukeEntries.side,
     })
     .from(banzukeEntries)
     .innerJoin(wrestlers, eq(banzukeEntries.wrestlerId, wrestlers.id))
@@ -418,11 +419,14 @@ async function loadBanzukeSidesFromDatabase(bashoId: number): Promise<Map<number
   const sides = new Map<number, 1 | 2>();
   for (const row of rows) {
     const nskId = Number(row.nskId ?? 0);
-    const side = /\bEast$/i.test(row.rank ?? "")
-      ? 1
-      : /\bWest$/i.test(row.rank ?? "")
-        ? 2
-        : 0;
+    const storedSide = Number(row.side ?? 0);
+    const side = storedSide === 1 || storedSide === 2
+      ? storedSide
+      : /\bEast$/i.test(row.rank ?? "")
+        ? 1
+        : /\bWest$/i.test(row.rank ?? "")
+          ? 2
+          : 0;
     if (nskId && (side === 1 || side === 2)) sides.set(nskId, side);
   }
   storedBanzukeSideCache = {

@@ -176,6 +176,8 @@ export const boutHighlights = sqliteTable(
     model: text("model").notNull(),
     promptVersion: text("prompt_version").notNull(),
     schemaVersion: text("schema_version").notNull(),
+    status: text("status").notNull().default("generated"),
+    fallbackReason: text("fallback_reason"),
     payload: text("payload").notNull(),
     generatedAt: text("generated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),

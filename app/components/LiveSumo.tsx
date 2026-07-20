@@ -15,6 +15,7 @@ import {
   englishBashoLabel,
   englishDayLabel,
   englishRank,
+  englishRankAbbreviated,
   englishScore,
   englishTechnique,
 } from "../lib/i18n";
@@ -126,7 +127,7 @@ type HighlightPayload = {
 };
 
 type BanzukeSide = "east" | "west";
-type RatingSideRow = { nskId?: number | null; banzukeRank?: string | null };
+type RatingSideRow = { nskId?: number | null; banzukeRank?: string | null; banzukeSide?: number | null };
 
 const banzukeSideCache = new Map<string, Promise<Map<number, BanzukeSide>>>();
 
@@ -146,11 +147,16 @@ function loadStoredBanzukeSides(bashoId: number, divisionId: number) {
         const sides = new Map<number, BanzukeSide>();
         for (const row of payload.rows ?? []) {
           const nskId = Number(row.nskId ?? 0);
-          const side = /\bEast$/i.test(row.banzukeRank ?? "")
+          const storedSide = Number(row.banzukeSide ?? 0);
+          const side = storedSide === 1
             ? "east"
-            : /\bWest$/i.test(row.banzukeRank ?? "")
+            : storedSide === 2
               ? "west"
-              : null;
+              : /\bEast$/i.test(row.banzukeRank ?? "")
+                ? "east"
+                : /\bWest$/i.test(row.banzukeRank ?? "")
+                  ? "west"
+                  : null;
           if (nskId && side) sides.set(nskId, side);
         }
         return sides;
@@ -277,7 +283,14 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
   });
   if (compact) {
     if (!prediction?.east || !prediction.west) return null;
-    return <small className="result-prediction"><span><Bilingual ja="勝機" en="Forecast" /></span><strong><Bilingual ja={`東${prediction.east.probability}%・西${prediction.west.probability}%`} en={`East ${prediction.east.probability}% · West ${prediction.west.probability}%`} /></strong></small>;
+    return (
+      <small
+        className="result-prediction"
+        aria-label={`East ${prediction.east.probability}%, West ${prediction.west.probability}%`}
+      >
+        <strong><span>{prediction.east.probability}%</span><span>{prediction.west.probability}%</span></strong>
+      </small>
+    );
   }
   if ((!prediction?.east || !prediction.west) && !highlights) return null;
   return (
@@ -412,6 +425,22 @@ function formatResultRank(
   return `${sideLabel}${withoutDivision || "—"}`;
 }
 
+function ResponsiveRank({ rank, divisionName = "" }: { rank: string; divisionName?: string }) {
+  return (
+    <>
+      <span className="lang-ja" lang="ja">{rank}</span>
+      <span className="lang-en rank-long" lang="en">{englishRank(rank, divisionName)}</span>
+      <span className="lang-en rank-short" lang="en">{englishRankAbbreviated(rank, divisionName)}</span>
+    </>
+  );
+}
+
+function wrestlerNameClass(name: string) {
+  if (name.length >= 14) return "is-very-long-name";
+  if (name.length >= 11) return "is-long-name";
+  return "";
+}
+
 function comparisonHref(bout: LiveBout): string | null {
   return bout.eastNskId && bout.westNskId
     ? `/rate/compare?leftNsk=${bout.eastNskId}&rightNsk=${bout.westNskId}`
@@ -474,14 +503,14 @@ export function LiveHeroBout() {
         <>
           <div className="bout-main">
             <div className={`wrestler wrestler-east ${bout.winner === "east" ? "is-winner" : ""}`}>
-              <span><Bilingual ja={`東・${bout.eastRank}`} en={englishRank(`東・${bout.eastRank}`)} /></span>
-              <ProfileLink className="wrestler-name-link" href={bout.eastProfileUrl}><strong><Bilingual ja={bout.east} en={bout.eastEn || bout.east} /></strong></ProfileLink>
+              <span><ResponsiveRank rank={`東・${bout.eastRank}`} /></span>
+              <ProfileLink className={`wrestler-name-link ${wrestlerNameClass(bout.eastEn || bout.east)}`.trim()} href={bout.eastProfileUrl}><strong><Bilingual ja={bout.east} en={bout.eastEn || bout.east} /></strong></ProfileLink>
               <small><Bilingual ja={bout.eastScore} en={englishScore(bout.eastScore)} /></small>
             </div>
             <div className="versus" aria-label={isNext ? "対" : bout.technique || "対"}><Bilingual ja={isNext ? "対" : "終了"} en={isNext ? "VS" : "Final"} /></div>
             <div className={`wrestler wrestler-west ${bout.winner === "west" ? "is-winner" : ""}`}>
-              <span><Bilingual ja={`西・${bout.westRank}`} en={englishRank(`西・${bout.westRank}`)} /></span>
-              <ProfileLink className="wrestler-name-link" href={bout.westProfileUrl}><strong><Bilingual ja={bout.west} en={bout.westEn || bout.west} /></strong></ProfileLink>
+              <span><ResponsiveRank rank={`西・${bout.westRank}`} /></span>
+              <ProfileLink className={`wrestler-name-link ${wrestlerNameClass(bout.westEn || bout.west)}`.trim()} href={bout.westProfileUrl}><strong><Bilingual ja={bout.west} en={bout.westEn || bout.west} /></strong></ProfileLink>
               <small><Bilingual ja={bout.westScore} en={englishScore(bout.westScore)} /></small>
             </div>
           </div>
@@ -570,7 +599,7 @@ export function LiveResultsBoard() {
                   }}
                 >
                   <span className={`result-rikishi east ${bout.winner === "east" ? "is-winner" : ""}`}>
-                    <small className="result-rank"><Bilingual ja={formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)} en={englishRank(formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide), division.name)} /></small>
+                    <small className="result-rank"><ResponsiveRank rank={formatResultRank(bout.eastRank, division.name, bout.eastBanzukeSide)} divisionName={division.name} /></small>
                     <ProfileLink className="result-name" href={bout.eastProfileUrl}><Bilingual ja={bout.east} en={bout.eastEn || bout.east} /></ProfileLink>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "east" ? "○" : ""}</span>
                   </span>
@@ -581,7 +610,7 @@ export function LiveResultsBoard() {
                   <span className={`result-rikishi west ${bout.winner === "west" ? "is-winner" : ""}`}>
                     <span className="result-mark" aria-hidden="true">{bout.winner === "west" ? "○" : ""}</span>
                     <ProfileLink className="result-name" href={bout.westProfileUrl}><Bilingual ja={bout.west} en={bout.westEn || bout.west} /></ProfileLink>
-                    <small className="result-rank"><Bilingual ja={formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)} en={englishRank(formatResultRank(bout.westRank, division.name, bout.westBanzukeSide), division.name)} /></small>
+                    <small className="result-rank"><ResponsiveRank rank={formatResultRank(bout.westRank, division.name, bout.westBanzukeSide)} divisionName={division.name} /></small>
                   </span>
                 </div>
               );
