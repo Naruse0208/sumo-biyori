@@ -1010,7 +1010,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "''"
         }
       },
       "indexes": {

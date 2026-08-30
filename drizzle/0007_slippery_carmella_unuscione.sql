@@ -45,4 +45,4 @@ ALTER TABLE `rating_snapshots` ADD `glicko_volatility_millionths` integer;--> st
 ALTER TABLE `rating_snapshots` ADD `sumo_hensachi_tenths` integer;--> statement-breakpoint
 ALTER TABLE `rating_snapshots` ADD `sekitori_hensachi_tenths` integer;--> statement-breakpoint
 ALTER TABLE `rating_snapshots` ADD `provisional` integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE `rating_snapshots` ADD `updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL;
+ALTER TABLE `rating_snapshots` ADD `updated_at` text DEFAULT '' NOT NULL;

@@ -136,7 +136,7 @@ export const ratingSnapshots = sqliteTable(
     sumoHensachiTenths: integer("sumo_hensachi_tenths"),
     sekitoriHensachiTenths: integer("sekitori_hensachi_tenths"),
     provisional: integer("provisional").notNull().default(0),
-    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(""),
   },
   (table) => [
     primaryKey({ columns: [table.wrestlerId, table.bashoId] }),
