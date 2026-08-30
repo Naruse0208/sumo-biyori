@@ -4,13 +4,14 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { gzipSync } from "node:zlib";
 import { GLICKO2_DEFAULTS, updateGlicko2 } from "./lib/glicko2.mjs";
+import { findBestRatingDatabase } from "./lib/rating-database.mjs";
 
 const START_ELO = 1500;
 const K_FACTOR = 20;
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const AUDIT_DIR = join(ROOT, "work", "rating-audit");
-const DATABASE_PATH = join(AUDIT_DIR, "rating-audit-195801-202607.sqlite");
-const AUDIT_REPORT_PATH = join(AUDIT_DIR, "rating-audit-195801-202607.json");
+const DATABASE_PATH = await findBestRatingDatabase(AUDIT_DIR);
+const AUDIT_REPORT_PATH = DATABASE_PATH.replace(/\.sqlite$/, ".json");
 const OUTPUT_PATH = join(ROOT, "data", "ratings-latest.json");
 const MODEL_ASSET_DIR = join(ROOT, "public", "rating-model-v2");
 const DIVISION_NAMES = ["幕内", "十両", "幕下", "三段目", "序二段", "序ノ口"];

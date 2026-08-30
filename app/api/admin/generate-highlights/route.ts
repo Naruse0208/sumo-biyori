@@ -10,6 +10,8 @@ import {
   type BoutHighlightFacts,
 } from "../../../lib/ai-highlights";
 import { calculateLivePrediction, type LivePrediction } from "../../../lib/prediction-service";
+import { syncOfficialPredictionRecords } from "../../../lib/prediction-service";
+import { normalizeCalendarBashoId } from "../../../lib/basho-id";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ const GENERATION_ORDER = [6, 5, 4, 3, 2, 1] as const;
 type RuntimeEnv = {
   DB: D1Database;
   AI_HIGHLIGHT_ADMIN_TOKEN?: string;
+  DAILY_UPDATE_TOKEN?: string;
 };
 
 type CachedRikishi = {
@@ -42,7 +45,9 @@ type CachedBout = { east?: CachedRikishi; west?: CachedRikishi };
 
 type CachedSnapshot = {
   bashoId?: number;
+  officialBashoId?: number;
   day?: number;
+  dayHead?: string;
   divisions?: Array<{
     id?: number;
     allBoutSources?: Array<{ bout?: CachedBout }>;
@@ -67,8 +72,9 @@ function runtime(): RuntimeEnv {
 }
 
 function authorized(request: Request): boolean {
-  const token = runtime().AI_HIGHLIGHT_ADMIN_TOKEN?.trim();
-  return Boolean(token && request.headers.get("authorization") === `Bearer ${token}`);
+  const authorization = request.headers.get("authorization");
+  return [runtime().AI_HIGHLIGHT_ADMIN_TOKEN, runtime().DAILY_UPDATE_TOKEN]
+    .some((value) => value?.trim() && authorization === `Bearer ${value.trim()}`);
 }
 
 function validBout(bout: CachedBout): boolean {
@@ -158,8 +164,9 @@ async function sha256(value: string): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function isCurrent(row: StoredHighlight | undefined, item: PreparedCandidate) {
+function isCurrent(row: StoredHighlight | undefined, item: PreparedCandidate, provider: string, model: string) {
   return Boolean(row && row.id === item.id
+    && row.facts_hash === item.factsHash && row.provider === provider && row.model === model
     && row.prompt_version === HIGHLIGHT_PROMPT_VERSION && row.schema_version === HIGHLIGHT_SCHEMA_VERSION
     && (row.status === "generated" || row.status === "fallback_final"));
 }
@@ -192,7 +199,13 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as GenerateRequest;
   const shared = await readSharedLiveSumoCache(SHARED_CACHE_KEY);
   if (!shared?.payload) return Response.json({ status: "waiting", reason: "live_cache_empty" }, { status: 409 });
-  const snapshot = JSON.parse(shared.payload) as CachedSnapshot;
+  const rawSnapshot = JSON.parse(shared.payload) as CachedSnapshot;
+  const normalized = normalizeCalendarBashoId(rawSnapshot.bashoId, rawSnapshot.dayHead);
+  const snapshot: CachedSnapshot = {
+    ...rawSnapshot,
+    bashoId: rawSnapshot.bashoId && rawSnapshot.bashoId >= 195801 ? rawSnapshot.bashoId : normalized.bashoId,
+    officialBashoId: rawSnapshot.officialBashoId ?? normalized.officialBashoId,
+  };
   const availableDivisions = new Set((snapshot.divisions ?? []).map((division) => Number(division.id)));
   if (!snapshot.bashoId || !snapshot.day || GENERATION_ORDER.some((id) => !availableDivisions.has(id))) {
     return Response.json({ status: "waiting", reason: "daily_card_incomplete" }, { status: 409 });
@@ -201,6 +214,13 @@ export async function POST(request: Request) {
   const settings = getAiHighlightSettings();
   const database = runtime().DB;
   const candidates = selectCandidates(snapshot);
+  await syncOfficialPredictionRecords(request, [], candidates.map((candidate) => ({
+    bashoId: Number(snapshot.bashoId),
+    day: Number(snapshot.day),
+    division: candidate.division,
+    eastNskId: Number(candidate.bout.east?.rikishi_id),
+    westNskId: Number(candidate.bout.west?.rikishi_id),
+  })));
   const prepared: PreparedCandidate[] = [];
   for (const candidate of candidates) {
     const eastNskId = Number(candidate.bout.east?.rikishi_id);
@@ -218,7 +238,7 @@ export async function POST(request: Request) {
       FROM bout_highlights WHERE id IN (${placeholders})`).bind(...prepared.map((item) => item.id)).all<StoredHighlight>();
     for (const row of result.results ?? []) stored.set(row.id, row);
   }
-  const pending = prepared.filter((item) => body.force || !isCurrent(stored.get(item.id), item));
+  const pending = prepared.filter((item) => body.force || !isCurrent(stored.get(item.id), item, settings.provider, settings.model));
 
   const fallbackCopies = new Map(pending.map((item) => [item.id, createFallbackHighlightCopy(item.facts)]));
   await upsertCopies(database, pending, settings.provider, settings.model, "fallback_pending", fallbackCopies);

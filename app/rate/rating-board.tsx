@@ -149,7 +149,7 @@ export default function RatingBoard({
         if (cancelled) return;
         setAvailableBasho(body.bashoIds);
         const fromUrl = Number(new URLSearchParams(window.location.search).get("basho"));
-        loadBasho(body.bashoIds.includes(fromUrl) ? fromUrl : initialBasho);
+        loadBasho(body.bashoIds.includes(fromUrl) ? fromUrl : body.bashoIds[0]);
       })
       .catch(() => {
         if (!cancelled) setAvailableBasho([initialBasho]);

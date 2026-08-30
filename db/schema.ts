@@ -130,6 +130,13 @@ export const ratingSnapshots = sqliteTable(
     bouts: integer("bouts").notNull(),
     wins: integer("wins").notNull(),
     losses: integer("losses").notNull(),
+    glickoRating: integer("glicko_rating"),
+    glickoRdTenths: integer("glicko_rd_tenths"),
+    glickoVolatilityMillionths: integer("glicko_volatility_millionths"),
+    sumoHensachiTenths: integer("sumo_hensachi_tenths"),
+    sekitoriHensachiTenths: integer("sekitori_hensachi_tenths"),
+    provisional: integer("provisional").notNull().default(0),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     primaryKey({ columns: [table.wrestlerId, table.bashoId] }),
@@ -137,6 +144,53 @@ export const ratingSnapshots = sqliteTable(
     index("rating_snapshots_wrestler_idx").on(table.wrestlerId, table.bashoId),
   ],
 );
+
+export const ratingUpdateRuns = sqliteTable(
+  "rating_update_runs",
+  {
+    id: text("id").primaryKey(),
+    bashoId: integer("basho_id").notNull(),
+    officialBashoId: integer("official_basho_id").notNull(),
+    sourceDay: integer("source_day").notNull(),
+    completedDay: integer("completed_day").notNull(),
+    status: text("status").notNull(),
+    error: text("error"),
+    startedAt: text("started_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    completedAt: text("completed_at"),
+  },
+  (table) => [index("rating_update_runs_basho_idx").on(table.bashoId, table.startedAt)],
+);
+
+export const ratingSnapshotStaging = sqliteTable(
+  "rating_snapshot_staging",
+  {
+    runId: text("run_id").notNull().references(() => ratingUpdateRuns.id),
+    wrestlerId: integer("wrestler_id").notNull().references(() => wrestlers.id),
+    bashoId: integer("basho_id").notNull(),
+    division: integer("division").notNull(),
+    elo: integer("elo").notNull(),
+    peakElo: integer("peak_elo").notNull(),
+    dohyoScoreTenths: integer("dohyo_score_tenths").notNull(),
+    bouts: integer("bouts").notNull(),
+    wins: integer("wins").notNull(),
+    losses: integer("losses").notNull(),
+    glickoRating: integer("glicko_rating").notNull(),
+    glickoRdTenths: integer("glicko_rd_tenths").notNull(),
+    glickoVolatilityMillionths: integer("glicko_volatility_millionths").notNull(),
+    sumoHensachiTenths: integer("sumo_hensachi_tenths").notNull(),
+    sekitoriHensachiTenths: integer("sekitori_hensachi_tenths"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.runId, table.wrestlerId] }),
+    index("rating_snapshot_staging_run_idx").on(table.runId, table.division),
+  ],
+);
+
+export const ratingUpdateMeta = sqliteTable("rating_update_meta", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 export const predictionRecords = sqliteTable(
   "prediction_records",

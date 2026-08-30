@@ -162,6 +162,7 @@ AI_PROVIDER=openai
 OPENAI_MODEL=gpt-5.6-luna
 OPENAI_API_KEY=your_openai_api_key
 AI_HIGHLIGHT_ADMIN_TOKEN=choose_a_private_admin_token
+DAILY_UPDATE_TOKEN=choose_another_private_token
 ```
 
 Gemini can be used without changing the facts, schema, UI, or database format:
@@ -171,6 +172,7 @@ AI_PROVIDER=gemini
 GEMINI_MODEL=gemini-2.5-flash-lite
 GEMINI_API_KEY=your_gemini_api_key
 AI_HIGHLIGHT_ADMIN_TOKEN=choose_a_private_admin_token
+DAILY_UPDATE_TOKEN=choose_another_private_token
 ```
 
 Without provider credentials, the non-AI interface, included historical datasets, and deterministic fallback behavior can still be inspected locally.
@@ -237,7 +239,21 @@ npm run ratings:build   # rebuild the historical rating dataset
 npm run ratings:lab     # rebuild model-evaluation assets
 npm run ratings:audit   # audit the imported rating data
 npm run db:generate     # generate a migration after a schema change
+npm run ratings:daily   # refresh results, ratings, forecasts, and one five-bout AI batch
 ```
+
+## Automatic daily maintenance
+
+The hosted update job runs every ten minutes from 05:00 through 10:59 JST. The command is safe to repeat: ratings are refreshed only once per Japanese calendar day, while AI previews advance in five-bout batches from lower to higher divisions. Each run:
+
+1. refreshes the central official-card cache;
+2. imports new banzuke entries and completed official results;
+3. recalculates provisional Elo, Glicko-2, records, and Sumo Score from the previous completed tournament;
+4. atomically publishes the new snapshot only after staging succeeds;
+5. resolves frozen pre-bout forecasts against official winners; and
+6. generates the next five previews, using deterministic copy if the provider is unavailable.
+
+Official internal tournament IDs are stored separately from the public `YYYYMM` rating key. This prevents the live feed, banzuke, forecasts, and historical ratings from silently referring to different tournaments.
 
 Large rebuilds are not required to run the submitted application because the generated datasets are included in the repository.
 
@@ -255,7 +271,7 @@ The repository does not redistribute source-page HTML or profile images. Third-p
 app/                 UI, routes, prediction service, and AI integration
 db/                  D1 schema and shared-cache access
 drizzle/             versioned database migrations
-worker/              Cloudflare Worker entry and scheduled generation sweep
+worker/              Cloudflare Worker entry and guarded generation sweep
 scripts/             rating, evaluation, import, and name-enrichment pipelines
 data/                generated research and display assets
 public/               historical snapshots and visual assets

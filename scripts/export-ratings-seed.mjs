@@ -3,9 +3,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { DatabaseSync } from "node:sqlite";
+import { findBestRatingDatabase } from "./lib/rating-database.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-195801-202607.sqlite");
+const DATABASE_PATH = await findBestRatingDatabase(join(ROOT, "work", "rating-audit"));
 const OUTPUT_DIR = join(ROOT, "public", "rating-seed");
 const CHUNK_SIZE = 2000;
 const CHUNK_INDEX_OFFSET = 5000;

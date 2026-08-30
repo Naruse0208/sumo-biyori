@@ -2,9 +2,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { findBestRatingDatabase } from "./lib/rating-database.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-195801-202607.sqlite");
+const DATABASE_PATH = await findBestRatingDatabase(join(ROOT, "work", "rating-audit"));
 const ERA_PATH = join(ROOT, "data", "era-rankings.json");
 const NAME_PATH = join(ROOT, "data", "rikishi-names.json");
 const REPORT_PATH = join(ROOT, "work", "rating-audit", "era-name-enrichment.json");

@@ -162,6 +162,7 @@ AI_PROVIDER=openai
 OPENAI_MODEL=gpt-5.6-luna
 OPENAI_API_KEY=your_openai_api_key
 AI_HIGHLIGHT_ADMIN_TOKEN=choose_a_private_admin_token
+DAILY_UPDATE_TOKEN=choose_another_private_token
 ```
 
 事実JSON、出力スキーマ、画面、DB形式を変えずGeminiへ切り替えることもできます。
@@ -171,6 +172,7 @@ AI_PROVIDER=gemini
 GEMINI_MODEL=gemini-2.5-flash-lite
 GEMINI_API_KEY=your_gemini_api_key
 AI_HIGHLIGHT_ADMIN_TOKEN=choose_a_private_admin_token
+DAILY_UPDATE_TOKEN=choose_another_private_token
 ```
 
 生成AIの認証情報がなくても、AI以外の画面、同梱された歴史データ、安全な定型文フォールバックはローカルで確認できます。
@@ -237,7 +239,21 @@ npm run ratings:build   # 歴史レーティングを再構築
 npm run ratings:lab     # 予測モデル検証データを再構築
 npm run ratings:audit   # 取り込んだレートデータを監査
 npm run db:generate     # スキーマ変更後のマイグレーション生成
+npm run ratings:daily   # 結果・レート・予測とAI見どころ5番分を更新
 ```
+
+## 毎日の自動更新
+
+本番の更新処理は、日本時間の5:00〜10:59に10分間隔で起動します。繰り返し実行しても安全で、レート更新は日本時間で1日1回だけ、AI見どころは下位から上位へ5番ずつ進みます。各実行では次を行います。
+
+1. 公式取組の中央キャッシュを更新
+2. 新番付と終了済みの公式結果を取り込み
+3. 前の確定場所を基準に、暫定Elo・Glicko-2・戦績・相撲偏差値を再計算
+4. ステージングが全部成功してから新しい場所のレートを一括公開
+5. 事前に固定保存した勝率へ公式勝者を追記
+6. 次の5番の見どころを生成（制限や障害時は安全な定型文を保存）
+
+相撲協会内部の場所IDと、公開レートで使う`YYYYMM`を別々に保持します。これにより、取組・番付・勝率・歴史レートが別の場所を参照する事故を防ぎます。
 
 生成済みデータをリポジトリへ同梱しているため、提出アプリの起動に大規模な再計算は必要ありません。
 
@@ -255,7 +271,7 @@ npm run db:generate     # スキーマ変更後のマイグレーション生成
 app/                 画面、API、予測処理、AI連携
 db/                  D1スキーマ、共有キャッシュ
 drizzle/             DBマイグレーション
-worker/              Worker入口、AI生成スイープ
+worker/              Worker入口、保護されたAI生成スイープ
 scripts/             レート、検証、DB投入、四股名補完
 data/                研究・表示用の生成済みデータ
 public/               歴史レートと画像

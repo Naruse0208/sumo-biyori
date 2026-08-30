@@ -2,9 +2,10 @@ import { access, copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { currentOrNextBashoId, findBestRatingDatabase } from "./lib/rating-database.mjs";
 
 const START_BASHO = process.env.RATING_START_BASHO ?? "195801";
-const END_BASHO = process.env.RATING_END_BASHO ?? "202607";
+const END_BASHO = process.env.RATING_END_BASHO ?? currentOrNextBashoId();
 const API_ROOT = "https://sumo-api.com/api";
 const REQUEST_DELAY_MS = 250;
 const DIVISIONS = ["Makuuchi", "Juryo", "Makushita", "Sandanme", "Jonidan", "Jonokuchi"];
@@ -17,7 +18,7 @@ const REPORT_PATH = process.env.RATING_REPORT_PATH
   : join(OUTPUT_DIR, `rating-audit-${START_BASHO}-${END_BASHO}.json`);
 const SEED_DATABASE_PATH = process.env.RATING_SEED_DATABASE_PATH
   ? join(process.cwd(), process.env.RATING_SEED_DATABASE_PATH)
-  : join(OUTPUT_DIR, "rating-audit-199901-202607.sqlite");
+  : await findBestRatingDatabase(OUTPUT_DIR).catch(() => join(OUTPUT_DIR, "rating-audit-195801-202607.sqlite"));
 const MAX_DATABASE_MIB = Number(process.env.RATING_MAX_DATABASE_MIB ?? 450);
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -183,6 +184,8 @@ function saveBanzuke(database, bashoId, divisionIndex, payload) {
   `);
 
   inTransaction(database, () => {
+    database.prepare("DELETE FROM banzuke_entries WHERE basho_id = ? AND division = ?").run(bashoId, divisionIndex);
+    database.prepare("DELETE FROM bouts WHERE basho_id = ? AND division = ?").run(bashoId, divisionIndex);
     for (const wrestler of [...(payload.east ?? []), ...(payload.west ?? [])]) {
       const wrestlerId = Number(wrestler.rikishiID ?? 0);
       if (!wrestlerId) continue;
@@ -311,7 +314,7 @@ async function main() {
       const checkpoint = database
         .prepare("SELECT status FROM audit_fetch WHERE basho_id = ? AND division = ?")
         .get(bashoId, divisionIndex);
-      if (checkpoint?.status === 200) continue;
+      if (checkpoint?.status === 200 && (bashoId !== END_BASHO || process.env.RATING_FREEZE_END === "true")) continue;
 
       await delay(REQUEST_DELAY_MS);
       const url = `${API_ROOT}/basho/${bashoId}/banzuke/${division}`;

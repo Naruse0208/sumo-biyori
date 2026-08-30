@@ -139,6 +139,9 @@ async function latestByNskId(nskId: number) {
       shikonaEn: wrestlers.shikonaEn,
       elo: ratingSnapshots.elo,
       dohyoScoreTenths: ratingSnapshots.dohyoScoreTenths,
+      glickoRating: ratingSnapshots.glickoRating,
+      glickoRdTenths: ratingSnapshots.glickoRdTenths,
+      sumoHensachiTenths: ratingSnapshots.sumoHensachiTenths,
       bashoId: ratingSnapshots.bashoId,
       heightMm: wrestlers.heightMm,
       weightKg: wrestlers.weightKg,
@@ -165,15 +168,15 @@ export async function calculateLivePrediction(
   const eastMetric = eastHistory.at(-1);
   const westMetric = westHistory.at(-1);
   const eastGlicko = {
-    rating: eastMetric?.glickoRating ?? east.elo,
-    rd: (eastMetric?.glickoRdTenths ?? 3500) / 10,
+    rating: east.glickoRating ?? eastMetric?.glickoRating ?? east.elo,
+    rd: (east.glickoRdTenths ?? eastMetric?.glickoRdTenths ?? 3500) / 10,
   };
   const westGlicko = {
-    rating: westMetric?.glickoRating ?? west.elo,
-    rd: (westMetric?.glickoRdTenths ?? 3500) / 10,
+    rating: west.glickoRating ?? westMetric?.glickoRating ?? west.elo,
+    rd: (west.glickoRdTenths ?? westMetric?.glickoRdTenths ?? 3500) / 10,
   };
   const eloRaw = eloProbability(east.elo, west.elo);
-  const glickoRaw = eastMetric && westMetric
+  const glickoRaw = (east.glickoRating !== null && west.glickoRating !== null) || (eastMetric && westMetric)
     ? symmetricGlickoProbability(eastGlicko, westGlicko)
     : eloRaw;
   const glickoCalibrated = calibrateProbability(
@@ -269,7 +272,7 @@ export async function calculateLivePrediction(
       elo: east.elo,
       glickoRating: eastGlicko.rating,
       glickoRd: eastGlicko.rd,
-      dohyoScore: east.dohyoScoreTenths / 10,
+      dohyoScore: (east.sumoHensachiTenths ?? east.dohyoScoreTenths) / 10,
       probability: eastProbability,
       heightMm: east.heightMm,
       weightKg: east.weightKg,
@@ -282,7 +285,7 @@ export async function calculateLivePrediction(
       elo: west.elo,
       glickoRating: westGlicko.rating,
       glickoRd: westGlicko.rd,
-      dohyoScore: west.dohyoScoreTenths / 10,
+      dohyoScore: (west.sumoHensachiTenths ?? west.dohyoScoreTenths) / 10,
       probability: 100 - eastProbability,
       heightMm: west.heightMm,
       weightKg: west.weightKg,
@@ -337,7 +340,7 @@ export async function syncOfficialPredictionRecords(
     context.division,
     context.eastNskId,
     context.westNskId,
-  ])).slice(0, 3);
+  ]));
   const pendingById = new Map(validPending.map((context) => [
     predictionRecordId(context.bashoId, context.day, context.division, context.eastNskId, context.westNskId),
     context,

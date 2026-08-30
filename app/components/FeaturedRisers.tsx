@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import featured from "../../data/featured-risers.json";
 import Bilingual from "./Bilingual";
 
@@ -35,6 +38,17 @@ function englishDisplayRank(rank: string, division: number) {
 }
 
 export default function FeaturedRisers() {
+  const [rows, setRows] = useState(featured.rows);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/featured-risers")
+      .then(async (response) => response.ok ? response.json() : Promise.reject())
+      .then((body: { rows?: typeof featured.rows }) => {
+        if (!cancelled && body.rows?.length) setRows(body.rows);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
   return (
     <article className="feature-card rikishi-card riser-card" id="rikishi">
       <div className="section-heading">
@@ -46,7 +60,7 @@ export default function FeaturedRisers() {
       </div>
 
       <ul className="riser-list">
-        {featured.rows.map((rikishi) => (
+        {rows.map((rikishi) => (
           <li key={rikishi.id}>
             <small className="riser-rank"><Bilingual ja={displayRank(rikishi.rank, rikishi.division)} en={englishDisplayRank(rikishi.rank, rikishi.division)} /></small>
             <a className="riser-name" href={rikishi.profileUrl}><Bilingual ja={rikishi.name} en={rikishi.shikonaEn} /></a>

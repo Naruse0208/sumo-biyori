@@ -21,7 +21,13 @@ export async function GET(request: Request) {
       westNskId,
     };
     if (validPredictionContext(Object.values(context))) {
-      const stored = await loadStoredPrediction(context);
+      const stored = await loadStoredPrediction(context)
+        ?? await (async () => {
+          const legacyBashoId = Number(url.searchParams.get("legacyBasho") ?? 0);
+          return validPredictionContext([legacyBashoId, context.day, context.division, eastNskId, westNskId])
+            ? loadStoredPrediction({ ...context, bashoId: legacyBashoId })
+            : null;
+        })();
       if (stored) {
         return Response.json({ available: true, ...stored }, {
           headers: { "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=600" },

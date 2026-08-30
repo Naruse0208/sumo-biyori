@@ -1,22 +1,16 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { findBestRatingDatabase } from "./lib/rating-database.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const AUDIT_DIRECTORY = join(ROOT, "work", "rating-audit");
 const OUTPUT_PATH = join(ROOT, "data", "featured-risers.json");
 const NAME_PATH = join(ROOT, "data", "rikishi-names.json");
 
-const databases = (await readdir(AUDIT_DIRECTORY))
-  .filter((name) => /^rating-audit-.*\.sqlite$/.test(name))
-  .sort();
-
-const databaseName = databases.at(-1);
-if (!databaseName) throw new Error("Rating audit database was not found");
-
 const names = JSON.parse(await readFile(NAME_PATH, "utf8")).names;
-const database = new DatabaseSync(join(AUDIT_DIRECTORY, databaseName), { readOnly: true });
+const database = new DatabaseSync(await findBestRatingDatabase(AUDIT_DIRECTORY), { readOnly: true });
 
 try {
   const bashoIds = database.prepare(`

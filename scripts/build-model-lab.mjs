@@ -3,9 +3,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { GLICKO2_DEFAULTS, updateGlicko2 } from "./lib/glicko2.mjs";
+import { findBestRatingDatabase } from "./lib/rating-database.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATABASE_PATH = join(ROOT, "work", "rating-audit", "rating-audit-195801-202607.sqlite");
+const DATABASE_PATH = await findBestRatingDatabase(join(ROOT, "work", "rating-audit"));
 const EVALUATION_PATH = join(ROOT, "data", "model-evaluation.json");
 const ERA_PATH = join(ROOT, "data", "era-rankings.json");
 const NAME_PATH = join(ROOT, "data", "rikishi-names.json");

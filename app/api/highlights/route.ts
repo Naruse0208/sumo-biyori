@@ -16,16 +16,23 @@ export async function GET(request: Request) {
   const division = positiveInteger(url.searchParams.get("division"));
   const eastNskId = positiveInteger(url.searchParams.get("east"));
   const westNskId = positiveInteger(url.searchParams.get("west"));
+  const legacyBashoId = positiveInteger(url.searchParams.get("legacyBasho"));
   if (!bashoId || !day || !division || !eastNskId || !westNskId || division > 6 || day > 15) {
     return Response.json({ available: false, error: "Invalid bout" }, { status: 400 });
   }
 
   const database = env.DB;
   if (!database) return Response.json({ available: false }, { status: 503 });
-  const row = await database
+  let row = await database
     .prepare("SELECT payload, provider, model, generated_at AS generatedAt FROM bout_highlights WHERE id = ?")
     .bind(boutHighlightId(bashoId, day, division, eastNskId, westNskId))
     .first<{ payload: string; provider: string; model: string; generatedAt: string }>();
+  if (!row && legacyBashoId && legacyBashoId !== bashoId) {
+    row = await database
+      .prepare("SELECT payload, provider, model, generated_at AS generatedAt FROM bout_highlights WHERE id = ?")
+      .bind(boutHighlightId(legacyBashoId, day, division, eastNskId, westNskId))
+      .first<{ payload: string; provider: string; model: string; generatedAt: string }>();
+  }
   if (!row) {
     return Response.json({ available: false }, { headers: { "Cache-Control": "public, max-age=60" } });
   }

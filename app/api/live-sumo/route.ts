@@ -12,6 +12,7 @@ import {
   syncOfficialPredictionRecords,
   type OfficialPredictionResult,
 } from "../../lib/prediction-service";
+import { normalizeCalendarBashoId } from "../../lib/basho-id";
 
 const DIVISIONS = [
   { id: 6, name: "序ノ口" },
@@ -120,6 +121,7 @@ type LiveResponse = {
   live: boolean;
   basho: string;
   bashoId?: number;
+  officialBashoId?: number;
   day: number | null;
   dayLabel: string;
   currentDivision: LiveDivision | null;
@@ -139,6 +141,7 @@ type LiveSourceSnapshot = {
   day: number;
   dayHead?: string;
   bashoId?: number;
+  officialBashoId?: number;
   divisions: LiveDivisionSource[];
   banzuke: LiveBanzukeRow[];
   updatedAt: string;
@@ -167,7 +170,13 @@ function parseSharedSnapshot(payload: string | null): LiveSourceSnapshot | null 
   if (!payload) return null;
   try {
     const value = JSON.parse(payload) as LiveSourceSnapshot;
-    return Number.isInteger(value.day) && Array.isArray(value.divisions) ? value : null;
+    if (!Number.isInteger(value.day) || !Array.isArray(value.divisions)) return null;
+    const normalized = normalizeCalendarBashoId(value.bashoId, value.dayHead);
+    return {
+      ...value,
+      bashoId: value.bashoId && value.bashoId >= 195801 ? value.bashoId : normalized.bashoId,
+      officialBashoId: value.officialBashoId ?? normalized.officialBashoId,
+    };
   } catch {
     return null;
   }
@@ -630,8 +639,8 @@ function findCurrentDivision(divisions: LiveDivisionSource[]): LiveDivisionSourc
   return firstWaiting ?? withBouts[withBouts.length - 1];
 }
 
-function banzukeFromPreviousSnapshot(previous: LiveSourceSnapshot | null, bashoId: number) {
-  if (previous?.bashoId !== bashoId || !previous.banzuke.length) return null;
+function banzukeFromPreviousSnapshot(previous: LiveSourceSnapshot | null, officialBashoId: number) {
+  if (previous?.officialBashoId !== officialBashoId || !previous.banzuke.length) return null;
   const sides = new Map<number, 1 | 2>();
   for (const division of previous.divisions) {
     for (const { bout } of division.allBoutSources) {
@@ -691,10 +700,11 @@ async function fetchFreshSourceSnapshot(previous: LiveSourceSnapshot | null): Pr
   );
   const liveSource = findCurrentDivision(divisions);
   const dayHead = liveSource?.dayHead ?? divisions.find((division) => division.dayHead)?.dayHead;
-  const bashoId = liveSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
-  const banzuke = bashoId
-    ? banzukeFromPreviousSnapshot(previous, bashoId)
-      ?? await fetchCurrentBanzuke(bashoId).catch(() => ({ rows: [], sides: new Map<number, 1 | 2>() }))
+  const officialBashoId = liveSource?.bashoId ?? divisions.find((division) => division.bashoId)?.bashoId;
+  const bashoId = normalizeCalendarBashoId(officialBashoId, dayHead).bashoId;
+  const banzuke = officialBashoId
+    ? banzukeFromPreviousSnapshot(previous, officialBashoId)
+      ?? await fetchCurrentBanzuke(officialBashoId).catch(() => ({ rows: [], sides: new Map<number, 1 | 2>() }))
     : { rows: [], sides: new Map<number, 1 | 2>() };
   if (bashoId) {
     const storedSides = await loadBanzukeSidesFromDatabase(bashoId).catch(
@@ -711,6 +721,7 @@ async function fetchFreshSourceSnapshot(previous: LiveSourceSnapshot | null): Pr
     day,
     dayHead,
     bashoId,
+    officialBashoId,
     divisions,
     banzuke: banzuke.rows,
     updatedAt: new Date().toISOString(),
@@ -845,6 +856,7 @@ async function loadLiveData(request: Request, requestedDivisionId: number | null
     live: Boolean(currentDivision?.total),
     basho: `${getEraYear(snapshot.dayHead)} ${snapshot.bashoName}`.trim(),
     bashoId: snapshot.bashoId,
+    officialBashoId: snapshot.officialBashoId,
     day: snapshot.day,
     dayLabel: getDayLabel(snapshot.dayHead, snapshot.day),
     currentDivision,

@@ -173,6 +173,9 @@ async function ratingHistory(request: Request, wrestlerId: number) {
       bouts: ratingSnapshots.bouts,
       wins: ratingSnapshots.wins,
       losses: ratingSnapshots.losses,
+      glickoRating: ratingSnapshots.glickoRating,
+      glickoRdTenths: ratingSnapshots.glickoRdTenths,
+      sumoHensachiTenths: ratingSnapshots.sumoHensachiTenths,
       rank: banzukeEntries.rank,
     })
     .from(ratingSnapshots)
@@ -192,9 +195,9 @@ async function ratingHistory(request: Request, wrestlerId: number) {
     const metric = modelByBasho.get(point.bashoId);
     return {
       ...point,
-      glickoRating: metric?.glickoRating ?? point.elo,
-      glickoRdTenths: metric?.glickoRdTenths ?? null,
-      sumoHensachiTenths: metric?.sumoHensachiTenths ?? point.dohyoScoreTenths,
+      glickoRating: point.glickoRating ?? metric?.glickoRating ?? point.elo,
+      glickoRdTenths: point.glickoRdTenths ?? metric?.glickoRdTenths ?? null,
+      sumoHensachiTenths: point.sumoHensachiTenths ?? metric?.sumoHensachiTenths ?? point.dohyoScoreTenths,
     };
   });
 }

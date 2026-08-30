@@ -81,14 +81,16 @@ export async function POST(request: Request) {
   const body = await request.json() as { file?: string; table?: string; rows?: number };
   const table = body.table ?? "";
   const file = body.file ?? "";
+  const expectedRows = Number(body.rows ?? -1);
   if (!insertSql[table] || !new RegExp(`^${table}-\\d{4}\\.json\\.gz$`).test(file)) {
     return Response.json({ error: "Invalid import batch" }, { status: 400 });
   }
 
   const database = runtime().DB;
+  const batchId = `${file}:${expectedRows}`;
   const checkpoint = await database
     .prepare("SELECT row_count FROM rating_import_batches WHERE batch_id = ?")
-    .bind(file)
+    .bind(batchId)
     .first<{ row_count: number }>();
   if (checkpoint) return Response.json({ file, status: "already-imported", rows: checkpoint.row_count });
 
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
   if (!asset.ok || !asset.body) return Response.json({ error: "Seed asset unavailable" }, { status: 404 });
   const decompressed = asset.body.pipeThrough(new DecompressionStream("gzip"));
   const rows = await new Response(decompressed).json() as unknown[][];
-  if (!Array.isArray(rows) || rows.length !== body.rows) {
+  if (!Array.isArray(rows) || rows.length !== expectedRows) {
     return Response.json({ error: "Seed row count mismatch" }, { status: 422 });
   }
 
@@ -106,7 +108,7 @@ export async function POST(request: Request) {
   }
   await database.prepare(`INSERT INTO rating_import_batches
     (batch_id, table_name, row_count) VALUES (?, ?, ?)`)
-    .bind(file, table, rows.length)
+    .bind(batchId, table, rows.length)
     .run();
   return Response.json({ file, table, status: "imported", rows: rows.length });
 }

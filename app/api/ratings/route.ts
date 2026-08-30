@@ -49,6 +49,11 @@ export async function GET(request: Request) {
         bouts: ratingSnapshots.bouts,
         wins: ratingSnapshots.wins,
         losses: ratingSnapshots.losses,
+        glickoRating: ratingSnapshots.glickoRating,
+        glickoRdTenths: ratingSnapshots.glickoRdTenths,
+        glickoVolatilityMillionths: ratingSnapshots.glickoVolatilityMillionths,
+        sumoHensachiTenths: ratingSnapshots.sumoHensachiTenths,
+        sekitoriHensachiTenths: ratingSnapshots.sekitoriHensachiTenths,
       };
     const joinBanzuke = and(
       eq(banzukeEntries.wrestlerId, ratingSnapshots.wrestlerId),
@@ -86,6 +91,8 @@ export async function GET(request: Request) {
           id: ratingSnapshots.wrestlerId,
           elo: ratingSnapshots.elo,
           dohyoScoreTenths: ratingSnapshots.dohyoScoreTenths,
+          glickoRating: ratingSnapshots.glickoRating,
+          sumoHensachiTenths: ratingSnapshots.sumoHensachiTenths,
         })
         .from(ratingSnapshots)
         .where(eq(ratingSnapshots.bashoId, previousBashoId))
@@ -101,13 +108,13 @@ export async function GET(request: Request) {
       const metric = modelMetrics.get(row.id);
       const previous = previousById.get(row.id);
       const previousMetric = previousModelMetrics.get(row.id);
-      const glickoRating = metric?.glickoRating ?? row.elo;
-      const sumoHensachiTenths = metric?.sumoHensachiTenths ?? row.dohyoScoreTenths;
+      const glickoRating = row.glickoRating ?? metric?.glickoRating ?? row.elo;
+      const sumoHensachiTenths = row.sumoHensachiTenths ?? metric?.sumoHensachiTenths ?? row.dohyoScoreTenths;
       const previousGlickoRating = previous
-        ? previousMetric?.glickoRating ?? previous.elo
+        ? previous.glickoRating ?? previousMetric?.glickoRating ?? previous.elo
         : null;
       const previousHensachiTenths = previous
-        ? previousMetric?.sumoHensachiTenths ?? previous.dohyoScoreTenths
+        ? previous.sumoHensachiTenths ?? previousMetric?.sumoHensachiTenths ?? previous.dohyoScoreTenths
         : null;
       return {
         ...row,
@@ -117,23 +124,23 @@ export async function GET(request: Request) {
         officialProfileUrl: officialRikishiProfile(row.nskId),
         previousBashoId,
         glickoRating,
-        glickoRdTenths: metric?.glickoRdTenths ?? null,
-        glickoVolatilityMillionths: metric?.glickoVolatilityMillionths ?? null,
+        glickoRdTenths: row.glickoRdTenths ?? metric?.glickoRdTenths ?? null,
+        glickoVolatilityMillionths: row.glickoVolatilityMillionths ?? metric?.glickoVolatilityMillionths ?? null,
         sumoHensachiTenths,
-        sekitoriHensachiTenths: metric?.sekitoriHensachiTenths ?? null,
+        sekitoriHensachiTenths: row.sekitoriHensachiTenths ?? metric?.sekitoriHensachiTenths ?? null,
         eloDelta: previous ? row.elo - previous.elo : null,
         glickoDelta: previousGlickoRating === null ? null : glickoRating - previousGlickoRating,
         hensachiDeltaTenths: previousHensachiTenths === null
           ? null
           : sumoHensachiTenths - previousHensachiTenths,
-        modelAvailable: Boolean(metric),
+        modelAvailable: row.glickoRating !== null || Boolean(metric),
       };
     };
 
     if (division === 0) {
       return Response.json({
         bashoId,
-        modelVersion: modelMetrics.size ? "Glicko-2 basho v1" : "Elo fallback",
+        modelVersion: rows.some((row) => row.glickoRating !== null) || modelMetrics.size ? "Glicko-2 basho v1" : "Elo fallback",
         divisions: Array.from({ length: 6 }, (_, index) => ({
           id: index + 1,
           rows: rows
@@ -146,7 +153,7 @@ export async function GET(request: Request) {
     return Response.json({
       bashoId,
       division,
-      modelVersion: modelMetrics.size ? "Glicko-2 basho v1" : "Elo fallback",
+      modelVersion: rows.some((row) => row.glickoRating !== null) || modelMetrics.size ? "Glicko-2 basho v1" : "Elo fallback",
       rows: rows.map(decorate),
     });
   } catch (error) {

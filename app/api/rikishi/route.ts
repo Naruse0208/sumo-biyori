@@ -37,6 +37,11 @@ export async function GET(request: Request) {
         bouts: ratingSnapshots.bouts,
         wins: ratingSnapshots.wins,
         losses: ratingSnapshots.losses,
+        glickoRating: ratingSnapshots.glickoRating,
+        glickoRdTenths: ratingSnapshots.glickoRdTenths,
+        glickoVolatilityMillionths: ratingSnapshots.glickoVolatilityMillionths,
+        sumoHensachiTenths: ratingSnapshots.sumoHensachiTenths,
+        sekitoriHensachiTenths: ratingSnapshots.sekitoriHensachiTenths,
         rank: banzukeEntries.rank,
       })
       .from(ratingSnapshots)
@@ -57,12 +62,12 @@ export async function GET(request: Request) {
       const model = modelByBasho.get(point.bashoId);
       return {
         ...point,
-        glickoRating: model?.glickoRating ?? point.elo,
-        glickoRdTenths: model?.glickoRdTenths ?? null,
-        glickoVolatilityMillionths: model?.glickoVolatilityMillionths ?? null,
-        sumoHensachiTenths: model?.sumoHensachiTenths ?? point.dohyoScoreTenths,
-        sekitoriHensachiTenths: model?.sekitoriHensachiTenths ?? null,
-        modelAvailable: Boolean(model),
+        glickoRating: point.glickoRating ?? model?.glickoRating ?? point.elo,
+        glickoRdTenths: point.glickoRdTenths ?? model?.glickoRdTenths ?? null,
+        glickoVolatilityMillionths: point.glickoVolatilityMillionths ?? model?.glickoVolatilityMillionths ?? null,
+        sumoHensachiTenths: point.sumoHensachiTenths ?? model?.sumoHensachiTenths ?? point.dohyoScoreTenths,
+        sekitoriHensachiTenths: point.sekitoriHensachiTenths ?? model?.sekitoriHensachiTenths ?? null,
+        modelAvailable: point.glickoRating !== null || Boolean(model),
       };
     });
 

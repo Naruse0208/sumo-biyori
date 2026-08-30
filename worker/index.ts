@@ -12,6 +12,7 @@ interface Env {
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
   AI_HIGHLIGHT_ADMIN_TOKEN?: string;
+  DAILY_UPDATE_TOKEN?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

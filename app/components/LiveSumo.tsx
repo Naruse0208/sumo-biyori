@@ -63,6 +63,7 @@ type LivePayload = {
   live: boolean;
   basho?: string;
   bashoId?: number;
+  officialBashoId?: number;
   day?: number | null;
   dayLabel?: string;
   currentDivision?: LiveDivision | null;
@@ -206,7 +207,7 @@ const highlightCache = new Map<string, { expiresAt: number; promise: Promise<Hig
 function usePrediction(
   eastNskId: number | null,
   westNskId: number | null,
-  context: { bashoId?: number; day?: number | null; divisionId: number; storedOnly?: boolean },
+  context: { bashoId?: number; officialBashoId?: number; day?: number | null; divisionId: number; storedOnly?: boolean },
 ) {
   const [prediction, setPrediction] = useState<PredictionPayload | null>(null);
   useEffect(() => {
@@ -223,6 +224,7 @@ function usePrediction(
         division: String(context.divisionId),
       });
       if (context.storedOnly) query.set("storedOnly", "1");
+      if (context.officialBashoId) query.set("legacyBasho", String(context.officialBashoId));
       const promise = fetch(`/api/prediction?${query}`)
         .then(async (response) => response.ok ? response.json() as Promise<PredictionPayload> : { available: false })
         .catch(() => ({ available: false }));
@@ -232,14 +234,14 @@ function usePrediction(
     let cancelled = false;
     cached.promise.then((value) => { if (!cancelled) setPrediction(value); });
     return () => { cancelled = true; };
-  }, [context.bashoId, context.day, context.divisionId, context.storedOnly, eastNskId, westNskId]);
+  }, [context.bashoId, context.officialBashoId, context.day, context.divisionId, context.storedOnly, eastNskId, westNskId]);
   return prediction?.available ? prediction : null;
 }
 
 function useBoutHighlights(
   eastNskId: number | null,
   westNskId: number | null,
-  context: { bashoId?: number; day?: number | null; divisionId: number },
+  context: { bashoId?: number; officialBashoId?: number; day?: number | null; divisionId: number },
 ) {
   const [highlights, setHighlights] = useState<HighlightPayload | null>(null);
   useEffect(() => {
@@ -255,6 +257,7 @@ function useBoutHighlights(
         day: String(context.day),
         division: String(context.divisionId),
       });
+      if (context.officialBashoId) query.set("legacyBasho", String(context.officialBashoId));
       const promise = fetch(`/api/highlights?${query}`)
         .then(async (response) => response.ok ? response.json() as Promise<HighlightPayload> : { available: false })
         .catch(() => ({ available: false }));
@@ -264,7 +267,7 @@ function useBoutHighlights(
     let cancelled = false;
     cached.promise.then((value) => { if (!cancelled) setHighlights(value); });
     return () => { cancelled = true; };
-  }, [context.bashoId, context.day, context.divisionId, eastNskId, westNskId]);
+  }, [context.bashoId, context.officialBashoId, context.day, context.divisionId, eastNskId, westNskId]);
   return highlights?.available ? highlights.copy ?? null : null;
 }
 
@@ -272,12 +275,14 @@ function WinProbability({ bout, divisionId, compact = false }: { bout: LiveBout;
   const { data } = useLiveSumo();
   const prediction = usePrediction(bout.eastNskId, bout.westNskId, {
     bashoId: data?.bashoId,
+    officialBashoId: data?.officialBashoId,
     day: data?.day,
     divisionId,
     storedOnly: bout.status === "past",
   });
   const highlights = useBoutHighlights(compact ? null : bout.eastNskId, compact ? null : bout.westNskId, {
     bashoId: data?.bashoId,
+    officialBashoId: data?.officialBashoId,
     day: data?.day,
     divisionId,
   });
